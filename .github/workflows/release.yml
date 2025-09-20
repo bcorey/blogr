@@ -216,10 +216,14 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Publish blogr-themes to crates.io
-        run: cargo publish --package blogr-themes --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --package blogr-themes --token $CARGO_REGISTRY_TOKEN
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Wait for blogr-themes to be available
         run: sleep 30
 
       - name: Publish blogr-cli to crates.io
-        run: cargo publish --package blogr-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --package blogr-cli --token $CARGO_REGISTRY_TOKEN
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
