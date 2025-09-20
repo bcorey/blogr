@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 mod commands;
 mod config;
+mod content;
 mod project;
 mod utils;
 
@@ -53,6 +54,34 @@ enum Commands {
         /// Post tags (comma-separated)
         #[arg(long)]
         tags: Option<String>,
+    },
+    /// List all blog posts
+    List {
+        /// Show only draft posts
+        #[arg(long)]
+        drafts: bool,
+        /// Show only published posts
+        #[arg(long)]
+        published: bool,
+        /// Filter by tag
+        #[arg(short, long)]
+        tag: Option<String>,
+        /// Sort order (date, title, slug)
+        #[arg(short, long, default_value = "date")]
+        sort: String,
+    },
+    /// Edit an existing blog post
+    Edit {
+        /// Post slug to edit
+        slug: String,
+    },
+    /// Delete a blog post
+    Delete {
+        /// Post slug to delete
+        slug: String,
+        /// Skip confirmation prompt
+        #[arg(short, long)]
+        force: bool,
     },
     /// Build the static site
     Build {
@@ -156,6 +185,14 @@ async fn main() -> Result<()> {
             slug,
             tags,
         } => new::handle_new(title, template, draft, slug, tags).await,
+        Commands::List {
+            drafts,
+            published,
+            tag,
+            sort,
+        } => list::handle_list(drafts, published, tag, sort).await,
+        Commands::Edit { slug } => edit::handle_edit(slug).await,
+        Commands::Delete { slug, force } => delete::handle_delete(slug, force).await,
         Commands::Build {
             output,
             drafts,

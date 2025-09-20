@@ -1,25 +1,47 @@
+use crate::content::{PostManager, PostStatus};
+use crate::project::Project;
 use crate::utils::Console;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use std::collections::HashMap;
 
 pub async fn handle_info() -> Result<()> {
     Console::info("Project information:");
 
-    // TODO: Implement project info display
-    // - Check if we're in a blogr project
-    // - Load project configuration
-    // - Display project details (title, author, description)
-    // - Show theme information
-    // - Display GitHub integration status
-    // - Show project statistics
-    // - Display build configuration
+    // Check if we're in a blogr project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project.load_config()?;
+    let post_manager = PostManager::new(project.posts_dir());
+    let posts = post_manager.load_all_posts()?;
+
+    let published_count = posts
+        .iter()
+        .filter(|p| p.metadata.status == PostStatus::Published)
+        .count();
+    let draft_count = posts
+        .iter()
+        .filter(|p| p.metadata.status == PostStatus::Draft)
+        .count();
+
+    let github_status = if let Some(github) = &config.github {
+        format!("{}/{}", github.username, github.repository)
+    } else {
+        "Not configured".to_string()
+    };
 
     println!("📋 Project Information:");
-    println!("  📝 Title: My Blog");
-    println!("  👤 Author: Anonymous");
-    println!("  📄 Description: A blog powered by Blogr");
-    println!("  🎨 Theme: minimal-retro");
-    println!("  📊 Posts: 2 (1 published, 1 draft)");
-    println!("  🌐 GitHub: Not configured");
+    println!("  📝 Title: {}", config.blog.title);
+    println!("  👤 Author: {}", config.blog.author);
+    println!("  📄 Description: {}", config.blog.description);
+    println!("  🎨 Theme: {}", config.theme.name);
+    println!(
+        "  📊 Posts: {} ({} published, {} draft)",
+        posts.len(),
+        published_count,
+        draft_count
+    );
+    println!("  🌐 GitHub: {}", github_status);
     println!();
     println!("💡 Edit blogr.toml to update project settings");
 
@@ -71,36 +93,96 @@ pub async fn handle_clean() -> Result<()> {
 pub async fn handle_stats() -> Result<()> {
     Console::info("Generating project statistics...");
 
-    // TODO: Implement project statistics
-    // - Check if we're in a blogr project
-    // - Count posts by status (published, draft)
-    // - Calculate total word count
-    // - Show posting frequency
-    // - Display tag usage
-    // - Show build and deployment history
-    // - Calculate reading time estimates
+    // Check if we're in a blogr project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let post_manager = PostManager::new(project.posts_dir());
+    let posts = post_manager.load_all_posts()?;
+
+    let published_count = posts
+        .iter()
+        .filter(|p| p.metadata.status == PostStatus::Published)
+        .count();
+    let draft_count = posts
+        .iter()
+        .filter(|p| p.metadata.status == PostStatus::Draft)
+        .count();
+
+    // Calculate word count and reading time
+    let total_words: usize = posts
+        .iter()
+        .map(|p| p.content.split_whitespace().count())
+        .sum();
+    let average_words = if posts.is_empty() {
+        0
+    } else {
+        total_words / posts.len()
+    };
+    let total_reading_time: usize = posts.iter().map(|p| p.reading_time()).sum();
+
+    // Get all tags and count usage
+    let mut tag_counts = HashMap::new();
+    for post in &posts {
+        for tag in &post.metadata.tags {
+            *tag_counts.entry(tag.clone()).or_insert(0) += 1;
+        }
+    }
+    let mut sorted_tags: Vec<_> = tag_counts.into_iter().collect();
+    sorted_tags.sort_by(|a, b| b.1.cmp(&a.1)); // Sort by count, descending
+
+    // Count static files
+    let static_dir = project.static_dir();
+    let mut static_count = 0;
+    let mut image_count = 0;
+    let mut css_count = 0;
+
+    if static_dir.exists() {
+        for entry in walkdir::WalkDir::new(&static_dir).into_iter().flatten() {
+            if entry.path().is_file() {
+                static_count += 1;
+                if let Some(ext) = entry.path().extension() {
+                    match ext.to_str().unwrap_or("").to_lowercase().as_str() {
+                        "jpg" | "jpeg" | "png" | "gif" | "svg" | "webp" => image_count += 1,
+                        "css" => css_count += 1,
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
 
     println!("📊 Project Statistics:");
     println!();
     println!("📝 Content:");
-    println!("  - Total posts: 2");
-    println!("  - Published: 1");
-    println!("  - Drafts: 1");
-    println!("  - Total words: ~1,500");
-    println!("  - Average words per post: 750");
-    println!("  - Estimated reading time: 8 minutes total");
+    println!("  - Total posts: {}", posts.len());
+    println!("  - Published: {}", published_count);
+    println!("  - Drafts: {}", draft_count);
+    println!("  - Total words: ~{}", total_words);
+    if !posts.is_empty() {
+        println!("  - Average words per post: {}", average_words);
+    }
+    println!(
+        "  - Estimated reading time: {} minutes total",
+        total_reading_time
+    );
     println!();
-    println!("🏷️ Tags:");
-    println!("  - welcome (1)");
-    println!("  - getting-started (1)");
-    println!("  - first-post (1)");
-    println!("  - about (1)");
-    println!("  - personal (1)");
-    println!();
+
+    if !sorted_tags.is_empty() {
+        println!("🏷️ Tags:");
+        for (tag, count) in sorted_tags.iter().take(10) {
+            println!("  - {} ({})", tag, count);
+        }
+        if sorted_tags.len() > 10 {
+            println!("  - ... and {} more", sorted_tags.len() - 10);
+        }
+        println!();
+    }
+
     println!("📁 Files:");
-    println!("  - Static files: 0");
-    println!("  - Images: 0");
-    println!("  - Custom CSS: 0");
+    println!("  - Static files: {}", static_count);
+    println!("  - Images: {}", image_count);
+    println!("  - Custom CSS: {}", css_count);
     println!();
     println!("🚀 Last build: Never");
     println!("📤 Last deploy: Never");

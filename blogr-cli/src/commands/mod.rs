@@ -1,6 +1,9 @@
 pub mod build;
+pub mod delete;
 pub mod deploy;
+pub mod edit;
 pub mod init;
+pub mod list;
 pub mod new;
 pub mod project;
 pub mod serve;

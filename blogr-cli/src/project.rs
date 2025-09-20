@@ -28,6 +28,23 @@ impl Project {
         Config::find_project_root().unwrap_or(None).is_some()
     }
 
+    /// Find a project starting from current directory
+    pub fn find_project() -> Result<Option<Self>> {
+        if let Some(root) = Config::find_project_root()? {
+            let config_path = root.join("blogr.toml");
+            let config = Config::load_from_file(&config_path)?;
+            Ok(Some(Self::new(root, config)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Load configuration from the project root
+    pub fn load_config(&self) -> Result<Config> {
+        let config_path = self.root.join("blogr.toml");
+        Config::load_from_file(&config_path)
+    }
+
     /// Initialize a new project in the given directory
     pub fn init<P: AsRef<Path>>(
         path: P,

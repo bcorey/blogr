@@ -1,19 +1,24 @@
 # Blogr - CLI Static Site Generator
 
-## Project Status: Phase 1 Complete ✅
+## Project Status: Phase 2 Complete ✅
 
-**Current Status**: Phase 1 (Core Infrastructure & Workspace Setup) is **COMPLETE** with all deliverables implemented and tested.
+**Current Status**: Phase 2 (Content Management) is **COMPLETE** with all deliverables implemented and tested.
 
 ### 🎉 What's Working Now:
 - ✅ **Full CLI Framework**: Complete command structure with `blogr init`, theme management, project operations
 - ✅ **Minimal Retro Theme**: Production-ready theme with warm retro colors and comprehensive templates
 - ✅ **Project Scaffolding**: `blogr init` creates complete project structure with Git integration
 - ✅ **GitHub Integration**: Automatic repository creation and initial commit/push
+- ✅ **Content Management**: Full CRUD operations for blog posts with rich metadata
+- ✅ **Post Data Structures**: Complete frontmatter parsing with flexible date formats
+- ✅ **Advanced Filtering**: List posts by status, tags, sorting with detailed statistics
+- ✅ **Editor Integration**: Smart editor detection and external editor support
+- ✅ **Project Analytics**: Real-time statistics with word counts, reading time, tag analysis
 - ✅ **Zero Clippy Issues**: Production-ready code quality with comprehensive error handling
 - ✅ **Theme System**: Trait-based architecture ready for community contributions
 
-### 🚧 Next: Phase 2 (Content Management)
-Ready to implement post creation, editing, and content management features.
+### 🚧 Next: Phase 3 (TUI Development)
+Ready to implement terminal-based markdown editor with live preview and theme integration.
 
 ## Project Overview
 
@@ -31,14 +36,35 @@ Blogr is a terminal-based static site generator built in Rust, designed specific
 
 ### 🛠 CLI Commands
 ```bash
+# Project Management
 blogr init [project-name]     # Initialize new blog project + GitHub repo
-blogr new [title]             # Create new blog post (opens TUI)
-blogr edit <post-id>          # Edit existing post (opens TUI)
-blogr list                    # List all posts with status
-blogr delete <post-id>        # Delete a post
-blogr publish                 # Generate site and deploy to GitHub Pages
-blogr serve                   # Local development server
-blogr config                  # Show/edit configuration (opens TUI)
+blogr project info            # Show project information and statistics
+blogr project stats           # Detailed analytics (words, tags, reading time)
+blogr project check           # Validate project structure
+blogr project clean           # Clean build artifacts
+
+# Content Management (✅ IMPLEMENTED)
+blogr new <title> [OPTIONS]   # Create new blog post
+  --draft                     # Create as draft
+  --tags "tag1,tag2"         # Add tags
+  --slug "custom-slug"       # Custom URL slug
+blogr list [OPTIONS]          # List all posts with filtering
+  --drafts                   # Show only drafts
+  --published                # Show only published
+  --tag <tag>                # Filter by tag
+  --sort <date|title|slug>   # Sort order
+blogr edit <slug>             # Edit existing post in external editor
+blogr delete <slug>           # Delete a post (with confirmation)
+
+# Theme Management
+blogr theme list              # List available themes
+blogr theme info <name>       # Show theme details
+blogr theme set <name>        # Change active theme
+
+# Build & Deploy (Placeholder)
+blogr build [OPTIONS]         # Build static site
+blogr serve [OPTIONS]         # Local development server
+blogr deploy [OPTIONS]        # Deploy to GitHub Pages
 ```
 
 ### 🚨 Project Detection & Auto-Initialization
@@ -395,20 +421,33 @@ blogr init [NAME] [OPTIONS]           # Initialize new blog project
   --no-github                         # Skip GitHub integration
   -p, --path <PATH>                   # Custom project directory
 
-# Theme Management  
+# Content Management (✅ PHASE 2 COMPLETE)
+blogr new <TITLE> [OPTIONS]           # Create new blog post
+  --draft                             # Create as draft
+  --tags "tag1,tag2"                 # Add comma-separated tags
+  --slug "custom-slug"               # Custom URL slug
+blogr list [OPTIONS]                  # List all posts with filtering
+  --drafts                           # Show only draft posts
+  --published                        # Show only published posts
+  --tag <TAG>                        # Filter posts by tag
+  --sort <date|title|slug>           # Sort order (date is default)
+blogr edit <SLUG>                     # Edit existing post in external editor
+blogr delete <SLUG>                   # Delete a post with confirmation
+  --force                            # Skip confirmation prompt
+
+# Theme Management
 blogr theme list                      # List available themes
 blogr theme info <THEME>              # Show theme details
 blogr theme set <THEME>               # Change active theme
 blogr theme preview <THEME>           # Preview theme (TUI planned)
 
-# Project Operations
-blogr project info                    # Show project information
+# Project Operations (✅ ENHANCED WITH REAL DATA)
+blogr project info                    # Show project information with real stats
 blogr project check                   # Validate project structure
 blogr project clean                   # Clean build artifacts
-blogr project stats                   # Show project statistics
+blogr project stats                   # Detailed analytics (words, tags, reading time)
 
-# Content & Build (Placeholder implementations ready for Phase 2+)
-blogr new <TITLE> [OPTIONS]           # Create new blog post
+# Build & Deploy (Placeholder implementations for Phase 4+)
 blogr build [OPTIONS]                 # Build static site
 blogr serve [OPTIONS]                 # Development server
 blogr deploy [OPTIONS]                # Deploy to GitHub Pages
@@ -432,17 +471,24 @@ your-blog/
 └── README.md          # Comprehensive project documentation
 ```
 
-### 📝 Phase 2: Content Management (Week 3-4)
-- [ ] Post data structures and metadata parsing
-- [ ] CRUD operations for blog posts
-- [ ] Post listing and filtering
-- [ ] Slug generation and validation
-- [ ] Draft/published status management
+### ✅ Phase 2: Content Management (COMPLETED)
+- [x] Post data structures and metadata parsing
+- [x] CRUD operations for blog posts
+- [x] Post listing and filtering
+- [x] Slug generation and validation
+- [x] Draft/published status management
+- [x] Advanced post analytics and statistics
+- [x] External editor integration
+- [x] Tag-based filtering and sorting
 
-**Deliverables:**
-- `blogr new`, `blogr list`, `blogr delete` commands
-- Post metadata parsing and validation
-- File-based post storage system
+**✅ Deliverables (COMPLETED):**
+- ✅ Working `blogr new`, `blogr list`, `blogr edit`, `blogr delete` commands
+- ✅ Complete post metadata parsing with flexible date formats
+- ✅ File-based post storage system with YAML frontmatter
+- ✅ Advanced filtering by status, tags, and sorting options
+- ✅ Real-time project analytics and statistics
+- ✅ Smart editor detection ($EDITOR, code, vim, nano fallback)
+- ✅ Rich CLI output with emojis and detailed information
 
 ### 🖥 Phase 3: TUI Development with Theme Integration (Week 5-7)
 - [ ] Basic TUI framework setup with `ratatui`
