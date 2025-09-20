@@ -209,10 +209,11 @@ impl SiteBuilder {
         context.insert("site", &self.config);
 
         // Prepare posts with rendered content for index
-        let recent_posts: Vec<_> = posts.iter().take(10).collect();
+        // Load first batch of posts for initial page load
+        let initial_posts: Vec<_> = posts.iter().take(10).collect();
         let mut posts_with_content = Vec::new();
 
-        for post in &recent_posts {
+        for post in &initial_posts {
             // Convert markdown to HTML for each post
             let html_content = crate::generator::markdown::render_markdown(&post.content)?;
 
