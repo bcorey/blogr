@@ -4,6 +4,19 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Deployment type detection for different hosting scenarios
+#[derive(Debug, Clone, PartialEq)]
+pub enum DeploymentType {
+    /// Custom domain (e.g., blog.example.com)
+    CustomDomain,
+    /// GitHub Pages at root (e.g., username.github.io)
+    GitHubPagesRoot,
+    /// GitHub Pages with subpath (e.g., username.github.io/repo)
+    GitHubPagesSubpath,
+    /// Unable to determine deployment type
+    Unknown,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub blog: BlogConfig,
@@ -266,7 +279,9 @@ impl Config {
     }
 
     /// Get the effective base URL, considering domain configuration
+    /// This is the single source of truth for the site's URL
     pub fn get_effective_base_url(&self) -> String {
+        // Priority 1: Domain configuration (most specific)
         if let Some(domains) = &self.blog.domains {
             if let Some(primary) = &domains.primary {
                 let protocol = if domains.enforce_https {
@@ -274,7 +289,9 @@ impl Config {
                 } else {
                     "http"
                 };
-                return format!("{}://{}", protocol, primary);
+                return format!("{}://{}", protocol, primary)
+                    .trim_end_matches('/')
+                    .to_string();
             } else if let Some(subdomain) = &domains.subdomain {
                 let protocol = if domains.enforce_https {
                     "https"
@@ -284,10 +301,41 @@ impl Config {
                 return format!(
                     "{}://{}.{}",
                     protocol, subdomain.prefix, subdomain.base_domain
-                );
+                )
+                .trim_end_matches('/')
+                .to_string();
             }
         }
-        self.blog.base_url.clone()
+
+        // Priority 2: base_url (fallback)
+        self.blog.base_url.trim_end_matches('/').to_string()
+    }
+
+    /// Detect the deployment type based on the effective base URL
+    pub fn get_deployment_type(&self) -> DeploymentType {
+        let base_url = self.get_effective_base_url();
+
+        if let Ok(url) = url::Url::parse(&base_url) {
+            if let Some(host) = url.host_str() {
+                if host.ends_with(".github.io") && url.path() != "/" && !url.path().is_empty() {
+                    return DeploymentType::GitHubPagesSubpath;
+                } else if host.ends_with(".github.io") {
+                    return DeploymentType::GitHubPagesRoot;
+                } else if host.contains("github.io") {
+                    return DeploymentType::GitHubPagesSubpath;
+                } else {
+                    return DeploymentType::CustomDomain;
+                }
+            }
+        }
+
+        DeploymentType::Unknown
+    }
+
+    /// Sync base_url with domain configuration to ensure consistency
+    pub fn sync_base_url_with_domains(&mut self) {
+        let effective_url = self.get_effective_base_url();
+        self.blog.base_url = effective_url;
     }
 
     /// Set primary domain

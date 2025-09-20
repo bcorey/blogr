@@ -19,7 +19,7 @@
             <article class="post-card">
                 <div class="post-header">
                     <h4 class="post-title">
-                        <a href="/posts/{{ post.metadata.slug }}.html">{{ post.metadata.title }}</a>
+                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}">{{ post.metadata.title }}</a>
                     </h4>
                     <time class="post-date" datetime="{{ post.metadata.date }}">
                         {{ post.metadata.date | date(format="%B %d, %Y") }}
@@ -45,7 +45,7 @@
                 {% if post.metadata.tags %}
                 <div class="post-tags">
                     {% for tag in post.metadata.tags %}
-                    <a href="/tags/{{ tag }}.html" class="tag">#{{ tag }}</a>
+                    <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="tag">#{{ tag }}</a>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -55,7 +55,7 @@
 
         {% if has_more %}
         <div class="view-more">
-            <a href="/archive.html" class="btn-view-more">View All Posts ({{ total_posts }} total) →</a>
+            <a href="{{ url(path='archive.html') }}" class="btn-view-more">View All Posts ({{ total_posts }} total) →</a>
         </div>
         {% endif %}
     </section>

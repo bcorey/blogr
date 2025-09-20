@@ -4,6 +4,7 @@ use crate::project::Project;
 use anyhow::{anyhow, Result};
 use blogr_themes::{get_theme_by_name, Theme};
 use chrono::{Datelike, Utc};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -61,6 +62,9 @@ impl SiteBuilder {
                     .map_err(|e| anyhow!("Failed to register template '{}': {}", name, e))?;
             }
         }
+
+        // Register template functions for URL generation
+        Self::register_template_functions(&mut tera, &config)?;
 
         let output_dir = output_dir.unwrap_or_else(|| {
             config
@@ -581,6 +585,53 @@ impl SiteBuilder {
                 println!("📝 Generated CNAME file for: {}", github_domain);
             }
         }
+        Ok(())
+    }
+
+    /// Register template functions for URL generation
+    fn register_template_functions(tera: &mut Tera, config: &Config) -> Result<()> {
+        let base_url = config.get_effective_base_url();
+
+        // Clone base_url for use in closures
+        let base_url_for_asset = base_url.clone();
+        let base_url_for_url = base_url.clone();
+
+        // Register asset_url function
+        tera.register_function(
+            "asset_url",
+            move |args: &HashMap<String, Value>| -> tera::Result<Value> {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| tera::Error::msg("asset_url requires a 'path' argument"))?;
+
+                let full_url = format!(
+                    "{}/{}",
+                    base_url_for_asset.trim_end_matches('/'),
+                    path.trim_start_matches('/')
+                );
+                Ok(Value::String(full_url))
+            },
+        );
+
+        // Register url function for internal links
+        tera.register_function(
+            "url",
+            move |args: &HashMap<String, Value>| -> tera::Result<Value> {
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| tera::Error::msg("url requires a 'path' argument"))?;
+
+                let full_url = format!(
+                    "{}/{}",
+                    base_url_for_url.trim_end_matches('/'),
+                    path.trim_start_matches('/')
+                );
+                Ok(Value::String(full_url))
+            },
+        );
+
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use crate::config::EnvConfig;
+use crate::config::{DeploymentType, EnvConfig};
 use crate::generator::SiteBuilder;
 use crate::project::Project;
 use crate::utils::Console;
@@ -11,51 +11,65 @@ use walkdir::WalkDir;
 pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()> {
     Console::info(&format!("Deploying to GitHub Pages (branch: {branch})"));
 
+    // Validate GitHub token early
+    Console::step(1, 7, "Validating GitHub token...");
+    let github_token = EnvConfig::github_token()
+        .ok_or_else(|| anyhow!("GitHub token not found. Set GITHUB_TOKEN environment variable."))?;
+
+    if github_token.is_empty() {
+        anyhow::bail!(
+            "GitHub token is empty. Please set a valid GITHUB_TOKEN environment variable."
+        );
+    }
+
     // Check if we're in a blogr project
     let project = Project::find_project()?
         .ok_or_else(|| anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
 
     // Load configuration and verify GitHub settings
-    let config = project.load_config()?;
+    let mut config = project.load_config()?;
+
+    // Ensure URL configuration consistency
+    config.sync_base_url_with_domains();
+
     let github_config = config.github.as_ref()
         .ok_or_else(|| anyhow!("GitHub configuration not found. Initialize with GitHub integration or configure manually."))?;
 
-    Console::step(1, 6, "Building site...");
+    Console::step(2, 7, "Building site...");
 
     // Build the site first (include drafts: false, future: false for production)
-    let temp_output = project.root.join("_site");
+    // Use consistent output directory from config
+    let temp_output = config
+        .build
+        .output_dir
+        .as_ref()
+        .map(|p| project.root.join(p))
+        .unwrap_or_else(|| project.root.join("_site"));
     let site_builder = SiteBuilder::new(project.clone(), Some(temp_output.clone()), false, false)?;
     site_builder.build()?;
 
-    Console::step(2, 6, "Checking git status...");
+    Console::step(3, 7, "Preparing git repository...");
 
     // Open the git repository
-    let repo = Repository::open(&project.root)
+    let mut repo = Repository::open(&project.root)
         .with_context(|| "Failed to open git repository. Ensure this is a git repository.")?;
 
-    // Check if working directory is clean
-    let statuses = repo.statuses(None)?;
-    if !statuses.is_empty() {
-        Console::warn("Working directory has uncommitted changes. Consider committing them first.");
-        println!("Uncommitted changes:");
-        for entry in statuses.iter() {
-            if let Some(path) = entry.path() {
-                println!("  {}", path);
-            }
-        }
+    // Check if working directory has uncommitted changes and handle them automatically
+    let has_uncommitted_changes = {
+        let statuses = repo.statuses(None)?;
+        !statuses.is_empty()
+    };
 
-        // Ask user if they want to continue
-        print!("Continue with deployment? (y/N): ");
-        use std::io::{self, Write};
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        if !input.trim().to_lowercase().starts_with('y') {
-            anyhow::bail!("Deployment cancelled");
-        }
+    if has_uncommitted_changes {
+        Console::info("Working directory has uncommitted changes. Auto-stashing for deployment...");
+
+        // Auto-stash uncommitted changes (they will be restored after deployment)
+        let signature = get_git_signature()?;
+        let stash_id = repo.stash_save(&signature, "Auto-stash before deployment", None)?;
+        Console::info(&format!("Changes stashed with ID: {}", stash_id));
     }
 
-    Console::step(3, 6, &format!("Preparing {} branch...", branch));
+    Console::step(4, 7, &format!("Preparing {} branch...", branch));
 
     // Get current branch name
     let head = repo.head()?;
@@ -72,7 +86,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
         create_orphan_branch(&repo, &branch)?;
     }
 
-    Console::step(4, 6, "Copying built files...");
+    Console::step(5, 7, "Copying built files...");
 
     // Clear the deployment branch (except .git)
     clear_deployment_branch(&project.root)?;
@@ -80,18 +94,31 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     // Copy built site to deployment branch root
     copy_site_files(&temp_output, &project.root)?;
 
-    // Create CNAME file if custom domain is configured
-    let base_url = &config.blog.base_url;
-    if let Ok(url) = url::Url::parse(base_url) {
-        if let Some(host) = url.host_str() {
-            if !host.contains("github.io") {
-                let cname_path = project.root.join("CNAME");
-                fs::write(cname_path, host)?;
+    // Smart CNAME file creation based on deployment type
+    let deployment_type = config.get_deployment_type();
+    match deployment_type {
+        DeploymentType::CustomDomain => {
+            let effective_url = config.get_effective_base_url();
+            if let Ok(url) = url::Url::parse(&effective_url) {
+                if let Some(host) = url.host_str() {
+                    let cname_path = project.root.join("CNAME");
+                    fs::write(cname_path, format!("{}\n", host))?;
+                    Console::info(&format!("Created CNAME file for custom domain: {}", host));
+                }
             }
+        }
+        DeploymentType::GitHubPagesRoot => {
+            Console::info("Deploying to GitHub Pages root domain - no CNAME file needed");
+        }
+        DeploymentType::GitHubPagesSubpath => {
+            Console::info("Deploying to GitHub Pages subpath - no CNAME file needed");
+        }
+        DeploymentType::Unknown => {
+            Console::warn("Could not determine deployment type - skipping CNAME file creation");
         }
     }
 
-    Console::step(5, 6, "Committing changes...");
+    Console::step(6, 7, "Committing changes...");
 
     // Stage all files
     let mut index = repo.index()?;
@@ -137,7 +164,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
         )?
     };
 
-    Console::step(6, 6, "Pushing to GitHub...");
+    Console::step(7, 7, "Pushing to GitHub...");
 
     // Push to GitHub
     push_to_github(&repo, &branch, github_config)?;
@@ -334,9 +361,18 @@ fn push_to_github(
         Err(_) => repo.remote("origin", &remote_url)?,
     };
 
-    // Push the branch
-    let refspec = format!("refs/heads/{}:refs/heads/{}", branch, branch);
-    remote.push(&[&refspec], None)?;
+    // Force push the branch to avoid conflicts
+    let refspec = format!("+refs/heads/{}:refs/heads/{}", branch, branch);
+    let token_clone = github_token.clone();
+    let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.credentials(move |_url, _username_from_url, _allowed_types| {
+        git2::Cred::userpass_plaintext(&token_clone, "")
+    });
+
+    let mut push_options = git2::PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+
+    remote.push(&[&refspec], Some(&mut push_options))?;
 
     Ok(())
 }
