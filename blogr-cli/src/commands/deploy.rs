@@ -35,20 +35,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     let github_config = config.github.as_ref()
         .ok_or_else(|| anyhow!("GitHub configuration not found. Initialize with GitHub integration or configure manually."))?;
 
-    Console::step(2, 7, "Building site...");
-
-    // Build the site first (include drafts: false, future: false for production)
-    // Use consistent output directory from config
-    let temp_output = config
-        .build
-        .output_dir
-        .as_ref()
-        .map(|p| project.root.join(p))
-        .unwrap_or_else(|| project.root.join("_site"));
-    let site_builder = SiteBuilder::new(project.clone(), Some(temp_output.clone()), false, false)?;
-    site_builder.build()?;
-
-    Console::step(3, 7, "Preparing git repository...");
+    Console::step(2, 7, "Preparing git repository...");
 
     // Open the git repository
     let mut repo = Repository::open(&project.root)
@@ -60,20 +47,32 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
         !statuses.is_empty()
     };
 
+    let mut stash_id = None;
     if has_uncommitted_changes {
         Console::info("Working directory has uncommitted changes. Auto-stashing for deployment...");
 
         // Auto-stash uncommitted changes (they will be restored after deployment)
         let signature = get_git_signature()?;
-        let stash_id = repo.stash_save(&signature, "Auto-stash before deployment", None)?;
-        Console::info(&format!("Changes stashed with ID: {}", stash_id));
+        let id = repo.stash_save(&signature, "Auto-stash before deployment", None)?;
+        stash_id = Some(id);
+        Console::info(&format!("Changes stashed with ID: {}", id));
     }
+
+    Console::step(3, 7, "Building site...");
+
+    // Build the site AFTER handling git state to ensure build directory exists
+    // Use a temporary directory outside the project to avoid conflicts
+    let temp_output = std::env::temp_dir().join(format!("blogr-deploy-{}", uuid::Uuid::new_v4()));
+    let site_builder = SiteBuilder::new(project.clone(), Some(temp_output.clone()), false, false)?;
+    site_builder.build()?;
 
     Console::step(4, 7, &format!("Preparing {} branch...", branch));
 
     // Get current branch name
-    let head = repo.head()?;
-    let current_branch = head.shorthand().unwrap_or("HEAD").to_string();
+    let current_branch = {
+        let head = repo.head()?;
+        head.shorthand().unwrap_or("HEAD").to_string()
+    };
 
     // Check if deployment branch exists
     let deploy_branch_exists = repo.find_branch(&branch, BranchType::Local).is_ok();
@@ -96,7 +95,9 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     // Smart CNAME file creation based on deployment type
     let deployment_type = config.get_deployment_type();
-    match deployment_type {
+
+    // Create CNAME file for custom domains
+    let cname_created = match deployment_type {
         DeploymentType::CustomDomain => {
             let effective_url = config.get_effective_base_url();
             if let Ok(url) = url::Url::parse(&effective_url) {
@@ -104,17 +105,41 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
                     let cname_path = project.root.join("CNAME");
                     fs::write(cname_path, format!("{}\n", host))?;
                     Console::info(&format!("Created CNAME file for custom domain: {}", host));
+                    true
+                } else {
+                    false
                 }
+            } else {
+                false
             }
         }
         DeploymentType::GitHubPagesRoot => {
             Console::info("Deploying to GitHub Pages root domain - no CNAME file needed");
+            false
         }
         DeploymentType::GitHubPagesSubpath => {
             Console::info("Deploying to GitHub Pages subpath - no CNAME file needed");
+            false
         }
         DeploymentType::Unknown => {
-            Console::warn("Could not determine deployment type - skipping CNAME file creation");
+            Console::warn(
+                "Could not determine deployment type - checking for explicit GitHub Pages domain",
+            );
+            false
+        }
+    };
+
+    // Fallback: if no CNAME was created but we have a github_pages_domain configured, use it
+    if !cname_created {
+        if let Some(domains) = &config.blog.domains {
+            if let Some(github_domain) = &domains.github_pages_domain {
+                let cname_path = project.root.join("CNAME");
+                fs::write(cname_path, format!("{}\n", github_domain))?;
+                Console::info(&format!(
+                    "Created CNAME file from github_pages_domain: {}",
+                    github_domain
+                ));
+            }
         }
     }
 
@@ -171,6 +196,20 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     // Switch back to original branch
     checkout_branch(&repo, &current_branch)?;
+
+    // Restore stashed changes if any were stashed
+    if let Some(_stash_id) = stash_id {
+        Console::info("Restoring stashed changes...");
+        // Create a new repo handle to avoid borrowing conflicts
+        let mut restore_repo = Repository::open(&project.root)?;
+        match restore_repo.stash_pop(0, None) {
+            Ok(_) => Console::info("Successfully restored stashed changes"),
+            Err(e) => Console::warn(&format!(
+                "Warning: Could not restore stashed changes: {}",
+                e
+            )),
+        }
+    }
 
     // Clean up temporary build directory
     if temp_output.exists() {
@@ -344,30 +383,62 @@ fn get_git_signature() -> Result<Signature<'static>> {
 fn push_to_github(
     repo: &Repository,
     branch: &str,
-    github_config: &crate::config::GitHubConfig,
+    _github_config: &crate::config::GitHubConfig,
 ) -> Result<()> {
-    let github_token = EnvConfig::github_token()
-        .ok_or_else(|| anyhow!("GitHub token not found. Set GITHUB_TOKEN environment variable."))?;
+    // Get the existing remote
+    let mut remote = repo
+        .find_remote("origin")
+        .with_context(|| "No 'origin' remote found. Please add a remote first.")?;
 
-    // Create remote URL with token
-    let remote_url = format!(
-        "https://{}@github.com/{}/{}.git",
-        github_token, github_config.username, github_config.repository
-    );
-
-    // Get or create remote
-    let mut remote = match repo.find_remote("origin") {
-        Ok(remote) => remote,
-        Err(_) => repo.remote("origin", &remote_url)?,
-    };
+    let remote_url = remote.url().unwrap_or("");
 
     // Force push the branch to avoid conflicts
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch, branch);
-    let token_clone = github_token.clone();
+
     let mut callbacks = git2::RemoteCallbacks::new();
-    callbacks.credentials(move |_url, _username_from_url, _allowed_types| {
-        git2::Cred::userpass_plaintext(&token_clone, "")
-    });
+
+    // Handle authentication based on remote URL type
+    if remote_url.starts_with("git@") || remote_url.starts_with("ssh://") {
+        // SSH authentication - use SSH agent or SSH keys
+        Console::info("Using SSH authentication for git push...");
+        callbacks.credentials(|_url, username_from_url, allowed_types| {
+            if allowed_types.contains(git2::CredentialType::SSH_KEY) {
+                // Try SSH agent first
+                if let Ok(cred) = git2::Cred::ssh_key_from_agent(username_from_url.unwrap_or("git"))
+                {
+                    return Ok(cred);
+                }
+
+                // Try default SSH key locations
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let private_key = format!("{}/.ssh/id_rsa", home);
+                let public_key = format!("{}/.ssh/id_rsa.pub", home);
+
+                if std::path::Path::new(&private_key).exists() {
+                    return git2::Cred::ssh_key(
+                        username_from_url.unwrap_or("git"),
+                        Some(std::path::Path::new(&public_key)),
+                        std::path::Path::new(&private_key),
+                        None,
+                    );
+                }
+            }
+
+            Err(git2::Error::from_str("No SSH credentials available"))
+        });
+    } else if remote_url.starts_with("https://") {
+        // HTTPS authentication - use GitHub token
+        let github_token = EnvConfig::github_token()
+            .ok_or_else(|| anyhow!("GitHub token not found. Set GITHUB_TOKEN environment variable for HTTPS authentication."))?;
+
+        Console::info("Using HTTPS token authentication for git push...");
+        let token_clone = github_token.clone();
+        callbacks.credentials(move |_url, _username_from_url, _allowed_types| {
+            git2::Cred::userpass_plaintext(&token_clone, "")
+        });
+    } else {
+        anyhow::bail!("Unsupported remote URL format: {}", remote_url);
+    }
 
     let mut push_options = git2::PushOptions::new();
     push_options.remote_callbacks(callbacks);
