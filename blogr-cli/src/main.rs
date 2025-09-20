@@ -8,7 +8,7 @@ mod content;
 mod generator;
 mod project;
 mod tui;
-mod tui_integration;
+mod tui_launcher;
 mod utils;
 
 use commands::*;
@@ -290,13 +290,13 @@ async fn main() -> Result<()> {
         Commands::Config { action } => match action {
             ConfigAction::Edit => {
                 use crate::project::Project;
-                use crate::tui_integration;
+                use crate::tui_launcher;
 
                 let project = Project::find_project()?.ok_or_else(|| {
                     anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first.")
                 })?;
 
-                tui_integration::launch_config_editor(&project).await
+                tui_launcher::launch_config_editor(&project).await
             }
             ConfigAction::Get { key } => commands::config::handle_get(key).await,
             ConfigAction::Set { key, value } => commands::config::handle_set(key, value).await,

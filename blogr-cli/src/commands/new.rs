@@ -59,9 +59,9 @@ pub async fn handle_new(
         println!();
         println!("🚀 Launching TUI editor...");
 
-        use crate::tui_integration;
+        use crate::tui_launcher;
 
-        let edited_post = tui_integration::launch_editor(post, &project).await?;
+        let edited_post = tui_launcher::launch_editor(post, &project).await?;
 
         // Save the edited post
         let final_file_path = post_manager.save_post(&edited_post)?;

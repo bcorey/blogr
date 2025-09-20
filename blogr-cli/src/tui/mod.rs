@@ -1,4 +1,5 @@
 pub mod app;
+pub mod config_app;
 pub mod editor;
 pub mod events;
 pub mod markdown;
@@ -62,6 +63,15 @@ impl<B: Backend> Tui<B> {
     /// [`rendering`]: crate::ui:render
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
         self.terminal.draw(|frame| app.render(frame))?;
+        Ok(())
+    }
+
+    /// Draw the configuration app
+    pub fn draw_config(
+        &mut self,
+        config_app: &mut crate::tui::config_app::ConfigApp,
+    ) -> AppResult<()> {
+        self.terminal.draw(|frame| config_app.render(frame))?;
         Ok(())
     }
 

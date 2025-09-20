@@ -22,9 +22,9 @@ pub async fn handle_edit(slug: String, use_tui: bool) -> Result<()> {
         // Use TUI editor
         Console::info("Launching TUI editor...");
 
-        use crate::tui_integration;
+        use crate::tui_launcher;
 
-        let edited_post = tui_integration::launch_editor(post, &project).await?;
+        let edited_post = tui_launcher::launch_editor(post, &project).await?;
 
         // Save the edited post
         let post_manager = PostManager::new(project.posts_dir());

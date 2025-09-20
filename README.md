@@ -183,9 +183,9 @@ blogr deploy                   # Deploy to GitHub Pages
 ### Configuration Management
 
 ```bash
-blogr config edit             # Open interactive configuration editor (TUI)
-                              # Displays blog info, theme settings, GitHub integration
-                              # Provides instructions for configuration modification
+blogr config edit             # Open interactive TUI configuration editor
+                              # Full-screen interface with live editing
+                              # Navigate with ↑/↓, Enter to edit, 's' to save
 
 blogr config get <KEY>        # Get configuration value
                               # e.g., blogr config get blog.title
@@ -212,9 +212,13 @@ blogr config domain add-alias <DOMAIN>     # Add domain alias
 blogr config domain remove-alias <DOMAIN>  # Remove domain alias
 ```
 
-## 🖥️ TUI Editor
+## 🖥️ TUI Interfaces
 
-The terminal user interface provides a powerful markdown editor with live preview:
+Blogr provides multiple terminal user interfaces for different tasks:
+
+### 📝 Post Editor
+
+The markdown editor TUI provides a powerful editing experience with live preview:
 
 ### Navigation
 - `i` - Enter insert mode
@@ -233,6 +237,25 @@ The terminal user interface provides a powerful markdown editor with live previe
 - **Modal Editing**: Vim-like modal editing for efficiency
 - **Smart Navigation**: Height-aware page scrolling and cursor management
 - **Auto-Save**: Automatic saving to filesystem with PostManager integration
+
+### ⚙️ Configuration Editor
+
+The interactive configuration editor TUI allows you to modify all blog settings:
+
+#### Navigation
+- `↑/↓` - Navigate between configuration fields
+- `Enter` - Edit selected field
+- `Esc` - Cancel edit
+- `s` - Save configuration
+- `q` - Quit (with save prompt)
+- `h` or `F1` - Show help overlay
+
+#### Features
+- **Categorized Fields**: Settings organized by Blog, Theme, Domain, Build, and Development
+- **Live Validation**: Type checking for boolean and numeric fields
+- **Visual Feedback**: Current values displayed with modification indicators
+- **Smart Editing**: Context-aware input validation and help text
+- **Theme Integration**: Uses your blog's color scheme for consistent experience
 
 ## 🏗️ Project Structure
 
@@ -261,12 +284,66 @@ my-blog/
 
 The `blogr.toml` file contains all blog configuration:
 
+### Understanding Base URL
+
+The **Base URL** is the complete web address (URL) where your blog will be publicly accessible on the internet. Think of it as your blog's "home address" on the web.
+
+#### What is a Base URL?
+
+A base URL consists of:
+- **Protocol**: `https://` (or `http://`, though HTTPS is recommended)
+- **Domain**: The website address (e.g., `myblog.com`, `username.github.io`)
+- **Path** (optional): Additional path segments (e.g., `/blog`, `/my-project`)
+
+#### Why is it Important?
+
+Blogr uses your base URL to generate:
+- **Absolute links** in RSS/Atom feeds (so feed readers can find your posts)
+- **Canonical URLs** for SEO (helps search engines understand your content's primary location)
+- **Social media sharing links** (when people share your posts)
+- **Sitemap entries** (for search engine indexing)
+- **Internal navigation** (ensuring all links work correctly)
+
+#### Common Examples:
+
+**GitHub Pages (default):**
+```
+https://username.github.io/repository-name
+```
+- `username`: Your GitHub username
+- `repository-name`: Your blog's repository name
+
+**Custom domain:**
+```
+https://myblog.com
+```
+- Simple, professional-looking address
+
+**Subdomain:**
+```
+https://blog.mycompany.com
+```
+- Great for company blogs or when you want to separate your blog from your main site
+
+**With path:**
+```
+https://mywebsite.com/blog
+```
+- When your blog is part of a larger website
+
+#### Configuration Notes:
+
+- When you configure custom domains in Blogr, the system automatically uses your domain configuration instead of the base URL for generating links
+- Always include the protocol (`https://` or `http://`)
+- Don't include a trailing slash (`/`) at the end
+- Make sure the URL matches exactly where your blog will be accessible
+
 ```toml
 [blog]
 title = "My Programming Blog"
 author = "John Doe"
 description = "Thoughts on programming and software development"
-base_url = "https://johndoe.github.io/blog"
+base_url = "https://johndoe.github.io/blog"  # Your blog's web address
 language = "en"
 timezone = "UTC"
 
@@ -480,6 +557,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Git operations with [git2](https://github.com/rust-lang/git2-rs)
 
 ## 🎉 Recent Updates
+
+### v0.3.1 - Interactive Configuration Editor
+- 🖥️ **Interactive TUI Config**: Full-screen configuration editor with live editing
+- 📝 **Intuitive Navigation**: Arrow key navigation with Enter to edit
+- 🎨 **Categorized Settings**: Fields organized by Blog, Theme, Domain, Build, Dev
+- ✅ **Live Validation**: Smart input validation for different field types
+- 💾 **Safe Editing**: Save prompts and modification indicators
+- 📖 **Built-in Help**: Comprehensive help system with F1 key
+- 🌈 **Theme Integration**: Editor uses your blog's color scheme
 
 ### v0.3.0 - Domain Configuration & Management
 - 🌐 **Domain Configuration**: Full support for custom domains and subdomains
