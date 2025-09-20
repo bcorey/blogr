@@ -254,7 +254,7 @@ dependencies = [
  "syntect",
  "tempfile",
  "tera",
- "thiserror 1.0.69",
+ "thiserror 2.0.16",
  "tokio",
  "toml",
  "tower 0.4.13",
@@ -272,7 +272,7 @@ dependencies = [
  "include_dir",
  "ratatui",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.16",
  "toml",
 ]
 
