@@ -1,8 +1,8 @@
 # Blogr - CLI Static Site Generator
 
-## Project Status: Phase 2 Complete ✅
+## Project Status: Phase 3 Complete ✅
 
-**Current Status**: Phase 2 (Content Management) is **COMPLETE** with all deliverables implemented and tested.
+**Current Status**: Phase 3 (TUI Development) is **COMPLETE** with all deliverables implemented and tested.
 
 ### 🎉 What's Working Now:
 - ✅ **Full CLI Framework**: Complete command structure with `blogr init`, theme management, project operations
@@ -13,12 +13,17 @@
 - ✅ **Post Data Structures**: Complete frontmatter parsing with flexible date formats
 - ✅ **Advanced Filtering**: List posts by status, tags, sorting with detailed statistics
 - ✅ **Editor Integration**: Smart editor detection and external editor support
+- ✅ **TUI Editor**: Terminal-based markdown editor with live preview and theme integration
+- ✅ **Multi-Pane Layout**: Side-by-side editor and preview with focus switching
+- ✅ **Theme-Aware UI**: TUI styling that reflects blog theme colors and configuration
+- ✅ **Markdown Rendering**: Live preview with syntax highlighting and proper formatting
+- ✅ **Keyboard Navigation**: Vim-like modal editing with intuitive shortcuts
 - ✅ **Project Analytics**: Real-time statistics with word counts, reading time, tag analysis
 - ✅ **Zero Clippy Issues**: Production-ready code quality with comprehensive error handling
 - ✅ **Theme System**: Trait-based architecture ready for community contributions
 
-### 🚧 Next: Phase 3 (TUI Development)
-Ready to implement terminal-based markdown editor with live preview and theme integration.
+### 🚧 Next: Phase 4 (Static Site Generation)
+Ready to implement site building, template processing, and deployment features.
 
 ## Project Overview
 
@@ -426,14 +431,27 @@ blogr new <TITLE> [OPTIONS]           # Create new blog post
   --draft                             # Create as draft
   --tags "tag1,tag2"                 # Add comma-separated tags
   --slug "custom-slug"               # Custom URL slug
+  --tui                              # Open in TUI editor (✅ PHASE 3)
 blogr list [OPTIONS]                  # List all posts with filtering
   --drafts                           # Show only draft posts
   --published                        # Show only published posts
   --tag <TAG>                        # Filter posts by tag
   --sort <date|title|slug>           # Sort order (date is default)
-blogr edit <SLUG>                     # Edit existing post in external editor
+blogr edit <SLUG> [OPTIONS]           # Edit existing post
+  --tui                              # Open in TUI editor (✅ PHASE 3)
 blogr delete <SLUG>                   # Delete a post with confirmation
   --force                            # Skip confirmation prompt
+
+# TUI Editor (✅ PHASE 3 COMPLETE)
+blogr config                          # Open configuration TUI
+# TUI Editor Controls:
+#   i      - Enter insert mode
+#   Esc    - Return to normal mode
+#   p      - Enter preview mode
+#   s      - Save post
+#   q      - Quit (with save prompt)
+#   Tab    - Switch between editor and preview
+#   h/F1   - Show help overlay
 
 # Theme Management
 blogr theme list                      # List available themes

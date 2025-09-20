@@ -6,6 +6,8 @@ mod commands;
 mod config;
 mod content;
 mod project;
+mod tui;
+mod tui_integration;
 mod utils;
 
 use commands::*;
@@ -54,6 +56,9 @@ enum Commands {
         /// Post tags (comma-separated)
         #[arg(long)]
         tags: Option<String>,
+        /// Open in TUI editor instead of external editor
+        #[arg(long)]
+        tui: bool,
     },
     /// List all blog posts
     List {
@@ -74,6 +79,9 @@ enum Commands {
     Edit {
         /// Post slug to edit
         slug: String,
+        /// Open in TUI editor instead of external editor
+        #[arg(long)]
+        tui: bool,
     },
     /// Delete a blog post
     Delete {
@@ -129,6 +137,8 @@ enum Commands {
         #[command(subcommand)]
         action: ProjectAction,
     },
+    /// Open configuration editor (TUI)
+    Config,
 }
 
 #[derive(Subcommand)]
@@ -184,14 +194,15 @@ async fn main() -> Result<()> {
             draft,
             slug,
             tags,
-        } => new::handle_new(title, template, draft, slug, tags).await,
+            tui,
+        } => new::handle_new(title, template, draft, slug, tags, tui).await,
         Commands::List {
             drafts,
             published,
             tag,
             sort,
         } => list::handle_list(drafts, published, tag, sort).await,
-        Commands::Edit { slug } => edit::handle_edit(slug).await,
+        Commands::Edit { slug, tui } => edit::handle_edit(slug, tui).await,
         Commands::Delete { slug, force } => delete::handle_delete(slug, force).await,
         Commands::Build {
             output,
@@ -217,5 +228,15 @@ async fn main() -> Result<()> {
             ProjectAction::Clean => project_cmd::handle_clean().await,
             ProjectAction::Stats => project_cmd::handle_stats().await,
         },
+        Commands::Config => {
+            use crate::project::Project;
+            use crate::tui_integration;
+
+            let project = Project::find_project()?.ok_or_else(|| {
+                anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first.")
+            })?;
+
+            tui_integration::launch_config_editor(&project).await
+        }
     }
 }

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::config::Config;
 
 /// Project structure and utilities
+#[derive(Debug, Clone)]
 pub struct Project {
     pub root: PathBuf,
     pub config: Config,
@@ -300,7 +301,7 @@ impl Project {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[allow(dead_code)]
 pub struct ProjectStats {
     pub total_posts: usize,
