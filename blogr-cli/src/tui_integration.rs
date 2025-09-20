@@ -106,6 +106,43 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
     }
     println!();
 
+    // Domain Configuration
+    println!("🌐 Domain Configuration:");
+    if let Some(domains) = &config.blog.domains {
+        if let Some(primary) = &domains.primary {
+            println!("  Primary Domain: {}", primary);
+        }
+
+        if let Some(subdomain) = &domains.subdomain {
+            println!(
+                "  Subdomain: {}.{}",
+                subdomain.prefix, subdomain.base_domain
+            );
+        }
+
+        if !domains.aliases.is_empty() {
+            println!("  Domain Aliases:");
+            for alias in &domains.aliases {
+                println!("    • {}", alias);
+            }
+        }
+
+        println!(
+            "  HTTPS Enforced: {}",
+            if domains.enforce_https { "Yes" } else { "No" }
+        );
+
+        if let Some(github_domain) = &domains.github_pages_domain {
+            println!("  GitHub Pages Domain: {}", github_domain);
+        }
+
+        println!("  Effective Base URL: {}", config.get_effective_base_url());
+    } else {
+        println!("  No custom domains configured");
+        println!("  Using Base URL: {}", config.blog.base_url);
+    }
+    println!();
+
     // GitHub Integration
     if let Some(github) = &config.github {
         println!("🐙 GitHub Integration:");
@@ -152,17 +189,29 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
     );
     println!("   - Use any text editor to modify settings");
     println!();
-    println!("2. 🎨 Change themes:");
+    println!("2. 🌐 Configure domains:");
+    println!("   - blogr config domain set                  # Set primary domain interactively");
+    println!("   - blogr config domain set example.com      # Set primary domain");
+    println!("   - blogr config domain set --subdomain blog # Configure subdomain");
+    println!("   - blogr config domain list                 # List all domains");
+    println!("   - blogr config domain add-alias alias.com  # Add domain alias");
+    println!("   - blogr config domain clear                # Clear domain config");
+    println!();
+    println!("3. 🎨 Change themes:");
     println!("   - blogr theme list         # View available themes");
     println!("   - blogr theme set <name>   # Switch to a different theme");
     println!("   - blogr theme info <name>  # View theme details");
     println!();
-    println!("3. 🐙 Configure GitHub integration:");
+    println!("4. ⚙️ General configuration:");
+    println!("   - blogr config get blog.title              # Get config value");
+    println!("   - blogr config set blog.title \"My Blog\"    # Set config value");
+    println!();
+    println!("5. 🐙 Configure GitHub integration:");
     println!("   - Set GITHUB_TOKEN environment variable");
     println!("   - Update [github] section in blogr.toml");
     println!("   - Run 'blogr deploy' to deploy to GitHub Pages");
     println!();
-    println!("4. ✅ Validate configuration:");
+    println!("6. ✅ Validate configuration:");
     println!("   - blogr project check      # Validate project structure");
     println!("   - blogr project info       # View project information");
     println!();

@@ -122,6 +122,9 @@ impl SiteBuilder {
         // Copy project static assets
         self.copy_static_assets()?;
 
+        // Generate CNAME file if domain configuration exists
+        self.generate_cname_file()?;
+
         println!(
             "✅ Site built successfully to: {}",
             self.output_dir.display()
@@ -380,6 +383,9 @@ impl SiteBuilder {
 
     /// Generate RSS feed
     fn generate_rss_feed(&self, posts: &[Post]) -> Result<()> {
+        // Get effective base URL for all feed URLs
+        let effective_base_url = self.config.get_effective_base_url();
+
         // Take only the most recent 20 posts for the RSS feed
         let recent_posts: Vec<&Post> = posts.iter().take(20).collect();
 
@@ -392,7 +398,7 @@ impl SiteBuilder {
             // Create RSS item
             let post_url = format!(
                 "{}/posts/{}.html",
-                self.config.blog.base_url.trim_end_matches('/'),
+                effective_base_url.trim_end_matches('/'),
                 post.metadata.slug
             );
 
@@ -432,8 +438,8 @@ impl SiteBuilder {
   </channel>
 </rss>"#,
             self.config.blog.title,
-            self.config.blog.base_url,
-            self.config.blog.base_url.trim_end_matches('/'),
+            effective_base_url,
+            effective_base_url.trim_end_matches('/'),
             self.config.blog.description,
             self.config.blog.language.as_deref().unwrap_or("en"),
             Utc::now().format("%a, %d %b %Y %H:%M:%S %z"),
@@ -453,6 +459,9 @@ impl SiteBuilder {
 
     /// Generate Atom feed
     fn generate_atom_feed(&self, posts: &[Post]) -> Result<()> {
+        // Get effective base URL for all feed URLs
+        let effective_base_url = self.config.get_effective_base_url();
+
         // Take only the most recent 20 posts for the Atom feed
         let recent_posts: Vec<&Post> = posts.iter().take(20).collect();
 
@@ -465,7 +474,7 @@ impl SiteBuilder {
             // Create Atom entry
             let post_url = format!(
                 "{}/posts/{}.html",
-                self.config.blog.base_url.trim_end_matches('/'),
+                effective_base_url.trim_end_matches('/'),
                 post.metadata.slug
             );
 
@@ -507,9 +516,9 @@ impl SiteBuilder {
 {}
 </feed>"#,
             self.config.blog.title,
-            self.config.blog.base_url,
-            self.config.blog.base_url.trim_end_matches('/'),
-            self.config.blog.base_url,
+            effective_base_url,
+            effective_base_url.trim_end_matches('/'),
+            effective_base_url,
             Utc::now().format("%Y-%m-%dT%H:%M:%S%z"),
             self.config.blog.description,
             atom_entries.join("\n")
@@ -559,5 +568,19 @@ impl SiteBuilder {
     /// Get the output directory
     pub fn output_dir(&self) -> &Path {
         &self.output_dir
+    }
+
+    /// Generate CNAME file for custom domains (GitHub Pages)
+    fn generate_cname_file(&self) -> Result<()> {
+        if let Some(domains) = &self.config.blog.domains {
+            if let Some(github_domain) = &domains.github_pages_domain {
+                let cname_file = self.output_dir.join("CNAME");
+                fs::write(&cname_file, format!("{}\n", github_domain))
+                    .map_err(|e| anyhow!("Failed to write CNAME file: {}", e))?;
+
+                println!("📝 Generated CNAME file for: {}", github_domain);
+            }
+        }
+        Ok(())
     }
 }

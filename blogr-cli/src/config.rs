@@ -21,6 +21,35 @@ pub struct BlogConfig {
     pub base_url: String,
     pub language: Option<String>,
     pub timezone: Option<String>,
+    pub domains: Option<DomainConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DomainConfig {
+    /// Primary domain for the blog (e.g., "example.com")
+    pub primary: Option<String>,
+    /// List of additional domains that redirect to primary
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    /// Subdomain configuration
+    pub subdomain: Option<SubdomainConfig>,
+    /// Whether to enforce HTTPS
+    #[serde(default = "default_enforce_https")]
+    pub enforce_https: bool,
+    /// Custom domain for GitHub Pages (CNAME file content)
+    pub github_pages_domain: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubdomainConfig {
+    /// Subdomain prefix (e.g., "blog" for blog.example.com)
+    pub prefix: String,
+    /// Base domain (e.g., "example.com")
+    pub base_domain: String,
+}
+
+fn default_enforce_https() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +97,7 @@ impl Default for Config {
                 base_url: "https://username.github.io/repository".to_string(),
                 language: Some("en".to_string()),
                 timezone: Some("UTC".to_string()),
+                domains: None,
             },
             theme: ThemeConfig {
                 name: "minimal-retro".to_string(),
@@ -233,6 +263,121 @@ impl Config {
     #[allow(dead_code)]
     pub fn set_theme_config(&mut self, key: String, value: toml::Value) {
         self.theme.config.insert(key, value);
+    }
+
+    /// Get the effective base URL, considering domain configuration
+    pub fn get_effective_base_url(&self) -> String {
+        if let Some(domains) = &self.blog.domains {
+            if let Some(primary) = &domains.primary {
+                let protocol = if domains.enforce_https {
+                    "https"
+                } else {
+                    "http"
+                };
+                return format!("{}://{}", protocol, primary);
+            } else if let Some(subdomain) = &domains.subdomain {
+                let protocol = if domains.enforce_https {
+                    "https"
+                } else {
+                    "http"
+                };
+                return format!(
+                    "{}://{}.{}",
+                    protocol, subdomain.prefix, subdomain.base_domain
+                );
+            }
+        }
+        self.blog.base_url.clone()
+    }
+
+    /// Set primary domain
+    pub fn set_primary_domain(&mut self, domain: String, enforce_https: bool) {
+        if self.blog.domains.is_none() {
+            self.blog.domains = Some(DomainConfig {
+                primary: Some(domain.clone()),
+                aliases: Vec::new(),
+                subdomain: None,
+                enforce_https,
+                github_pages_domain: Some(domain.clone()),
+            });
+        } else if let Some(domains) = &mut self.blog.domains {
+            domains.primary = Some(domain.clone());
+            domains.enforce_https = enforce_https;
+            domains.github_pages_domain = Some(domain);
+        }
+    }
+
+    /// Set subdomain configuration
+    pub fn set_subdomain(&mut self, prefix: String, base_domain: String, enforce_https: bool) {
+        let full_domain = format!("{}.{}", prefix, base_domain);
+
+        if self.blog.domains.is_none() {
+            self.blog.domains = Some(DomainConfig {
+                primary: None,
+                aliases: Vec::new(),
+                subdomain: Some(SubdomainConfig {
+                    prefix: prefix.clone(),
+                    base_domain: base_domain.clone(),
+                }),
+                enforce_https,
+                github_pages_domain: Some(full_domain),
+            });
+        } else if let Some(domains) = &mut self.blog.domains {
+            domains.subdomain = Some(SubdomainConfig {
+                prefix: prefix.clone(),
+                base_domain: base_domain.clone(),
+            });
+            domains.enforce_https = enforce_https;
+            domains.github_pages_domain = Some(full_domain);
+        }
+    }
+
+    /// Add domain alias
+    pub fn add_domain_alias(&mut self, alias: String) {
+        if self.blog.domains.is_none() {
+            self.blog.domains = Some(DomainConfig {
+                primary: None,
+                aliases: vec![alias],
+                subdomain: None,
+                enforce_https: true,
+                github_pages_domain: None,
+            });
+        } else if let Some(domains) = &mut self.blog.domains {
+            if !domains.aliases.contains(&alias) {
+                domains.aliases.push(alias);
+            }
+        }
+    }
+
+    /// Remove domain alias
+    pub fn remove_domain_alias(&mut self, alias: &str) {
+        if let Some(domains) = &mut self.blog.domains {
+            domains.aliases.retain(|a| a != alias);
+        }
+    }
+
+    /// Clear all domain configuration
+    pub fn clear_domains(&mut self) {
+        self.blog.domains = None;
+    }
+
+    /// Get all configured domains (primary + aliases + subdomain)
+    pub fn get_all_domains(&self) -> Vec<String> {
+        let mut domains = Vec::new();
+
+        if let Some(domain_config) = &self.blog.domains {
+            if let Some(primary) = &domain_config.primary {
+                domains.push(primary.clone());
+            }
+
+            if let Some(subdomain) = &domain_config.subdomain {
+                domains.push(format!("{}.{}", subdomain.prefix, subdomain.base_domain));
+            }
+
+            domains.extend(domain_config.aliases.clone());
+        }
+
+        domains
     }
 }
 

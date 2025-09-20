@@ -138,8 +138,11 @@ enum Commands {
         #[command(subcommand)]
         action: ProjectAction,
     },
-    /// Open configuration editor (TUI)
-    Config,
+    /// Configuration management commands
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -173,6 +176,61 @@ enum ProjectAction {
     Clean,
     /// Show project statistics
     Stats,
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    /// Open interactive configuration editor (TUI)
+    Edit,
+    /// Get configuration value
+    Get {
+        /// Configuration key (e.g., blog.title, domains.primary)
+        key: String,
+    },
+    /// Set configuration value
+    Set {
+        /// Configuration key
+        key: String,
+        /// Configuration value
+        value: String,
+    },
+    /// Domain configuration commands
+    Domain {
+        #[command(subcommand)]
+        action: DomainAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum DomainAction {
+    /// Set primary domain or subdomain
+    Set {
+        /// Domain name (e.g., example.com or blog.example.com)
+        domain: Option<String>,
+        /// Subdomain prefix (for subdomain configuration)
+        #[arg(long)]
+        subdomain: Option<String>,
+        /// Enforce HTTPS
+        #[arg(long, default_value = "true")]
+        enforce_https: bool,
+        /// Create CNAME file for GitHub Pages
+        #[arg(long)]
+        github_pages: bool,
+    },
+    /// List all configured domains
+    List,
+    /// Clear all domain configuration
+    Clear,
+    /// Add domain alias
+    AddAlias {
+        /// Alias domain name
+        alias: String,
+    },
+    /// Remove domain alias
+    RemoveAlias {
+        /// Alias domain name to remove
+        alias: String,
+    },
 }
 
 #[tokio::main]
@@ -229,15 +287,43 @@ async fn main() -> Result<()> {
             ProjectAction::Clean => project_cmd::handle_clean().await,
             ProjectAction::Stats => project_cmd::handle_stats().await,
         },
-        Commands::Config => {
-            use crate::project::Project;
-            use crate::tui_integration;
+        Commands::Config { action } => match action {
+            ConfigAction::Edit => {
+                use crate::project::Project;
+                use crate::tui_integration;
 
-            let project = Project::find_project()?.ok_or_else(|| {
-                anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first.")
-            })?;
+                let project = Project::find_project()?.ok_or_else(|| {
+                    anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first.")
+                })?;
 
-            tui_integration::launch_config_editor(&project).await
-        }
+                tui_integration::launch_config_editor(&project).await
+            }
+            ConfigAction::Get { key } => commands::config::handle_get(key).await,
+            ConfigAction::Set { key, value } => commands::config::handle_set(key, value).await,
+            ConfigAction::Domain { action } => {
+                let domain_action = match action {
+                    DomainAction::Set {
+                        domain,
+                        subdomain,
+                        enforce_https,
+                        github_pages,
+                    } => commands::config::DomainAction::Set {
+                        domain,
+                        subdomain,
+                        enforce_https,
+                        github_pages,
+                    },
+                    DomainAction::List => commands::config::DomainAction::List,
+                    DomainAction::Clear => commands::config::DomainAction::Clear,
+                    DomainAction::AddAlias { alias } => {
+                        commands::config::DomainAction::AddAlias { alias }
+                    }
+                    DomainAction::RemoveAlias { alias } => {
+                        commands::config::DomainAction::RemoveAlias { alias }
+                    }
+                };
+                commands::config::handle_domain(domain_action).await
+            }
+        },
     }
 }

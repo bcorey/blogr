@@ -37,9 +37,11 @@ A fast, modern static site generator built in Rust, designed specifically for bl
 
 ### 🌐 Deployment
 - **GitHub Pages**: One-command deployment to GitHub Pages
-- **Custom Domains**: Automatic CNAME file generation
+- **Custom Domains**: Full domain and subdomain configuration with automatic CNAME file generation
+- **Domain Management**: Primary domains, subdomains, and domain aliases support
+- **HTTPS Enforcement**: Configurable HTTPS settings for custom domains
 - **GitHub Actions**: Automated deployment workflows
-- **RSS/Atom Feeds**: Automatic feed generation
+- **RSS/Atom Feeds**: Automatic feed generation with domain-aware URLs
 - **Status Validation**: Deployment status checking via GitHub API
 
 ## 📦 Installation
@@ -181,9 +183,33 @@ blogr deploy                   # Deploy to GitHub Pages
 ### Configuration Management
 
 ```bash
-blogr config                   # Show current configuration with management guide
+blogr config edit             # Open interactive configuration editor (TUI)
                               # Displays blog info, theme settings, GitHub integration
                               # Provides instructions for configuration modification
+
+blogr config get <KEY>        # Get configuration value
+                              # e.g., blogr config get blog.title
+                              # e.g., blogr config get domains.primary
+
+blogr config set <KEY> <VALUE> # Set configuration value
+                              # e.g., blogr config set blog.title "My Blog"
+                              # e.g., blogr config set blog.author "John Doe"
+```
+
+### Domain Configuration
+
+```bash
+blogr config domain set                    # Set domain interactively
+blogr config domain set example.com        # Set primary domain
+blogr config domain set blog.example.com   # Set subdomain (auto-detected)
+  --subdomain <PREFIX>                      # Explicitly configure as subdomain
+  --github-pages                           # Create CNAME file for GitHub Pages
+  --enforce-https                          # Enforce HTTPS (default: true)
+
+blogr config domain list                   # List all configured domains
+blogr config domain clear                  # Clear all domain configuration
+blogr config domain add-alias <DOMAIN>     # Add domain alias
+blogr config domain remove-alias <DOMAIN>  # Remove domain alias
 ```
 
 ## 🖥️ TUI Editor
@@ -243,6 +269,18 @@ description = "Thoughts on programming and software development"
 base_url = "https://johndoe.github.io/blog"
 language = "en"
 timezone = "UTC"
+
+# Optional domain configuration
+[blog.domains]
+primary = "myblog.com"                    # Primary custom domain
+aliases = ["www.myblog.com", "blog.net"]  # Domain aliases
+enforce_https = true                      # Enforce HTTPS
+github_pages_domain = "myblog.com"        # Domain for CNAME file
+
+# Optional subdomain configuration
+[blog.domains.subdomain]
+prefix = "blog"                           # Subdomain prefix
+base_domain = "mycompany.com"             # Base domain
 
 [theme]
 name = "minimal-retro"
@@ -442,6 +480,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Git operations with [git2](https://github.com/rust-lang/git2-rs)
 
 ## 🎉 Recent Updates
+
+### v0.3.0 - Domain Configuration & Management
+- 🌐 **Domain Configuration**: Full support for custom domains and subdomains
+- 🏷️ **Domain Management**: Add, remove, and list domain aliases with CLI commands
+- 🔒 **HTTPS Enforcement**: Configurable HTTPS settings for custom domains
+- 📝 **CNAME Generation**: Automatic CNAME file creation for GitHub Pages
+- 🔗 **URL Integration**: Domain-aware RSS/Atom feeds and site generation
+- ⚙️ **Interactive Setup**: Smart domain detection and user-friendly configuration
+- 🎯 **GitHub Pages**: Seamless integration with GitHub Pages custom domains
 
 ### v0.2.0 - Enhanced Functionality
 - ✅ **Complete TODO Resolution**: All planned features implemented
