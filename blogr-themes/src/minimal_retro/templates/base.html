@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="{{ asset_url(path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset_url(path='css/style.css') | safe }}">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -24,7 +24,7 @@
         <!-- Minimal header with just title -->
         <header class="site-header">
             <h1 class="site-title">
-                <a href="{{ url(path='') }}">{{ site.blog.title }}</a>
+                <a href="{{ url(path='') | safe }}">{{ site.blog.title }}</a>
             </h1>
             {% if site.blog.description %}
             <p class="site-subtitle">{{ site.blog.description }}</p>

@@ -29,7 +29,7 @@
                             </div>
                             <div class="post-content">
                                 <h3 class="post-title">
-                                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}">{{ post.metadata.title }}</a>
+                                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title }}</a>
                                 </h3>
                                 {% if post.metadata.description %}
                                 <p class="post-description">{{ post.metadata.description }}</p>
@@ -45,7 +45,7 @@
                                 {% if post.metadata.tags %}
                                 <div class="post-tags">
                                     {% for tag in post.metadata.tags %}
-                                    <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="tag">#{{ tag }}</a>
+                                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">#{{ tag }}</a>
                                     {% endfor %}
                                 </div>
                                 {% endif %}
@@ -66,7 +66,7 @@
                         </div>
                         <div class="post-content">
                             <h3 class="post-title">
-                                <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}">{{ post.metadata.title }}</a>
+                                <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title }}</a>
                             </h3>
                             {% if post.metadata.description %}
                             <p class="post-description">{{ post.metadata.description }}</p>
@@ -93,8 +93,8 @@
     {% endif %}
 
     <div class="archive-navigation">
-        <a href="{{ url(path='') }}" class="back-home">← Home</a>
-        <a href="{{ url(path='tags/index.html') }}" class="view-tags">View Tags →</a>
+        <a href="{{ url(path='') | safe }}" class="back-home">← Home</a>
+        <a href="{{ url(path='tags/index.html') | safe }}" class="view-tags">View Tags →</a>
     </div>
 </div>
 {% endblock %}

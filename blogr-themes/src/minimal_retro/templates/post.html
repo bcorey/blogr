@@ -38,7 +38,7 @@
             <div class="post-tags-standalone">
                 <span class="tags-intro">exploring:</span>
                 {% for tag in post.metadata.tags %}
-                <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="tag-link-standalone">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag-link-standalone">{{ tag }}</a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
             </div>
             {% endif %}
@@ -53,13 +53,13 @@
     <!-- Minimal footer -->
     <footer class="post-standalone-footer">
         <div class="post-navigation">
-            <a href="{{ url(path='') }}" class="nav-link">← all posts</a>
+            <a href="{{ url(path='') | safe }}" class="nav-link">← all posts</a>
             
             {% if post.metadata.tags %}
             <div class="related-tags">
                 <span class="related-label">more in:</span>
                 {% for tag in post.metadata.tags %}
-                <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="related-tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="related-tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
             </div>
             {% endif %}

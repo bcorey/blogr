@@ -452,33 +452,320 @@ pub trait Theme {
 
 ## 🚀 Deployment
 
-### GitHub Pages
+Blogr provides comprehensive deployment solutions with seamless GitHub Pages integration and custom domain support.
 
-Blogr provides seamless GitHub Pages deployment:
+### Quick Deployment
 
-1. **Automatic Setup**: GitHub repository and workflow creation
-2. **One-Command Deploy**: `blogr deploy` handles everything
-3. **Custom Domains**: Automatic CNAME file generation
-4. **Status Validation**: Deployment status checking
-5. **Branch Management**: Orphan branch creation for gh-pages
+Deploy your blog to GitHub Pages with a single command:
 
-### GitHub Actions
+```bash
+blogr deploy
+```
+
+This command will:
+- Build your static site
+- Create/update the `gh-pages` branch
+- Push to GitHub
+- Create CNAME file for custom domains
+- Validate deployment status
+
+### GitHub Pages Setup
+
+#### Prerequisites
+
+1. **GitHub Token**: Set up a personal access token for deployment
+   ```bash
+   export GITHUB_TOKEN=your_personal_access_token
+   ```
+   
+   Create a token at: https://github.com/settings/tokens
+   
+   **Required scopes**: `pages`, `workflow`, `actions` with read and write permissions
+
+2. **Git Repository**: Initialize your blog as a Git repository
+   ```bash
+   git init
+   git remote add origin git@github.com:username/repository-name.git
+   ```
+
+#### Basic GitHub Pages Deployment
+
+For a basic GitHub Pages deployment (username.github.io/repository):
+
+1. **Initialize with GitHub integration**:
+   ```bash
+   blogr init my-blog --github-username yourusername --github-repo my-blog
+   ```
+
+2. **Configure your blog**:
+   ```bash
+   cd my-blog
+   blogr config set blog.base_url "https://yourusername.github.io/my-blog"
+   ```
+
+3. **Deploy**:
+   ```bash
+   blogr deploy
+   ```
+
+Your blog will be available at `https://yourusername.github.io/my-blog`
+
+### Custom Domain Configuration
+
+#### Setting Up Custom Domains
+
+Blogr supports both primary domains and subdomains with automatic CNAME file generation.
+
+##### Option 1: Using CLI Commands
+
+**For a primary domain** (e.g., `myblog.com`):
+```bash
+blogr config domain set myblog.com
+```
+
+**For a subdomain** (e.g., `blog.example.com`):
+```bash
+blogr config domain set blog.example.com
+```
+
+**For explicit subdomain configuration**:
+```bash
+blogr config domain set blog.example.com --subdomain blog
+```
+
+##### Option 2: Manual Configuration
+
+Edit your `blogr.toml` file:
+
+```toml
+[blog]
+base_url = "https://blog.example.com"
+
+[blog.domains]
+# For primary domains
+primary = "myblog.com"                    # Primary custom domain
+github_pages_domain = "myblog.com"        # Domain for CNAME file
+
+# OR for subdomains
+[blog.domains.subdomain]
+prefix = "blog"                           # Subdomain prefix
+base_domain = "example.com"               # Base domain
+github_pages_domain = "blog.example.com"  # Domain for CNAME file
+
+# Optional settings
+[blog.domains]
+aliases = ["www.myblog.com"]              # Domain aliases
+enforce_https = true                      # Enforce HTTPS (default)
+```
+
+#### DNS Configuration
+
+Configure your DNS provider to point to GitHub Pages:
+
+**For apex domains** (e.g., `myblog.com`):
+```
+Type: A
+Name: @
+Value: 185.199.108.153
+       185.199.109.153
+       185.199.110.153
+       185.199.111.153
+```
+
+**For subdomains** (e.g., `blog.example.com`):
+```
+Type: CNAME
+Name: blog
+Value: yourusername.github.io
+```
+
+**For www subdomain**:
+```
+Type: CNAME
+Name: www
+Value: yourusername.github.io
+```
+
+#### GitHub Pages Repository Settings
+
+**Critical Step**: After deploying with a custom domain, you must configure GitHub Pages in your repository settings:
+
+1. **Go to your GitHub repository**: `https://github.com/yourusername/your-repo`
+2. **Click "Settings"** tab
+3. **Scroll to "Pages"** section in the left sidebar
+4. **In "Custom domain" field**, enter your domain (e.g., `blog.example.com`)
+5. **Click "Save"**
+6. **Wait for DNS verification** (GitHub will verify your DNS configuration)
+
+> **Important**: The CNAME file created by blogr is not sufficient alone. You must also configure the custom domain in GitHub's repository settings interface.
+
+#### Deployment Process for Custom Domains
+
+1. **Configure your domain**:
+   ```bash
+   blogr config domain set blog.example.com
+   ```
+
+2. **Deploy your site**:
+   ```bash
+   blogr deploy
+   ```
+
+3. **Configure GitHub Pages settings** (in GitHub web interface):
+   - Repository Settings → Pages → Custom domain: `blog.example.com`
+
+4. **Verify DNS configuration** (wait for propagation):
+   ```bash
+   dig blog.example.com
+   ```
+
+Your blog will be available at `https://blog.example.com`
+
+### Advanced Deployment Options
+
+#### Custom Deployment Branch
+
+Deploy to a different branch:
+```bash
+blogr deploy --branch production
+```
+
+#### Custom Commit Message
+
+Add a custom commit message:
+```bash
+blogr deploy --message "Deploy version 1.2.0"
+```
+
+#### Including Drafts and Future Posts
+
+```bash
+blogr build --drafts --future
+blogr deploy
+```
+
+### GitHub Actions Automation
 
 When GitHub integration is enabled, Blogr creates a workflow that:
 
-- Builds your site on every push to main
-- Deploys automatically to GitHub Pages
-- Runs tests on pull requests
-- Caches dependencies for faster builds
+- **Builds automatically**: On every push to main branch
+- **Deploys automatically**: To GitHub Pages
+- **Runs tests**: On pull requests
+- **Caches dependencies**: For faster builds
+- **Handles secrets**: Uses repository secrets for tokens
+
+The workflow file is created at `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    - name: Build and Deploy
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cargo install --path blogr-cli
+        blogr deploy
+```
+
+### Deployment Status Monitoring
+
+Check your deployment status:
+```bash
+blogr deploy
+# Automatically checks GitHub Pages status after deployment
+```
+
+Manual status check:
+```bash
+# Check if GitHub Pages is properly configured
+curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+     https://api.github.com/repos/username/repo/pages
+```
 
 ### Manual Deployment
 
-You can also deploy manually to any hosting provider:
+For other hosting providers, build and copy the static files:
 
 ```bash
+# Build static site
 blogr build
+
+# Output directory contains your site
+ls _site/
 # Copy _site/ directory to your hosting provider
 ```
+
+### Deployment Troubleshooting
+
+#### Common Issues
+
+**1. Site shows 404 or wrong URL**
+- **Problem**: GitHub Pages not configured for custom domain
+- **Solution**: Configure custom domain in repository Settings → Pages
+
+**2. Styles and CSS not loading (blank/unstyled site)**
+- **Problem**: Asset URLs being HTML-encoded in templates
+- **Solution**: This is fixed in the latest version. Ensure you're using relative paths for assets
+- **Technical**: Template functions now use the `| safe` filter to prevent HTML escaping
+
+**3. CNAME file missing**
+- **Problem**: Custom domain not properly configured in blogr.toml
+- **Solution**: Use `blogr config domain set yourdomain.com`
+
+**4. DNS not resolving**
+- **Problem**: DNS records not configured or propagation delay
+- **Solution**: Check DNS configuration and wait for propagation (up to 24 hours)
+
+**5. HTTPS not working**
+- **Problem**: GitHub Pages HTTPS not enabled or DNS issues
+- **Solution**: Ensure DNS is correct and enable HTTPS in GitHub Pages settings
+
+**6. Deploy fails with authentication error**
+- **Problem**: GitHub token missing or insufficient permissions
+- **Solution**: Set `GITHUB_TOKEN` with `pages`, `workflow`, `actions` permissions
+
+#### Debug Commands
+
+```bash
+# Check current configuration
+blogr config get blog.base_url
+blogr config domain list
+
+# Validate project structure
+blogr project check
+
+# Test DNS resolution
+dig yourdomain.com
+nslookup yourdomain.com
+
+# Check GitHub Pages API
+curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+     https://api.github.com/repos/username/repo/pages
+```
+
+#### Getting Help
+
+If you encounter deployment issues:
+
+1. **Check the logs**: Deployment output shows detailed error messages
+2. **Validate configuration**: Use `blogr project check`
+3. **Verify DNS**: Use online DNS checkers
+4. **GitHub Status**: Check GitHub Pages status at https://www.githubstatus.com/
+5. **Community Support**: Open an issue at https://github.com/bahdotsh/blogr/issues
 
 ## 🔧 Development
 

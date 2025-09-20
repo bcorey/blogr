@@ -32,7 +32,7 @@
             
             <div class="story-content">
                 <h2 class="story-title">
-                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}">{{ post.metadata.title }}</a>
+                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title }}</a>
                 </h2>
                 
                 {% if post.metadata.description %}
@@ -45,7 +45,7 @@
                     <span class="also-tagged">also:</span>
                     {% for post_tag in post.metadata.tags %}
                         {% if post_tag != tag %}
-                        <a href="{{ url(path='tags/' ~ post_tag ~ '.html') }}" class="other-tag">{{ post_tag }}</a>{% if not loop.last and post_tag != tag %}, {% endif %}
+                        <a href="{{ url(path='tags/' ~ post_tag ~ '.html') | safe }}" class="other-tag">{{ post_tag }}</a>{% if not loop.last and post_tag != tag %}, {% endif %}
                         {% endif %}
                     {% endfor %}
                 </div>
@@ -58,14 +58,14 @@
     <div class="empty-tag">
         <p class="empty-message">No stories found exploring <em>{{ tag }}</em> yet.</p>
         <p class="empty-hint">
-            <a href="{{ url(path='') }}" class="return-home">← return to all stories</a>
+            <a href="{{ url(path='') | safe }}" class="return-home">← return to all stories</a>
         </p>
     </div>
     {% endif %}
 
     <!-- Simple navigation -->
     <footer class="tag-footer">
-        <a href="{{ url(path='') }}" class="nav-link">← all stories</a>
+        <a href="{{ url(path='') | safe }}" class="nav-link">← all stories</a>
     </footer>
 </div>
 

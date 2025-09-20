@@ -16,7 +16,7 @@
     {% if tags %}
         <div class="tags-cloud">
             {% for tag_info in tags %}
-            <a href="{{ url(path='tags/' ~ tag_info.0 ~ '.html') }}" class="tag-cloud-item">
+            <a href="{{ url(path='tags/' ~ tag_info.0 ~ '.html') | safe }}" class="tag-cloud-item">
                 #{{ tag_info.0 }} ({{ tag_info.1 }})
             </a>
             {% endfor %}
@@ -29,8 +29,8 @@
     {% endif %}
 
     <div class="tags-navigation">
-        <a href="{{ url(path='') }}" class="back-home">← Home</a>
-        <a href="{{ url(path='archive.html') }}" class="view-archive">View Archive →</a>
+        <a href="{{ url(path='') | safe }}" class="back-home">← Home</a>
+        <a href="{{ url(path='archive.html') | safe }}" class="view-archive">View Archive →</a>
     </div>
 </div>
 {% endblock %}

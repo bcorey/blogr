@@ -57,13 +57,13 @@
                     <div class="post-tags-full">
                         <span class="tags-label">tagged:</span>
                         {% for tag in post.metadata.tags %}
-                        <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="tag-link">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                        <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag-link">{{ tag }}</a>{% if not loop.last %}, {% endif %}
                         {% endfor %}
                     </div>
                     {% endif %}
 
                     <div class="post-actions">
-                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}" class="permalink">permalink</a>
+                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}" class="permalink">permalink</a>
                         <button class="collapse-btn" onclick="togglePost({{ loop.index }})">collapse</button>
                     </div>
                 </footer>
