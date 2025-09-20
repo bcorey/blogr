@@ -83,21 +83,113 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     Console::step(4, 7, &format!("Preparing {} branch...", branch));
 
-    // Create a temporary directory for deployment worktree
-    let temp_deploy_dir =
-        std::env::temp_dir().join(format!("blogr-deploy-worktree-{}", Uuid::new_v4()));
-    fs::create_dir_all(&temp_deploy_dir)?;
+    // Create a unique temporary directory for deployment worktree
+    let mut temp_deploy_dir;
+    let mut attempts = 0;
+    loop {
+        temp_deploy_dir =
+            std::env::temp_dir().join(format!("blogr-deploy-worktree-{}", Uuid::new_v4()));
 
-    // Check if deployment branch exists
+        // Ensure directory doesn't exist
+        if temp_deploy_dir.exists() {
+            fs::remove_dir_all(&temp_deploy_dir)?;
+        }
+
+        // Don't create the directory - let git2 create it
+        if !temp_deploy_dir.exists() {
+            break;
+        }
+
+        attempts += 1;
+        if attempts > 5 {
+            anyhow::bail!(
+                "Failed to create unique temporary directory after {} attempts",
+                attempts
+            );
+        }
+    }
+
+    // Ensure deployment branch exists
     let deploy_branch_exists = repo.find_branch(&branch, BranchType::Local).is_ok();
 
     if !deploy_branch_exists {
+        Console::info(&format!("Creating new deployment branch '{}'...", branch));
         // Create orphan branch for GitHub Pages
         create_orphan_branch(&repo, &branch)?;
+    } else {
+        Console::info(&format!("Using existing deployment branch '{}'...", branch));
+    }
+
+    // Verify the branch was created/exists
+    if repo.find_branch(&branch, BranchType::Local).is_err() {
+        anyhow::bail!("Failed to create or find deployment branch '{}'", branch);
+    }
+
+    // Clean up any existing worktrees for this branch
+    if let Ok(worktrees) = repo.worktrees() {
+        for worktree_name in worktrees.iter().flatten() {
+            if let Ok(worktree) = repo.find_worktree(worktree_name) {
+                // Check if this worktree is for our deployment branch by checking its name pattern
+                if worktree_name.starts_with(&format!("{}-", branch)) || worktree_name == branch {
+                    Console::info(&format!(
+                        "Cleaning up existing worktree '{}' for branch '{}'...",
+                        worktree_name, branch
+                    ));
+
+                    // Get the worktree path before pruning
+                    let worktree_path = worktree.path().to_path_buf();
+
+                    if let Err(e) = worktree.prune(None) {
+                        Console::warn(&format!(
+                            "Warning: Could not prune existing worktree '{}': {}",
+                            worktree_name, e
+                        ));
+                    }
+
+                    // Also manually clean up the directory if it still exists
+                    if worktree_path.exists() {
+                        if let Err(e) = fs::remove_dir_all(&worktree_path) {
+                            Console::warn(&format!(
+                                "Warning: Could not remove worktree directory '{}': {}",
+                                worktree_path.display(),
+                                e
+                            ));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Create a worktree for the deployment branch
-    repo.worktree(&branch, &temp_deploy_dir, None)?;
+    // Use a specific worktree name to avoid conflicts
+    let worktree_name = format!(
+        "{}-{}",
+        branch,
+        Uuid::new_v4()
+            .to_string()
+            .split('-')
+            .next()
+            .unwrap_or("tmp")
+    );
+
+    // Create worktree pointing to the deployment branch
+    let branch_ref = repo
+        .find_reference(&format!("refs/heads/{}", branch))
+        .with_context(|| format!("Could not find reference for branch '{}'", branch))?;
+    let mut opts = git2::WorktreeAddOptions::new();
+    opts.reference(Some(&branch_ref));
+    let worktree_result = repo.worktree(&worktree_name, &temp_deploy_dir, Some(&opts));
+
+    worktree_result.with_context(|| {
+        format!(
+            "Failed to create worktree '{}' for branch '{}' at '{}'",
+            worktree_name,
+            branch,
+            temp_deploy_dir.display()
+        )
+    })?;
+
     let deploy_repo = Repository::open(&temp_deploy_dir)?;
 
     Console::step(5, 7, "Copying built files...");
