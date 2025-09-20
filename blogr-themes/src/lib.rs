@@ -1,4 +1,3 @@
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -39,12 +38,8 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
 }
 
 pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
-    let themes = get_all_themes();
-    themes.get(name).map(|theme| {
-        // We need to recreate the theme since we can't clone Box<dyn Theme>
-        match name {
-            "minimal-retro" => Box::new(MinimalRetroTheme::new()) as Box<dyn Theme>,
-            _ => return None,
-        }
-    })
+    match name {
+        "minimal-retro" => Some(Box::new(MinimalRetroTheme::new()) as Box<dyn Theme>),
+        _ => None,
+    }
 }

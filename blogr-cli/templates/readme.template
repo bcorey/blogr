@@ -1,0 +1,132 @@
+# {title}
+
+{description}
+
+Built with [Blogr](https://github.com/yourusername/blogr) - A modern CLI static site generator for blogs.
+
+## Author
+
+**{author}**
+
+## Getting Started
+
+This blog is built with Blogr, a CLI static site generator that focuses on simplicity and developer experience.
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (for building Blogr from source)
+- [Git](https://git-scm.com/) (for version control)
+- [GitHub CLI](https://cli.github.com/) (optional, for easier deployment)
+
+### Development
+
+1. **Create a new post:**
+   ```bash
+   blogr new "My New Post"
+   ```
+
+2. **Start the development server:**
+   ```bash
+   blogr serve
+   ```
+   This will start a local server with live reload at `http://localhost:3000`
+
+3. **Build the static site:**
+   ```bash
+   blogr build
+   ```
+
+4. **Deploy to GitHub Pages:**
+   ```bash
+   blogr deploy
+   ```
+
+### Project Structure
+
+```
+├── blogr.toml          # Configuration file
+├── posts/              # Blog posts (Markdown files)
+├── static/             # Static assets (images, CSS, JS)
+├── themes/             # Custom theme files (optional)
+└── dist/               # Generated static site (after build)
+```
+
+### Writing Posts
+
+Posts are written in Markdown and should be placed in the `posts/` directory. Each post should have front matter with metadata:
+
+```markdown
+---
+title: "My Blog Post"
+date: "2024-01-15"
+author: "Your Name"
+description: "A brief description of the post"
+tags: ["tag1", "tag2"]
+status: "published"  # or "draft"
+---
+
+# Your Post Content
+
+Write your post content here in Markdown...
+```
+
+### Themes
+
+This blog uses the **Minimal Retro** theme, which features:
+- Clean, minimal design with warm retro colors
+- Responsive layout that works on all devices
+- Syntax highlighting for code blocks
+- Fast loading times
+- SEO-friendly structure
+
+You can customize the theme by editing `blogr.toml` or switch to a different theme:
+
+```bash
+blogr theme list        # List available themes
+blogr theme set [name]  # Switch to a different theme
+```
+
+### Configuration
+
+Edit `blogr.toml` to customize your blog settings:
+
+- **Blog information**: title, description, author
+- **Theme settings**: colors, fonts, layout options
+- **Build options**: output directory, draft handling
+- **GitHub integration**: repository settings for deployment
+
+### Deployment
+
+This blog can be automatically deployed to GitHub Pages:
+
+1. Make sure your repository is connected to GitHub
+2. Run `blogr deploy` to build and deploy
+3. Your site will be available at `https://username.github.io/repository`
+
+### Commands Reference
+
+- `blogr new <title>` - Create a new blog post
+- `blogr build` - Build the static site
+- `blogr serve` - Start development server
+- `blogr deploy` - Deploy to GitHub Pages
+- `blogr theme list` - List available themes
+- `blogr theme set <name>` - Change theme
+- `blogr project info` - Show project information
+- `blogr project check` - Validate project structure
+
+### Contributing
+
+If you find any issues with this blog or want to contribute improvements:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+### License
+
+This blog content is licensed under [MIT License](LICENSE).
+
+---
+
+Powered by [Blogr](https://github.com/yourusername/blogr) 🚀
