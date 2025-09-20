@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use git2::{BranchType, Repository, Signature};
 use std::fs;
 use std::path::Path;
+use uuid::Uuid;
 use walkdir::WalkDir;
 
 pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()> {
@@ -76,35 +77,34 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     // Build the site AFTER handling git state to ensure build directory exists
     // Use a temporary directory outside the project to avoid conflicts
-    let temp_output = std::env::temp_dir().join(format!("blogr-deploy-{}", uuid::Uuid::new_v4()));
+    let temp_output = std::env::temp_dir().join(format!("blogr-deploy-{}", Uuid::new_v4()));
     let site_builder = SiteBuilder::new(project.clone(), Some(temp_output.clone()), false, false)?;
     site_builder.build()?;
 
     Console::step(4, 7, &format!("Preparing {} branch...", branch));
 
-    // Get current branch name
-    let current_branch = {
-        let head = repo.head()?;
-        head.shorthand().unwrap_or("HEAD").to_string()
-    };
+    // Create a temporary directory for deployment worktree
+    let temp_deploy_dir =
+        std::env::temp_dir().join(format!("blogr-deploy-worktree-{}", Uuid::new_v4()));
+    fs::create_dir_all(&temp_deploy_dir)?;
 
     // Check if deployment branch exists
     let deploy_branch_exists = repo.find_branch(&branch, BranchType::Local).is_ok();
 
-    if deploy_branch_exists {
-        // Checkout existing deployment branch
-        checkout_branch(&repo, &branch)?;
-    } else {
+    if !deploy_branch_exists {
         // Create orphan branch for GitHub Pages
         create_orphan_branch(&repo, &branch)?;
     }
 
+    // Create a worktree for the deployment branch
+    repo.worktree(&branch, &temp_deploy_dir, None)?;
+    let deploy_repo = Repository::open(&temp_deploy_dir)?;
+
     Console::step(5, 7, "Copying built files...");
 
-    // Clear the deployment branch (except .git) and copy built files
-    // Note: This modifies the working directory, but we'll restore it when switching back to main
-    clear_deployment_branch(&project.root)?;
-    copy_site_files(&temp_output, &project.root)?;
+    // Clear the deployment worktree and copy built files
+    clear_deployment_branch(&temp_deploy_dir)?;
+    copy_site_files(&temp_output, &temp_deploy_dir)?;
 
     // Smart CNAME file creation based on deployment type
     let deployment_type = config.get_deployment_type();
@@ -115,7 +115,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
             let effective_url = config.get_effective_base_url();
             if let Ok(url) = url::Url::parse(&effective_url) {
                 if let Some(host) = url.host_str() {
-                    let cname_path = project.root.join("CNAME");
+                    let cname_path = temp_deploy_dir.join("CNAME");
                     fs::write(cname_path, format!("{}\n", host))?;
                     Console::info(&format!("Created CNAME file for custom domain: {}", host));
                     true
@@ -146,7 +146,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     if !cname_created {
         if let Some(domains) = &config.blog.domains {
             if let Some(github_domain) = &domains.github_pages_domain {
-                let cname_path = project.root.join("CNAME");
+                let cname_path = temp_deploy_dir.join("CNAME");
                 fs::write(cname_path, format!("{}\n", github_domain))?;
                 Console::info(&format!(
                     "Created CNAME file from github_pages_domain: {}",
@@ -158,12 +158,12 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     Console::step(6, 7, "Committing changes...");
 
-    // Stage all files
-    let mut index = repo.index()?;
+    // Stage all files in the deploy repository
+    let mut index = deploy_repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
     index.write()?;
 
-    // Create commit
+    // Create commit in the deploy repository
     let deploy_message = message.unwrap_or_else(|| {
         format!(
             "Deploy site - {}",
@@ -173,17 +173,17 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     let signature = get_git_signature()?;
     let tree_id = index.write_tree()?;
-    let tree = repo.find_tree(tree_id)?;
+    let tree = deploy_repo.find_tree(tree_id)?;
 
     // Check if this is the first commit on this branch
-    let parent_commit = repo
+    let parent_commit = deploy_repo
         .head()
         .ok()
         .and_then(|head| head.target())
-        .and_then(|oid| repo.find_commit(oid).ok());
+        .and_then(|oid| deploy_repo.find_commit(oid).ok());
 
     let commit_id = if let Some(parent) = parent_commit {
-        repo.commit(
+        deploy_repo.commit(
             Some("HEAD"),
             &signature,
             &signature,
@@ -192,7 +192,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
             &[&parent],
         )?
     } else {
-        repo.commit(
+        deploy_repo.commit(
             Some("HEAD"),
             &signature,
             &signature,
@@ -204,16 +204,8 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     Console::step(7, 7, "Pushing to GitHub...");
 
-    // Push to GitHub
-    push_to_github(&repo, &branch, github_config)?;
-
-    // Switch back to original branch
-    checkout_branch(&repo, &current_branch)?;
-
-    // Force reset the working directory to match the original branch
-    // This ensures that any files modified during deployment don't affect the main branch
-    let head_commit = repo.head()?.peel_to_commit()?;
-    repo.reset(head_commit.as_object(), git2::ResetType::Hard, None)?;
+    // Push to GitHub from the deploy repository
+    push_to_github(&deploy_repo, &branch, github_config)?;
 
     // Restore stashed changes if any were stashed
     if let Some(_stash_id) = stash_id {
@@ -229,9 +221,14 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
         }
     }
 
-    // Clean up temporary build directory
+    // Clean up worktree and temporary directories
+    // Note: The worktree will be automatically cleaned up when we remove temp_deploy_dir
+
     if temp_output.exists() {
         fs::remove_dir_all(&temp_output)?;
+    }
+    if temp_deploy_dir.exists() {
+        fs::remove_dir_all(&temp_deploy_dir)?;
     }
 
     println!();
@@ -303,18 +300,6 @@ async fn check_github_pages_status(username: &str, repository: &str) -> Result<S
         .to_string();
 
     Ok(status)
-}
-
-fn checkout_branch(repo: &Repository, branch_name: &str) -> Result<()> {
-    let (object, reference) = repo.revparse_ext(branch_name)?;
-    repo.checkout_tree(&object, None)?;
-
-    match reference {
-        Some(gref) => repo.set_head(gref.name().unwrap()),
-        None => repo.set_head_detached(object.id()),
-    }?;
-
-    Ok(())
 }
 
 fn create_orphan_branch(repo: &Repository, branch_name: &str) -> Result<()> {

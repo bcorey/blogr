@@ -463,11 +463,12 @@ blogr deploy
 ```
 
 This command will:
-- Build your static site
-- Create/update the `gh-pages` branch
-- Push to GitHub
+- Build your static site in a temporary directory
+- Create/update the `gh-pages` branch using git worktrees (safe isolation)
+- Push to GitHub without affecting your main branch working directory
 - Create CNAME file for custom domains
 - Validate deployment status
+- Automatically clean up temporary files
 
 ### GitHub Pages Setup
 
@@ -734,7 +735,12 @@ ls _site/
 - **Problem**: GitHub Pages HTTPS not enabled or DNS issues
 - **Solution**: Ensure DNS is correct and enable HTTPS in GitHub Pages settings
 
-**6. Deploy fails with authentication error**
+**6. Posts getting deleted from main branch after deployment**
+- **Problem**: Previous versions had an issue where deployment operations could affect the main branch working directory
+- **Solution**: Fixed in latest version - deployment now uses git worktrees to isolate operations
+- **Technical**: Deployment creates a temporary worktree for the deployment branch, ensuring main branch files are never modified
+
+**7. Deploy fails with authentication error**
 - **Problem**: GitHub token missing or insufficient permissions
 - **Solution**: Set `GITHUB_TOKEN` with `pages`, `workflow`, `actions` permissions
 
