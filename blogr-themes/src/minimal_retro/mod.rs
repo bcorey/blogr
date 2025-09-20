@@ -1,0 +1,145 @@
+use crate::{ConfigOption, Theme, ThemeInfo};
+use ratatui::style::{Color, Style};
+use std::collections::HashMap;
+
+pub struct MinimalRetroTheme;
+
+impl MinimalRetroTheme {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Theme for MinimalRetroTheme {
+    fn info(&self) -> ThemeInfo {
+        let mut config_schema = HashMap::new();
+
+        config_schema.insert(
+            "primary_color".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "#FF6B35".to_string(),
+                description: "Primary accent color (retro orange)".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "secondary_color".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "#F7931E".to_string(),
+                description: "Secondary accent color (warm amber)".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "background_color".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "#2D1B0F".to_string(),
+                description: "Background color (dark brown)".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "font_family".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "Monaco, 'Courier New', monospace".to_string(),
+                description: "Font family (retro monospace)".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "show_reading_time".to_string(),
+            ConfigOption {
+                option_type: "boolean".to_string(),
+                default: "true".to_string(),
+                description: "Display estimated reading time".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "show_author".to_string(),
+            ConfigOption {
+                option_type: "boolean".to_string(),
+                default: "true".to_string(),
+                description: "Display post author".to_string(),
+            },
+        );
+
+        ThemeInfo {
+            name: "Minimal Retro".to_string(),
+            version: "1.0.0".to_string(),
+            author: "Blogr Team".to_string(),
+            description: "A minimal theme with warm retro colors and clean typography".to_string(),
+            config_schema,
+        }
+    }
+
+    fn templates(&self) -> HashMap<String, String> {
+        let mut templates = HashMap::new();
+
+        // Base layout template
+        templates.insert(
+            "base.html".to_string(),
+            include_str!("templates/base.html").to_string(),
+        );
+
+        // Index/home page template
+        templates.insert(
+            "index.html".to_string(),
+            include_str!("templates/index.html").to_string(),
+        );
+
+        // Individual post template
+        templates.insert(
+            "post.html".to_string(),
+            include_str!("templates/post.html").to_string(),
+        );
+
+        // Archive/list template
+        templates.insert(
+            "archive.html".to_string(),
+            include_str!("templates/archive.html").to_string(),
+        );
+
+        // Tag page template
+        templates.insert(
+            "tag.html".to_string(),
+            include_str!("templates/tag.html").to_string(),
+        );
+
+        templates
+    }
+
+    fn assets(&self) -> HashMap<String, Vec<u8>> {
+        let mut assets = HashMap::new();
+
+        // Main CSS file
+        assets.insert(
+            "css/style.css".to_string(),
+            include_bytes!("assets/style.css").to_vec(),
+        );
+
+        // Optional: Add a retro favicon
+        // assets.insert(
+        //     "favicon.ico".to_string(),
+        //     include_bytes!("assets/favicon.ico").to_vec()
+        // );
+
+        assets
+    }
+
+    fn preview_tui_style(&self) -> Style {
+        Style::default()
+            .fg(Color::Rgb(255, 107, 53)) // Retro orange
+            .bg(Color::Rgb(45, 27, 15)) // Dark brown background
+    }
+}
+
+impl Default for MinimalRetroTheme {
+    fn default() -> Self {
+        Self::new()
+    }
+}

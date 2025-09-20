@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Archive - {{ config.blog.title }}{% endblock %}
+
+{% block content %}
+<div class="archive-page">
+    <header class="archive-header">
+        <h1 class="archive-title">Archive</h1>
+        <p class="archive-subtitle">All posts from {{ config.blog.title }}</p>
+    </header>
+
+    {% if posts %}
+        <div class="archive-stats">
+            <p class="stats-text">{{ posts | length }} post{{ posts | length | pluralize }} total</p>
+        </div>
+
+        <div class="archive-content">
+            {% set_global current_year = "" %}
+            {% for post in posts %}
+                {% set post_year = post.date | date(format="%Y") %}
+
+                {% if post_year != current_year %}
+                    {% if current_year != "" %}
+                        </div> <!-- Close previous year group -->
+                    {% endif %}
+
+                    <div class="year-group">
+                        <h2 class="year-header">{{ post_year }}</h2>
+                        <div class="year-posts">
+
+                    {% set_global current_year = post_year %}
+                {% endif %}
+
+                <article class="archive-post">
+                    <div class="post-date">
+                        <time datetime="{{ post.date }}">
+                            {{ post.date | date(format="%b %d") }}
+                        </time>
+                    </div>
+
+                    <div class="post-info">
+                        <h3 class="post-title">
+                            <a href="/posts/{{ post.slug }}">{{ post.title }}</a>
+                        </h3>
+
+                        {% if post.description %}
+                        <p class="post-description">{{ post.description }}</p>
+                        {% endif %}
+
+                        <div class="post-meta">
+                            {% if config.theme.config.show_author and post.author %}
+                            <span class="post-author">by {{ post.author }}</span>
+                            {% endif %}
+
+                            {% if config.theme.config.show_reading_time and post.reading_time %}
+                            <span class="reading-time">{{ post.reading_time }} min read</span>
+                            {% endif %}
+
+                            {% if post.status == "draft" %}
+                            <span class="draft-badge">Draft</span>
+                            {% endif %}
+                        </div>
+
+                        {% if post.tags %}
+                        <div class="post-tags">
+                            {% for tag in post.tags %}
+                            <a href="/tags/{{ tag | slugify }}" class="tag">#{{ tag }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+
+            {% if current_year != "" %}
+                </div> <!-- Close last year posts -->
+            </div> <!-- Close last year group -->
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="no-posts">
+            <p>No posts found. Start writing to see your content here!</p>
+            <p class="no-posts-hint">Create your first post with <code>blogr new "My First Post"</code></p>
+        </div>
+    {% endif %}
+
+    <div class="archive-navigation">
+        <a href="/" class="back-home">← Back to Home</a>
+        <a href="/tags" class="view-tags">View All Tags →</a>
+    </div>
+</div>
+{% endblock %}
