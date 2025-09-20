@@ -460,12 +460,10 @@ impl SiteBuilder {
 
     /// Copy theme assets
     fn copy_theme_assets(&self) -> Result<()> {
-        let assets_dir = self.output_dir.join("assets");
-        fs::create_dir_all(&assets_dir)?;
-
         let assets = self.theme.assets();
         for (path, content) in &assets {
-            let asset_path = assets_dir.join(path);
+            // Place assets directly in output directory (e.g., css/style.css -> /css/style.css)
+            let asset_path = self.output_dir.join(path);
 
             // Create parent directories if needed
             if let Some(parent) = asset_path.parent() {

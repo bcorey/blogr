@@ -24,7 +24,16 @@ pub async fn handle_serve(port: u16, host: String, drafts: bool, open: bool) -> 
 
     // Build site initially
     Console::info("Building site...");
-    let output_dir = project.root.join("_site");
+
+    // Load config to get the correct output directory
+    let config = project.load_config()?;
+    let output_dir = config
+        .build
+        .output_dir
+        .as_ref()
+        .map(|p| project.root.join(p))
+        .unwrap_or_else(|| project.root.join("_site"));
+
     let site_builder = SiteBuilder::new(project.clone(), Some(output_dir.clone()), drafts, false)?;
     site_builder.build()?;
 
