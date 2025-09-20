@@ -120,10 +120,10 @@ blogr init [NAME]              # Initialize new blog project
   --github-repo <REPO>         # Set repository name
   --no-github                  # Skip GitHub integration
 
-blogr project info            # Show project information
-blogr project stats           # Detailed analytics
-blogr project check           # Validate project structure
-blogr project clean           # Clean build artifacts
+blogr project info            # Show comprehensive project information
+blogr project stats           # Detailed analytics and statistics
+blogr project check           # Validate project structure, posts, and configuration
+blogr project clean           # Clean build artifacts and temporary files
 ```
 
 ### Content Management
@@ -148,9 +148,10 @@ blogr delete <SLUG>            # Delete a post
 ### Theme Management
 
 ```bash
-blogr theme list               # List available themes
-blogr theme info <THEME>       # Show theme details
-blogr theme set <THEME>        # Change active theme
+blogr theme list               # List available themes with active status
+blogr theme info <THEME>       # Show detailed theme information and config options
+blogr theme set <THEME>        # Change active theme with automatic configuration
+blogr theme preview <THEME>    # Preview theme with sample content
 ```
 
 ### Build & Deploy
@@ -165,11 +166,19 @@ blogr serve                    # Development server
   --port <PORT>                # Port number (default: 3000)
   --host <HOST>                # Host address
   --drafts                     # Include drafts
-  --open                       # Open browser
+  --open                       # Automatically open browser
 
 blogr deploy                   # Deploy to GitHub Pages
   --branch <BRANCH>            # Deployment branch (default: gh-pages)
   --message <MESSAGE>          # Custom commit message
+```
+
+### Configuration Management
+
+```bash
+blogr config                   # Show current configuration with management guide
+                              # Displays blog info, theme settings, GitHub integration
+                              # Provides instructions for configuration modification
 ```
 
 ## 🖥️ TUI Editor
@@ -186,11 +195,13 @@ The terminal user interface provides a powerful markdown editor with live previe
 - `h` or `F1` - Show help overlay
 
 ### Features
-- **Live Preview**: See your rendered post in real-time
+- **Live Preview**: See your rendered post in real-time with scroll indicator
 - **Syntax Highlighting**: Markdown syntax highlighting in editor
 - **Theme Integration**: Preview reflects your selected blog theme
-- **Split Panes**: Side-by-side editor and preview
+- **Split Panes**: Side-by-side editor and preview with dynamic sizing
 - **Modal Editing**: Vim-like modal editing for efficiency
+- **Smart Navigation**: Height-aware page scrolling and cursor management
+- **Auto-Save**: Automatic saving to filesystem with PostManager integration
 
 ## 🏗️ Project Structure
 
@@ -416,6 +427,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Syntax highlighting via [syntect](https://github.com/trishume/syntect)
 - Template engine using [Tera](https://tera.netlify.app/)
 - Git operations with [git2](https://github.com/rust-lang/git2-rs)
+
+## 🎉 Recent Updates
+
+### v0.2.0 - Enhanced Functionality
+- ✅ **Complete TODO Resolution**: All planned features implemented
+- 🎨 **Enhanced Theme System**: Full theme management with preview capabilities
+- 🔧 **Project Validation**: Comprehensive project structure and content validation
+- 🧹 **Smart Cleanup**: Intelligent build artifact and temporary file cleanup
+- 💾 **Reliable Saving**: PostManager integration for filesystem persistence
+- 📏 **Dynamic UI**: Height-aware scrolling and responsive TUI components
+- 🌐 **Browser Integration**: Automatic browser opening for development server
+- ⚙️ **Configuration Management**: Interactive configuration display and guidance
+
+### Code Quality Improvements
+- 🦀 **Rust Best Practices**: Clippy-clean codebase following Rust conventions
+- 🎯 **Zero Warnings**: All compiler and linter warnings resolved
+- 📝 **Consistent Formatting**: rustfmt applied across entire codebase
+- 🔒 **Type Safety**: Enhanced error handling and type safety throughout
 
 ---
 
