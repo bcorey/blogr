@@ -49,7 +49,7 @@ jobs:
           ${{ runner.os }}-cargo-build-target-
 
     - name: Install Blogr CLI
-      run: cargo install --git https://github.com/your-username/blogr.git blogr-cli
+      run: cargo install --git https://github.com/bahdotsh/blogr.git blogr-cli
 
     - name: Build site
       run: blogr build
@@ -78,7 +78,7 @@ jobs:
         override: true
 
     - name: Install Blogr CLI
-      run: cargo install --git https://github.com/your-username/blogr.git blogr-cli
+      run: cargo install --git https://github.com/bahdotsh/blogr.git blogr-cli
 
     - name: Test build
       run: blogr build --drafts

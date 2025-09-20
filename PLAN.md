@@ -837,4 +837,4 @@ Opening 'rust-tips' in editor...
 **Project Timeline:** 16 weeks
 **Target Release:** v1.0.0
 **License:** MIT
-**Repository:** https://github.com/username/blogr
+**Repository:** https://github.com/bahdotsh/blogr

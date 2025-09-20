@@ -45,7 +45,7 @@ Hello! I'm **{author}**, and welcome to **{blog_title}**.
 
 ## About This Blog
 
-This blog is built with [Blogr](https://github.com/yourusername/blogr), a modern CLI static site generator. The site uses the **Minimal Retro** theme, chosen for its clean design and focus on readability.
+This blog is built with [Blogr](https://github.com/bahdotsh/blogr), a modern CLI static site generator. The site uses the **Minimal Retro** theme, chosen for its clean design and focus on readability.
 
 ## Fun Facts
 
