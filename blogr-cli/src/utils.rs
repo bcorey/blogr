@@ -20,14 +20,16 @@ impl Utils {
     }
 
     /// Calculate estimated reading time based on word count
+    #[allow(dead_code)]
     pub fn calculate_reading_time(content: &str) -> usize {
         const WORDS_PER_MINUTE: usize = 200;
         let word_count = content.split_whitespace().count();
-        let minutes = (word_count + WORDS_PER_MINUTE - 1) / WORDS_PER_MINUTE; // Ceiling division
+        let minutes = word_count.div_ceil(WORDS_PER_MINUTE); // Ceiling division
         minutes.max(1) // Minimum 1 minute
     }
 
     /// Extract excerpt from content
+    #[allow(dead_code)]
     pub fn extract_excerpt(content: &str, max_words: usize) -> String {
         let words: Vec<&str> = content.split_whitespace().take(max_words).collect();
         let mut excerpt = words.join(" ");
@@ -40,6 +42,7 @@ impl Utils {
     }
 
     /// Ensure directory exists, create if it doesn't
+    #[allow(dead_code)]
     pub fn ensure_dir_exists<P: AsRef<Path>>(path: P) -> Result<()> {
         let path = path.as_ref();
         if !path.exists() {
@@ -50,6 +53,7 @@ impl Utils {
     }
 
     /// Copy file with proper error handling
+    #[allow(dead_code)]
     pub fn copy_file<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<()> {
         let from = from.as_ref();
         let to = to.as_ref();
@@ -64,6 +68,7 @@ impl Utils {
     }
 
     /// Write content to file with proper error handling
+    #[allow(dead_code)]
     pub fn write_file<P: AsRef<Path>>(path: P, content: &str) -> Result<()> {
         let path = path.as_ref();
 
@@ -77,12 +82,14 @@ impl Utils {
     }
 
     /// Read file with proper error handling
+    #[allow(dead_code)]
     pub fn read_file<P: AsRef<Path>>(path: P) -> Result<String> {
         let path = path.as_ref();
         fs::read_to_string(path).with_context(|| format!("Failed to read file: {}", path.display()))
     }
 
     /// Get file extension from path
+    #[allow(dead_code)]
     pub fn get_file_extension<P: AsRef<Path>>(path: P) -> Option<String> {
         path.as_ref()
             .extension()
@@ -91,11 +98,13 @@ impl Utils {
     }
 
     /// Check if a string is a valid URL
+    #[allow(dead_code)]
     pub fn is_valid_url(url: &str) -> bool {
         url::Url::parse(url).is_ok()
     }
 
     /// Format file size in human readable format
+    #[allow(dead_code)]
     pub fn format_file_size(size: u64) -> String {
         const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
         let mut size = size as f64;
@@ -114,6 +123,7 @@ impl Utils {
     }
 
     /// Format timestamp for display
+    #[allow(dead_code)]
     pub fn format_timestamp(timestamp: DateTime<Utc>) -> String {
         timestamp.format("%Y-%m-%d %H:%M:%S UTC").to_string()
     }
@@ -151,6 +161,7 @@ impl Utils {
     }
 
     /// Generate a unique filename if one already exists
+    #[allow(dead_code)]
     pub fn unique_filename<P: AsRef<Path>>(path: P) -> String {
         let path = path.as_ref();
         if !path.exists() {
@@ -179,6 +190,7 @@ impl Utils {
     }
 
     /// Parse comma-separated tags
+    #[allow(dead_code)]
     pub fn parse_tags(tags_str: &str) -> Vec<String> {
         tags_str
             .split(',')
@@ -188,6 +200,7 @@ impl Utils {
     }
 
     /// Open URL in default browser
+    #[allow(dead_code)]
     pub fn open_browser(url: &str) -> Result<()> {
         #[cfg(target_os = "macos")]
         {
@@ -235,7 +248,7 @@ impl Utils {
         }
 
         std::process::Command::new("git")
-            .args(&["init"])
+            .args(["init"])
             .current_dir(path)
             .output()
             .with_context(|| "Failed to initialize git repository")?;
@@ -248,7 +261,7 @@ impl Utils {
         let path = path.as_ref();
 
         std::process::Command::new("git")
-            .args(&["add", "."])
+            .args(["add", "."])
             .current_dir(path)
             .output()
             .with_context(|| "Failed to add files to git")?;
@@ -261,7 +274,7 @@ impl Utils {
         let path = path.as_ref();
 
         std::process::Command::new("git")
-            .args(&["commit", "-m", message])
+            .args(["commit", "-m", message])
             .current_dir(path)
             .output()
             .with_context(|| "Failed to create initial git commit")?;
@@ -274,7 +287,7 @@ impl Utils {
         let path = path.as_ref();
 
         std::process::Command::new("git")
-            .args(&["remote", "add", "origin", remote_url])
+            .args(["remote", "add", "origin", remote_url])
             .current_dir(path)
             .output()
             .with_context(|| "Failed to set git remote")?;
@@ -287,7 +300,7 @@ impl Utils {
         let path = path.as_ref();
 
         std::process::Command::new("git")
-            .args(&["push", "-u", "origin", branch])
+            .args(["push", "-u", "origin", branch])
             .current_dir(path)
             .output()
             .with_context(|| "Failed to push to git remote")?;
@@ -306,6 +319,7 @@ impl Console {
     }
 
     /// Print error message
+    #[allow(dead_code)]
     pub fn error(message: &str) {
         eprintln!("❌ {}", message);
     }

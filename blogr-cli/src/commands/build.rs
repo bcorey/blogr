@@ -2,7 +2,7 @@ use crate::utils::Console;
 use anyhow::Result;
 use std::path::PathBuf;
 
-pub async fn handle_build(output: Option<PathBuf>, drafts: bool, future: bool) -> Result<()> {
+pub async fn handle_build(_output: Option<PathBuf>, _drafts: bool, _future: bool) -> Result<()> {
     Console::info("Building static site...");
 
     // TODO: Implement site building

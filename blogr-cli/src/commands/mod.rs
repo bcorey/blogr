@@ -7,10 +7,4 @@ pub mod serve;
 pub mod theme;
 pub use project as project_cmd;
 
-pub use build::*;
-pub use deploy::*;
-pub use init::*;
-pub use new::*;
-pub use project_cmd::*;
-pub use serve::*;
-pub use theme::*;
+// Specific exports when needed for command handlers

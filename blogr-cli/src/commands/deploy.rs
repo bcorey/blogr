@@ -2,7 +2,7 @@ use crate::utils::Console;
 use anyhow::Result;
 
 pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()> {
-    Console::info(&format!("Deploying to GitHub Pages (branch: {})", branch));
+    Console::info(&format!("Deploying to GitHub Pages (branch: {branch})"));
 
     // TODO: Implement deployment
     // - Check if we're in a blogr project
@@ -18,10 +18,10 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     let deploy_message = message.unwrap_or_else(|| "Deploy site".to_string());
 
-    Console::success(&format!("Deployed with message: '{}'", deploy_message));
+    Console::success(&format!("Deployed with message: '{deploy_message}'"));
     println!("🚀 Site deployed to GitHub Pages");
     println!("🌐 Your site will be available shortly");
-    println!("📝 Deployment branch: {}", branch);
+    println!("📝 Deployment branch: {branch}");
 
     Ok(())
 }

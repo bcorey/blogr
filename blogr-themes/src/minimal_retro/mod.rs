@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub struct MinimalRetroTheme;
 
 impl MinimalRetroTheme {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

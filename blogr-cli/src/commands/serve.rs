@@ -1,7 +1,7 @@
 use crate::utils::Console;
 use anyhow::Result;
 
-pub async fn handle_serve(port: u16, host: String, drafts: bool, open: bool) -> Result<()> {
+pub async fn handle_serve(port: u16, host: String, _drafts: bool, _open: bool) -> Result<()> {
     Console::info(&format!("Starting development server on {}:{}", host, port));
 
     // TODO: Implement development server

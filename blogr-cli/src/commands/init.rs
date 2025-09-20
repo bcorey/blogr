@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 use crate::config::EnvConfig;
-use crate::project::{AutoInit, Project};
+use crate::project::Project;
 use crate::utils::{Console, Utils};
 
 pub async fn handle_init(
@@ -24,27 +25,24 @@ pub async fn handle_init(
     }
 
     // Interactive mode if no name provided
-    let project_name = match name {
-        Some(name) => name,
-        None => {
-            use std::io::{self, Write};
-            print!("Project title: ");
-            io::stdout().flush()?;
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            let input = input.trim();
-            if input.is_empty() {
-                anyhow::bail!("Project title cannot be empty");
-            }
-            input.to_string()
+    let project_name = if let Some(name) = name {
+        name
+    } else {
+        print!("Project title: ");
+        io::stdout().flush()?;
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let input = input.trim();
+        if input.is_empty() {
+            anyhow::bail!("Project title cannot be empty");
         }
+        input.to_string()
     };
 
     // Get author name
     let default_author = EnvConfig::git_author_name().unwrap_or_else(|| "Anonymous".to_string());
     let author = {
-        use std::io::{self, Write};
-        print!("Author name [{}]: ", default_author);
+        print!("Author name [{default_author}]: ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
@@ -58,14 +56,13 @@ pub async fn handle_init(
 
     // Get description
     let description = {
-        use std::io::{self, Write};
         print!("Blog description: ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
         if input.is_empty() {
-            format!("A blog by {}", author)
+            format!("A blog by {author}")
         } else {
             input.to_string()
         }
@@ -75,75 +72,65 @@ pub async fn handle_init(
     let (final_github_username, final_github_repo) = if no_github {
         (None, None)
     } else {
-        let username = match github_username {
-            Some(username) => {
-                if !Utils::is_valid_github_username(&username) {
-                    anyhow::bail!("Invalid GitHub username: {}", username);
-                }
-                Some(username)
+        let username = if let Some(username) = github_username {
+            if !Utils::is_valid_github_username(&username) {
+                anyhow::bail!("Invalid GitHub username: {username}");
             }
-            None => {
-                let default_username = EnvConfig::github_username();
-                use std::io::{self, Write};
+            Some(username)
+        } else {
+            let default_username = EnvConfig::github_username();
 
-                if let Some(ref default) = default_username {
-                    print!("GitHub username [{}] (press Enter to skip): ", default);
-                } else {
-                    print!("GitHub username (press Enter to skip): ");
+            if let Some(ref default) = default_username {
+                print!("GitHub username [{default}] (press Enter to skip): ");
+            } else {
+                print!("GitHub username (press Enter to skip): ");
+            }
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim();
+
+            if input.is_empty() {
+                default_username
+            } else if Utils::is_valid_github_username(input) {
+                Some(input.to_string())
+            } else {
+                Console::warn(&format!(
+                    "Invalid GitHub username '{input}', skipping GitHub integration"
+                ));
+                None
+            }
+        };
+
+        let repo = if username.is_some() {
+            if let Some(repo) = github_repo {
+                if !Utils::is_valid_github_repo_name(&repo) {
+                    anyhow::bail!("Invalid GitHub repository name: {repo}");
                 }
+                Some(repo)
+            } else {
+                let default_repo = Utils::slugify(&project_name);
+                print!("GitHub repository name [{default_repo}]: ");
                 io::stdout().flush()?;
 
                 let mut input = String::new();
                 io::stdin().read_line(&mut input)?;
                 let input = input.trim();
 
-                if input.is_empty() {
-                    default_username
-                } else if Utils::is_valid_github_username(input) {
-                    Some(input.to_string())
+                let repo_name = if input.is_empty() {
+                    default_repo
+                } else {
+                    input.to_string()
+                };
+
+                if Utils::is_valid_github_repo_name(&repo_name) {
+                    Some(repo_name)
                 } else {
                     Console::warn(&format!(
-                        "Invalid GitHub username '{}', skipping GitHub integration",
-                        input
+                        "Invalid repository name '{repo_name}', skipping GitHub integration"
                     ));
                     None
-                }
-            }
-        };
-
-        let repo = if username.is_some() {
-            match github_repo {
-                Some(repo) => {
-                    if !Utils::is_valid_github_repo_name(&repo) {
-                        anyhow::bail!("Invalid GitHub repository name: {}", repo);
-                    }
-                    Some(repo)
-                }
-                None => {
-                    let default_repo = Utils::slugify(&project_name);
-                    use std::io::{self, Write};
-                    print!("GitHub repository name [{}]: ", default_repo);
-                    io::stdout().flush()?;
-
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input)?;
-                    let input = input.trim();
-
-                    let repo_name = if input.is_empty() {
-                        default_repo
-                    } else {
-                        input.to_string()
-                    };
-
-                    if Utils::is_valid_github_repo_name(&repo_name) {
-                        Some(repo_name)
-                    } else {
-                        Console::warn(&format!(
-                            "Invalid repository name '{}', skipping GitHub integration",
-                            repo_name
-                        ));
-                        None
-                    }
                 }
             }
         } else {
@@ -215,13 +202,10 @@ pub async fn handle_init(
             }
             Err(e) => {
                 Console::warn(&format!("Failed to create GitHub repository: {}", e));
-                Console::info(&format!(
-                    "You can create it manually at: https://github.com/new"
-                ));
+                Console::info("You can create it manually at: https://github.com/new");
                 if let (Some(username), Some(repo)) = (&final_github_username, &final_github_repo) {
                     Console::info(&format!(
-                        "Repository URL: https://github.com/{}/{}",
-                        username, repo
+                        "Repository URL: https://github.com/{username}/{repo}"
                     ));
                 }
             }
@@ -242,7 +226,7 @@ pub async fn handle_init(
     }
 
     println!();
-    Console::success(&format!("🎉 Successfully initialized '{}'!", project_name));
+    Console::success(&format!("🎉 Successfully initialized '{project_name}'!"));
     println!();
 
     // Show next steps
@@ -271,7 +255,7 @@ pub async fn handle_init(
 }
 
 async fn create_github_repository(
-    username: &str,
+    _username: &str,
     repo_name: &str,
     description: &str,
 ) -> Result<()> {
@@ -310,9 +294,8 @@ async fn create_github_repository(
             );
         } else if status == 401 {
             anyhow::bail!("Authentication failed. Check your GitHub token.");
-        } else {
-            anyhow::bail!("GitHub API error ({}): {}", status, body);
         }
+        anyhow::bail!("GitHub API error ({status}): {body}");
     }
 
     Ok(())

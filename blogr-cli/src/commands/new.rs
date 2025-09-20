@@ -3,10 +3,10 @@ use anyhow::Result;
 
 pub async fn handle_new(
     title: String,
-    template: String,
-    draft: bool,
-    slug: Option<String>,
-    tags: Option<String>,
+    _template: String,
+    _draft: bool,
+    _slug: Option<String>,
+    _tags: Option<String>,
 ) -> Result<()> {
     Console::info(&format!("Creating new post: '{}'", title));
 

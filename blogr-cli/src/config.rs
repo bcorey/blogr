@@ -89,6 +89,7 @@ impl Default for Config {
 
 impl Config {
     /// Load configuration from blogr.toml file
+    #[allow(dead_code)]
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let content = fs::read_to_string(&path)
             .with_context(|| format!("Failed to read config file: {}", path.as_ref().display()))?;
@@ -156,6 +157,7 @@ impl Config {
     }
 
     /// Load configuration from the project root
+    #[allow(dead_code)]
     pub fn load_from_project() -> Result<(Self, PathBuf)> {
         let project_root = Self::find_project_root()
             .with_context(|| "Failed to find project root")?
@@ -176,11 +178,13 @@ impl Config {
     }
 
     /// Get the themes directory path
+    #[allow(dead_code)]
     pub fn themes_dir(&self, project_root: &Path) -> PathBuf {
         project_root.join("themes")
     }
 
     /// Get the output directory path
+    #[allow(dead_code)]
     pub fn output_dir(&self, project_root: &Path) -> PathBuf {
         let output_dir = self.build.output_dir.as_deref().unwrap_or("dist");
         project_root.join(output_dir)
@@ -205,25 +209,28 @@ impl Config {
             anyhow::bail!("Base URL must start with http:// or https://");
         }
 
-        if self.dev.port == 0 || self.dev.port > 65535 {
-            anyhow::bail!("Development server port must be between 1 and 65535");
+        if self.dev.port == 0 {
+            anyhow::bail!("Development server port must be greater than 0");
         }
 
         Ok(())
     }
 
     /// Update theme configuration
+    #[allow(dead_code)]
     pub fn set_theme(&mut self, theme_name: String, theme_config: HashMap<String, toml::Value>) {
         self.theme.name = theme_name;
         self.theme.config = theme_config;
     }
 
     /// Get theme configuration value
+    #[allow(dead_code)]
     pub fn get_theme_config(&self, key: &str) -> Option<&toml::Value> {
         self.theme.config.get(key)
     }
 
     /// Set theme configuration value
+    #[allow(dead_code)]
     pub fn set_theme_config(&mut self, key: String, value: toml::Value) {
         self.theme.config.insert(key, value);
     }
@@ -244,7 +251,7 @@ impl EnvConfig {
     pub fn git_author_name() -> Option<String> {
         std::env::var("GIT_AUTHOR_NAME").ok().or_else(|| {
             std::process::Command::new("git")
-                .args(&["config", "user.name"])
+                .args(["config", "user.name"])
                 .output()
                 .ok()
                 .and_then(|output| String::from_utf8(output.stdout).ok())
@@ -253,10 +260,11 @@ impl EnvConfig {
     }
 
     /// Get author email from git config or environment
+    #[allow(dead_code)]
     pub fn git_author_email() -> Option<String> {
         std::env::var("GIT_AUTHOR_EMAIL").ok().or_else(|| {
             std::process::Command::new("git")
-                .args(&["config", "user.email"])
+                .args(["config", "user.email"])
                 .output()
                 .ok()
                 .and_then(|output| String::from_utf8(output.stdout).ok())

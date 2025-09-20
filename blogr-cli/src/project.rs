@@ -17,6 +17,7 @@ impl Project {
     }
 
     /// Find and load existing project
+    #[allow(dead_code)]
     pub fn find_and_load() -> Result<Self> {
         let (config, root) = Config::load_from_project()?;
         Ok(Self::new(root, config))
@@ -143,11 +144,13 @@ impl Project {
     }
 
     /// Get themes directory
+    #[allow(dead_code)]
     pub fn themes_dir(&self) -> PathBuf {
         self.config.themes_dir(&self.root)
     }
 
     /// Get output directory
+    #[allow(dead_code)]
     pub fn output_dir(&self) -> PathBuf {
         self.config.output_dir(&self.root)
     }
@@ -158,6 +161,7 @@ impl Project {
     }
 
     /// Get blogr internal directory
+    #[allow(dead_code)]
     pub fn blogr_dir(&self) -> PathBuf {
         self.root.join(".blogr")
     }
@@ -192,6 +196,7 @@ impl Project {
     }
 
     /// Clean build artifacts and temporary files
+    #[allow(dead_code)]
     pub fn clean(&self) -> Result<()> {
         let output_dir = self.output_dir();
         if output_dir.exists() {
@@ -209,7 +214,7 @@ impl Project {
             for entry in fs::read_dir(&blogr_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if path.is_file() && path.extension().map_or(false, |ext| ext == "cache") {
+                if path.is_file() && path.extension().is_some_and(|ext| ext == "cache") {
                     fs::remove_file(&path).with_context(|| {
                         format!("Failed to remove cache file: {}", path.display())
                     })?;
@@ -221,6 +226,7 @@ impl Project {
     }
 
     /// Get project statistics
+    #[allow(dead_code)]
     pub fn stats(&self) -> Result<ProjectStats> {
         let posts_dir = self.posts_dir();
         let mut stats = ProjectStats::default();
@@ -269,6 +275,7 @@ impl Project {
     }
 
     /// Reload configuration from file
+    #[allow(dead_code)]
     pub fn reload_config(&mut self) -> Result<()> {
         let config_path = self.root.join("blogr.toml");
         self.config = Config::load_from_file(&config_path)?;
@@ -277,6 +284,7 @@ impl Project {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct ProjectStats {
     pub total_posts: usize,
     pub published_posts: usize,
@@ -286,6 +294,7 @@ pub struct ProjectStats {
 }
 
 impl ProjectStats {
+    #[allow(dead_code)]
     pub fn average_words_per_post(&self) -> f64 {
         if self.total_posts == 0 {
             0.0
@@ -296,10 +305,12 @@ impl ProjectStats {
 }
 
 /// Auto-initialization helper
+#[allow(dead_code)]
 pub struct AutoInit;
 
 impl AutoInit {
     /// Check if command should trigger auto-initialization prompt
+    #[allow(dead_code)]
     pub fn should_prompt(command_name: &str) -> bool {
         matches!(
             command_name,
@@ -308,6 +319,7 @@ impl AutoInit {
     }
 
     /// Prompt user for auto-initialization
+    #[allow(dead_code)]
     pub fn prompt_user(command_name: &str) -> Result<bool> {
         use std::io::{self, Write};
 
@@ -325,6 +337,7 @@ impl AutoInit {
     }
 
     /// Interactive project initialization
+    #[allow(dead_code)]
     pub fn interactive_init() -> Result<Project> {
         use std::io::{self, Write};
 
