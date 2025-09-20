@@ -59,7 +59,9 @@ pub async fn handle_serve(port: u16, host: String, drafts: bool, open: bool) -> 
     if open {
         let url = format!("http://{}:{}", host, port);
         Console::info(&format!("Opening browser to {}", url));
-        // TODO: Open browser - could use `open` crate
+        if let Err(e) = ::open::that(&url) {
+            Console::warn(&format!("Failed to open browser: {}", e));
+        }
     }
 
     // Start server
