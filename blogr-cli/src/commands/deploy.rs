@@ -44,7 +44,21 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     // Check if working directory has uncommitted changes and handle them automatically
     let has_uncommitted_changes = {
         let statuses = repo.statuses(None)?;
-        !statuses.is_empty()
+        // Check for actual changes that would affect stashing
+        statuses.iter().any(|entry| {
+            let flags = entry.status();
+            // Check for modified, added, deleted, renamed, or typechange files in working tree or index
+            flags.contains(git2::Status::WT_MODIFIED)
+                || flags.contains(git2::Status::WT_DELETED)
+                || flags.contains(git2::Status::WT_TYPECHANGE)
+                || flags.contains(git2::Status::WT_RENAMED)
+                || flags.contains(git2::Status::WT_NEW)
+                || flags.contains(git2::Status::INDEX_MODIFIED)
+                || flags.contains(git2::Status::INDEX_NEW)
+                || flags.contains(git2::Status::INDEX_DELETED)
+                || flags.contains(git2::Status::INDEX_RENAMED)
+                || flags.contains(git2::Status::INDEX_TYPECHANGE)
+        })
     };
 
     let mut stash_id = None;
