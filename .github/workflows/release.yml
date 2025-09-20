@@ -78,23 +78,12 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
             artifact_name: blogr
             asset_name: blogr-linux-x86_64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            artifact_name: blogr
-            asset_name: blogr-linux-x86_64-musl
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
             artifact_name: blogr.exe
             asset_name: blogr-windows-x86_64.exe
           - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: blogr
-            asset_name: blogr-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
             artifact_name: blogr
             asset_name: blogr-macos-aarch64
 
@@ -104,8 +93,6 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       # Install cargo-chef for optimized dependency caching
       - name: Install cargo-chef
@@ -113,25 +100,9 @@ jobs:
         with:
           tool: cargo-chef
 
-      # Install musl-tools for Linux musl target
-      - name: Install musl tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools musl-dev
-          
-          # Set environment variables for static OpenSSL linking with musl
-          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
-          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
-          
-          # Install OpenSSL development packages
-          sudo apt-get install -y libssl-dev pkg-config
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
-        with:
-          key: release-${{ matrix.target }}
 
       # Prepare the build plan for cargo-chef
       - name: Prepare build plan
@@ -139,27 +110,27 @@ jobs:
 
       # Cook dependencies (this will be cached)
       - name: Cook dependencies
-        run: cargo chef cook --release --target ${{ matrix.target }} --recipe-path recipe.json
+        run: cargo chef cook --release --recipe-path recipe.json
 
       # Build the release binary
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --bin blogr
+        run: cargo build --release --bin blogr
 
       # Create release archive
       - name: Create release archive (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
+          cd target/release
           tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
-          echo "ASSET_PATH=target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
+          echo "ASSET_PATH=target/release/${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
           echo "ASSET_NAME=${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
 
       - name: Create release archive (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
+          cd target/release
           7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
-          echo "ASSET_PATH=target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
+          echo "ASSET_PATH=target/release/${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
           echo "ASSET_NAME=${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
 
       # Upload build artifacts
@@ -168,14 +139,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
+          path: target/release/${{ matrix.asset_name }}.tar.gz
 
       - name: Upload build artifacts (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip
+          path: target/release/${{ matrix.asset_name }}.zip
 
   # Create GitHub release
   release:
@@ -201,9 +172,7 @@ jobs:
           prerelease: ${{ contains(needs.changelog.outputs.version, '-') }}
           files: |
             blogr-linux-x86_64/blogr-linux-x86_64.tar.gz
-            blogr-linux-x86_64-musl/blogr-linux-x86_64-musl.tar.gz
             blogr-windows-x86_64/blogr-windows-x86_64.exe.zip
-            blogr-macos-x86_64/blogr-macos-x86_64.tar.gz
             blogr-macos-aarch64/blogr-macos-aarch64.tar.gz
             changelog/CHANGELOG.md
         env:
