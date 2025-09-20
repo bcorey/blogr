@@ -201,9 +201,29 @@ impl SiteBuilder {
         // Add site config
         context.insert("site", &self.config);
 
-        // Add posts (limit to recent posts for index)
-        let recent_posts: Vec<&Post> = posts.iter().take(10).collect();
-        context.insert("posts", &recent_posts);
+        // Prepare posts with rendered content for index
+        let recent_posts: Vec<_> = posts.iter().take(10).collect();
+        let mut posts_with_content = Vec::new();
+
+        for post in &recent_posts {
+            // Convert markdown to HTML for each post
+            let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+            // Calculate reading time (average 200 words per minute)
+            let word_count = post.content.split_whitespace().count();
+            let reading_time = (word_count / 200).max(1);
+
+            // Create a struct that includes both post data and rendered content
+            let post_data = serde_json::json!({
+                "metadata": post.metadata,
+                "content": html_content,
+                "reading_time": reading_time
+            });
+
+            posts_with_content.push(post_data);
+        }
+
+        context.insert("posts", &posts_with_content);
 
         // Add pagination info
         context.insert("has_more", &(posts.len() > 10));
@@ -229,14 +249,39 @@ impl SiteBuilder {
         // Add site config
         context.insert("site", &self.config);
 
-        // Add all posts
-        context.insert("posts", posts);
+        // Prepare posts with rendered content
+        let mut posts_with_content = Vec::new();
+        for post in posts {
+            // Convert markdown to HTML for each post
+            let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+            // Calculate reading time (average 200 words per minute)
+            let word_count = post.content.split_whitespace().count();
+            let reading_time = (word_count / 200).max(1);
+
+            let post_data = serde_json::json!({
+                "metadata": post.metadata,
+                "content": html_content,
+                "reading_time": reading_time
+            });
+
+            posts_with_content.push(post_data);
+        }
+
+        context.insert("posts", &posts_with_content);
 
         // Group posts by year
-        let mut posts_by_year: HashMap<i32, Vec<&Post>> = HashMap::new();
-        for post in posts {
-            let year = post.metadata.date.year();
-            posts_by_year.entry(year).or_default().push(post);
+        let mut posts_by_year: HashMap<i32, Vec<serde_json::Value>> = HashMap::new();
+        for post_data in &posts_with_content {
+            let year = post_data["metadata"]["date"]
+                .as_str()
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|dt| dt.year())
+                .unwrap_or(2024); // fallback year
+            posts_by_year
+                .entry(year)
+                .or_default()
+                .push(post_data.clone());
         }
         context.insert("posts_by_year", &posts_by_year);
 
@@ -277,7 +322,27 @@ impl SiteBuilder {
 
             // Add tag info
             context.insert("tag", tag);
-            context.insert("posts", tag_posts);
+
+            // Prepare posts with rendered content for this tag
+            let mut posts_with_content = Vec::new();
+            for post in tag_posts {
+                // Convert markdown to HTML for each post
+                let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+                // Calculate reading time (average 200 words per minute)
+                let word_count = post.content.split_whitespace().count();
+                let reading_time = (word_count / 200).max(1);
+
+                let post_data = serde_json::json!({
+                    "metadata": post.metadata,
+                    "content": html_content,
+                    "reading_time": reading_time
+                });
+
+                posts_with_content.push(post_data);
+            }
+
+            context.insert("posts", &posts_with_content);
 
             // Render template
             let html = self
