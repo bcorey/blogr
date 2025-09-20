@@ -404,8 +404,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - [Documentation](https://docs.rs/blogr-cli)
-- [Issue Tracker](https://github.com/your-username/blogr/issues)
-- [Discussions](https://github.com/your-username/blogr/discussions)
+- [Issue Tracker](https://github.com/bahdotsh/blogr/issues)
+- [Discussions](https://github.com/bahdotsh/blogr/discussions)
 - [Changelog](CHANGELOG.md)
 
 ## 🙏 Acknowledgments
