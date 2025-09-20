@@ -1,4 +1,4 @@
-use crate::content::Post;
+use crate::content::{Post, PostManager};
 use crate::tui::editor::Editor;
 use crate::tui::preview::Preview;
 use crate::tui::theme::TuiTheme;
@@ -51,11 +51,13 @@ pub struct App {
     pub status_message: String,
     /// Show help overlay
     pub show_help: bool,
+    /// Post manager for saving posts
+    post_manager: PostManager,
 }
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new(post: Post, theme: TuiTheme) -> Self {
+    pub fn new(post: Post, theme: TuiTheme, post_manager: PostManager) -> Self {
         let content = post.content.clone();
         let editor = Editor::new(content);
         let preview = Preview::new();
@@ -71,6 +73,7 @@ impl App {
             modified: false,
             status_message: "Press 'i' to enter insert mode, 'q' to quit".to_string(),
             show_help: false,
+            post_manager,
         }
     }
 
@@ -195,8 +198,18 @@ impl App {
     fn save_post(&mut self) -> AppResult<()> {
         // Update post content
         self.post.content = self.editor.get_content();
-        self.modified = false;
-        // TODO: Actually save to file using PostManager
+
+        // Save the post using PostManager
+        match self.post_manager.save_post(&self.post) {
+            Ok(file_path) => {
+                self.modified = false;
+                self.status_message = format!("Saved to: {}", file_path.display());
+            }
+            Err(e) => {
+                self.status_message = format!("Save failed: {}", e);
+            }
+        }
+
         Ok(())
     }
 
