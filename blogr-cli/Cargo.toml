@@ -12,7 +12,7 @@ name = "blogr"
 path = "src/main.rs"
 
 [dependencies]
-blogr-themes = { version = "0.1.1", path = "../blogr-themes" }
+blogr-themes = { version = "0.1.2", path = "../blogr-themes" }
 clap = { version = "4.0", features = ["derive"] }
 ratatui = "0.24"
 crossterm = "0.27"
