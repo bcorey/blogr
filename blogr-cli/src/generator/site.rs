@@ -63,7 +63,9 @@ impl SiteBuilder {
         }
 
         let output_dir = output_dir.unwrap_or_else(|| {
-            config.build.output_dir
+            config
+                .build
+                .output_dir
                 .as_ref()
                 .map(|p| project.root.join(p))
                 .unwrap_or_else(|| project.root.join("_site"))
@@ -95,9 +97,7 @@ impl SiteBuilder {
         all_posts.retain(|post| self.should_include_post(post));
 
         // Sort posts by date (newest first)
-        all_posts.sort_by(|a, b| {
-            b.metadata.date.cmp(&a.metadata.date)
-        });
+        all_posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
 
         println!("📝 Processing {} posts", all_posts.len());
 
@@ -113,13 +113,19 @@ impl SiteBuilder {
         // Generate tag pages
         self.generate_tag_pages(&all_posts)?;
 
+        // Generate RSS feed
+        self.generate_rss_feed(&all_posts)?;
+
         // Copy theme assets
         self.copy_theme_assets()?;
 
         // Copy project static assets
         self.copy_static_assets()?;
 
-        println!("✅ Site built successfully to: {}", self.output_dir.display());
+        println!(
+            "✅ Site built successfully to: {}",
+            self.output_dir.display()
+        );
         Ok(())
     }
 
@@ -173,7 +179,9 @@ impl SiteBuilder {
             context.insert("reading_time", &reading_time);
 
             // Render template
-            let html = self.tera.render("post.html", &context)
+            let html = self
+                .tera
+                .render("post.html", &context)
                 .map_err(|e| anyhow!("Failed to render post template: {}", e))?;
 
             // Write to file
@@ -181,8 +189,7 @@ impl SiteBuilder {
             fs::create_dir_all(&post_dir)?;
 
             let post_file = post_dir.join(format!("{}.html", post.metadata.slug));
-            fs::write(&post_file, html)
-                .map_err(|e| anyhow!("Failed to write post file: {}", e))?;
+            fs::write(&post_file, html).map_err(|e| anyhow!("Failed to write post file: {}", e))?;
         }
         Ok(())
     }
@@ -203,13 +210,14 @@ impl SiteBuilder {
         context.insert("total_posts", &posts.len());
 
         // Render template
-        let html = self.tera.render("index.html", &context)
+        let html = self
+            .tera
+            .render("index.html", &context)
             .map_err(|e| anyhow!("Failed to render index template: {}", e))?;
 
         // Write to file
         let index_file = self.output_dir.join("index.html");
-        fs::write(&index_file, html)
-            .map_err(|e| anyhow!("Failed to write index file: {}", e))?;
+        fs::write(&index_file, html).map_err(|e| anyhow!("Failed to write index file: {}", e))?;
 
         Ok(())
     }
@@ -233,7 +241,9 @@ impl SiteBuilder {
         context.insert("posts_by_year", &posts_by_year);
 
         // Render template
-        let html = self.tera.render("archive.html", &context)
+        let html = self
+            .tera
+            .render("archive.html", &context)
             .map_err(|e| anyhow!("Failed to render archive template: {}", e))?;
 
         // Write to file
@@ -270,7 +280,9 @@ impl SiteBuilder {
             context.insert("posts", tag_posts);
 
             // Render template
-            let html = self.tera.render("tag.html", &context)
+            let html = self
+                .tera
+                .render("tag.html", &context)
                 .map_err(|e| anyhow!("Failed to render tag template for '{}': {}", tag, e))?;
 
             // Write to file
@@ -290,12 +302,158 @@ impl SiteBuilder {
             .collect();
         context.insert("tags", &tag_info);
 
-        let html = self.tera.render("tags.html", &context)
+        let html = self
+            .tera
+            .render("tags.html", &context)
             .map_err(|e| anyhow!("Failed to render tags index template: {}", e))?;
 
         let tags_index = self.output_dir.join("tags").join("index.html");
-        fs::write(&tags_index, html)
-            .map_err(|e| anyhow!("Failed to write tags index: {}", e))?;
+        fs::write(&tags_index, html).map_err(|e| anyhow!("Failed to write tags index: {}", e))?;
+
+        Ok(())
+    }
+
+    /// Generate RSS feed
+    fn generate_rss_feed(&self, posts: &[Post]) -> Result<()> {
+        // Take only the most recent 20 posts for the RSS feed
+        let recent_posts: Vec<&Post> = posts.iter().take(20).collect();
+
+        let mut rss_items = Vec::new();
+
+        for post in recent_posts {
+            // Convert markdown to HTML for RSS content
+            let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+            // Create RSS item
+            let post_url = format!(
+                "{}/posts/{}.html",
+                self.config.blog.base_url.trim_end_matches('/'),
+                post.metadata.slug
+            );
+
+            let rss_item = format!(
+                r#"    <item>
+      <title><![CDATA[{}]]></title>
+      <link>{}</link>
+      <guid>{}</guid>
+      <description><![CDATA[{}]]></description>
+      <pubDate>{}</pubDate>
+      <author>{}</author>
+    </item>"#,
+                post.metadata.title,
+                post_url,
+                post_url,
+                html_content,
+                post.metadata.date.format("%a, %d %b %Y %H:%M:%S %z"),
+                self.config.blog.author
+            );
+
+            rss_items.push(rss_item);
+        }
+
+        // Generate RSS XML
+        let rss_content = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title><![CDATA[{}]]></title>
+    <link>{}</link>
+    <atom:link href="{}/rss.xml" rel="self" type="application/rss+xml" />
+    <description><![CDATA[{}]]></description>
+    <language>{}</language>
+    <lastBuildDate>{}</lastBuildDate>
+    <generator>Blogr Static Site Generator</generator>
+{}
+  </channel>
+</rss>"#,
+            self.config.blog.title,
+            self.config.blog.base_url,
+            self.config.blog.base_url.trim_end_matches('/'),
+            self.config.blog.description,
+            self.config.blog.language.as_deref().unwrap_or("en"),
+            Utc::now().format("%a, %d %b %Y %H:%M:%S %z"),
+            rss_items.join("\n")
+        );
+
+        // Write RSS feed
+        let rss_file = self.output_dir.join("rss.xml");
+        fs::write(&rss_file, rss_content)
+            .map_err(|e| anyhow!("Failed to write RSS feed: {}", e))?;
+
+        // Also generate Atom feed
+        self.generate_atom_feed(posts)?;
+
+        Ok(())
+    }
+
+    /// Generate Atom feed
+    fn generate_atom_feed(&self, posts: &[Post]) -> Result<()> {
+        // Take only the most recent 20 posts for the Atom feed
+        let recent_posts: Vec<&Post> = posts.iter().take(20).collect();
+
+        let mut atom_entries = Vec::new();
+
+        for post in recent_posts {
+            // Convert markdown to HTML for Atom content
+            let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+            // Create Atom entry
+            let post_url = format!(
+                "{}/posts/{}.html",
+                self.config.blog.base_url.trim_end_matches('/'),
+                post.metadata.slug
+            );
+
+            let atom_entry = format!(
+                r#"  <entry>
+    <title><![CDATA[{}]]></title>
+    <link href="{}"/>
+    <id>{}</id>
+    <updated>{}</updated>
+    <summary><![CDATA[{}]]></summary>
+    <content type="html"><![CDATA[{}]]></content>
+    <author>
+      <name>{}</name>
+    </author>
+  </entry>"#,
+                post.metadata.title,
+                post_url,
+                post_url,
+                post.metadata.date.format("%Y-%m-%dT%H:%M:%S%z"),
+                &post.metadata.description,
+                html_content,
+                self.config.blog.author
+            );
+
+            atom_entries.push(atom_entry);
+        }
+
+        // Generate Atom XML
+        let atom_content = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title><![CDATA[{}]]></title>
+  <link href="{}"/>
+  <link href="{}/atom.xml" rel="self"/>
+  <id>{}</id>
+  <updated>{}</updated>
+  <subtitle><![CDATA[{}]]></subtitle>
+  <generator>Blogr Static Site Generator</generator>
+{}
+</feed>"#,
+            self.config.blog.title,
+            self.config.blog.base_url,
+            self.config.blog.base_url.trim_end_matches('/'),
+            self.config.blog.base_url,
+            Utc::now().format("%Y-%m-%dT%H:%M:%S%z"),
+            self.config.blog.description,
+            atom_entries.join("\n")
+        );
+
+        // Write Atom feed
+        let atom_file = self.output_dir.join("atom.xml");
+        fs::write(&atom_file, atom_content)
+            .map_err(|e| anyhow!("Failed to write Atom feed: {}", e))?;
 
         Ok(())
     }

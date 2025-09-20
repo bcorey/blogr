@@ -32,6 +32,7 @@ pub fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
 }
 
 /// Optimize CSS by removing comments and extra whitespace
+#[allow(dead_code)]
 pub fn optimize_css(css: &str) -> String {
     css.lines()
         .map(|line| line.trim())
@@ -47,6 +48,7 @@ pub fn optimize_css(css: &str) -> String {
 }
 
 /// Optimize JavaScript by removing comments and extra whitespace
+#[allow(dead_code)]
 pub fn optimize_js(js: &str) -> String {
     js.lines()
         .map(|line| line.trim())

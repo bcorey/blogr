@@ -94,6 +94,11 @@ impl Project {
         // Create sample files
         Self::create_sample_files(&project_path, &config)?;
 
+        // Create GitHub Actions workflow if GitHub integration is enabled
+        if config.github.is_some() {
+            Self::create_github_workflow(&project_path, &config)?;
+        }
+
         Ok(Self::new(project_path, config))
     }
 
@@ -153,6 +158,26 @@ impl Project {
         fs::write(project_path.join("posts/about.md"), about_content)
             .with_context(|| "Failed to create about page")?;
 
+        Ok(())
+    }
+
+    /// Create GitHub Actions workflow for automated deployment
+    fn create_github_workflow(project_path: &Path, config: &Config) -> Result<()> {
+        if let Some(github_config) = &config.github {
+            // Create .github/workflows directory
+            let workflows_dir = project_path.join(".github/workflows");
+            fs::create_dir_all(&workflows_dir)
+                .with_context(|| "Failed to create .github/workflows directory")?;
+
+            // Create workflow file
+            let workflow_template = include_str!("../templates/github_workflow.template");
+            let workflow_content = workflow_template
+                .replace("your-username", &github_config.username)
+                .replace("your-repo", &github_config.repository);
+
+            fs::write(workflows_dir.join("deploy.yml"), workflow_content)
+                .with_context(|| "Failed to create GitHub Actions workflow")?;
+        }
         Ok(())
     }
 

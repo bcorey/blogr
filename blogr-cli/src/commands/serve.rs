@@ -1,5 +1,5 @@
-use crate::generator::SiteBuilder;
 use crate::generator::assets::get_mime_type;
+use crate::generator::SiteBuilder;
 use crate::project::Project;
 use crate::utils::Console;
 use anyhow::{anyhow, Result};

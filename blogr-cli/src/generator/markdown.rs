@@ -32,10 +32,13 @@ fn process_code_blocks(event: Event) -> Result<Event, anyhow::Error> {
             match kind {
                 pulldown_cmark::CodeBlockKind::Fenced(lang) => {
                     // Start of a fenced code block with language
-                    Ok(Event::Html(format!(
-                        "<pre class=\"highlight\"><code class=\"language-{}\">",
-                        lang
-                    ).into()))
+                    Ok(Event::Html(
+                        format!(
+                            "<pre class=\"highlight\"><code class=\"language-{}\">",
+                            lang
+                        )
+                        .into(),
+                    ))
                 }
                 pulldown_cmark::CodeBlockKind::Indented => {
                     // Start of an indented code block
@@ -47,10 +50,7 @@ fn process_code_blocks(event: Event) -> Result<Event, anyhow::Error> {
             // End of code block
             Ok(Event::Html("</code></pre>".into()))
         }
-        Event::Text(text) if matches!(
-            get_current_context(),
-            Some(ContextType::CodeBlock(_))
-        ) => {
+        Event::Text(text) if matches!(get_current_context(), Some(ContextType::CodeBlock(_))) => {
             // This is text inside a code block - apply syntax highlighting
             if let Some(ContextType::CodeBlock(ref lang)) = get_current_context() {
                 let highlighted = highlight_code(&text, lang)?;
@@ -72,6 +72,7 @@ fn get_current_context() -> Option<ContextType> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum ContextType {
     CodeBlock(String),
 }
@@ -88,12 +89,7 @@ fn highlight_code(code: &str, language: &str) -> Result<String> {
 
     let theme = &theme_set.themes["base16-ocean.dark"];
 
-    let highlighted = highlighted_html_for_string(
-        code,
-        &syntax_set,
-        syntax,
-        theme,
-    )?;
+    let highlighted = highlighted_html_for_string(code, &syntax_set, syntax, theme)?;
 
     Ok(highlighted)
 }
@@ -108,6 +104,7 @@ fn html_escape(text: &str) -> String {
 }
 
 /// Convert markdown to plain text (for excerpts)
+#[allow(dead_code)]
 pub fn markdown_to_text(markdown: &str) -> String {
     let parser = Parser::new(markdown);
     let mut text = String::new();
@@ -124,6 +121,7 @@ pub fn markdown_to_text(markdown: &str) -> String {
 }
 
 /// Extract excerpt from markdown (first paragraph or first N words)
+#[allow(dead_code)]
 pub fn extract_excerpt(markdown: &str, word_limit: usize) -> String {
     let text = markdown_to_text(markdown);
     let words: Vec<&str> = text.split_whitespace().take(word_limit).collect();

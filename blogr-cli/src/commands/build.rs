@@ -18,7 +18,10 @@ pub async fn handle_build(output: Option<PathBuf>, drafts: bool, future: bool) -
     site_builder.build()?;
 
     Console::success("Site built successfully!");
-    println!("📦 Built site saved to: {}", site_builder.output_dir().display());
+    println!(
+        "📦 Built site saved to: {}",
+        site_builder.output_dir().display()
+    );
     println!("🌐 Ready for deployment");
 
     // Show what was included

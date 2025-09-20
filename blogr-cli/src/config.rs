@@ -260,7 +260,6 @@ impl EnvConfig {
     }
 
     /// Get author email from git config or environment
-    #[allow(dead_code)]
     pub fn git_author_email() -> Option<String> {
         std::env::var("GIT_AUTHOR_EMAIL").ok().or_else(|| {
             std::process::Command::new("git")
