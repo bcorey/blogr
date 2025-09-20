@@ -18,7 +18,12 @@ A fast, modern static site generator built in Rust, designed specifically for bl
 - **RSS/Atom Feeds**: Automatic feed generation for content syndication
 
 ### 🎨 Theming
-- **Minimal Retro Theme**: Production-ready theme with warm retro colors
+- **Minimal Retro Theme**: Beautiful, artistic theme featuring:
+  - Click-to-expand posts on homepage
+  - Artistic typography (Crimson Text, Space Mono)
+  - Minimal design with no navigation clutter
+  - Warm retro colors and elegant tag bubbles
+  - Perfect markdown rendering with syntax highlighting
 - **Template Engine**: Tera-based templating with inheritance
 - **Asset Management**: Automatic CSS/JS optimization and copying
 - **Live Preview**: Theme-aware preview in TUI editor
@@ -298,7 +303,15 @@ fn main() {
 
 ### Built-in Themes
 
-- **Minimal Retro**: Warm retro colors with clean typography
+- **Minimal Retro**: A beautiful, artistic theme featuring:
+  - **Expandable Posts**: Click-to-expand interface on the homepage
+  - **Artistic Typography**: Crimson Text and Space Mono fonts
+  - **Minimal Design**: No navigation clutter, focus on content
+  - **Warm Retro Colors**: Burnt orange accents on cream background
+  - **Tag Bubbles**: Elegant tag system with artistic styling
+  - **Mobile Responsive**: Beautiful on all devices
+  - **Markdown Excellence**: Perfect rendering of all markdown elements
+
 - More themes coming soon!
 
 ### Theme Development
