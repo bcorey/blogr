@@ -10,52 +10,43 @@
     <meta name="author" content="{{ site.blog.author }}">
     {% endblock %}
 
-    <!-- Retro Font from Google Fonts -->
+    <!-- Artistic Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="/css/style.css">
 
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <div class="container">
+    <div class="page-container">
+        <!-- Minimal header with just title -->
         <header class="site-header">
-            <div class="header-content">
-                <h1 class="site-title">
-                    <a href="/">{{ site.blog.title }}</a>
-                </h1>
-                <p class="site-tagline">{{ site.blog.description }}</p>
-                <nav class="main-nav">
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/archive.html">Archive</a></li>
-                        <li><a href="/tags/index.html">Tags</a></li>
-                        {% if site.blog.author %}<li><a href="/about.html">About</a></li>{% endif %}
-                    </ul>
-                </nav>
-            </div>
+            <h1 class="site-title">
+                <a href="/">{{ site.blog.title }}</a>
+            </h1>
+            {% if site.blog.description %}
+            <p class="site-subtitle">{{ site.blog.description }}</p>
+            {% endif %}
         </header>
 
+        <!-- Main content area -->
         <main class="main-content">
             {% block content %}{% endblock %}
         </main>
 
+        <!-- Minimal footer -->
         <footer class="site-footer">
             <div class="footer-content">
-                <div class="footer-left">
-                    <p>&copy; 2024 {{ site.blog.author }}. All rights reserved.</p>
-                </div>
-                <div class="footer-right">
-                    <p class="powered-by">Powered by <a href="https://github.com/yourusername/blogr" target="_blank" rel="noopener">Blogr</a></p>
+                <p class="author-credit">{{ site.blog.author }}</p>
+                <div class="footer-links">
                     {% if site.github %}
-                    <p class="github-link">
-                        <a href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}" target="_blank" rel="noopener">
-                            View on GitHub
-                        </a>
-                    </p>
+                    <a href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}" 
+                       target="_blank" rel="noopener" class="github-link">github</a>
                     {% endif %}
+                    <span class="separator">·</span>
+                    <a href="https://github.com/yourusername/blogr" target="_blank" rel="noopener" class="blogr-link">blogr</a>
                 </div>
             </div>
         </footer>

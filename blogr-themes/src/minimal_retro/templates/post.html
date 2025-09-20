@@ -8,51 +8,61 @@
 {% endblock %}
 
 {% block content %}
-<article class="post-article">
-    <header class="post-header">
-        <h1 class="post-title">{{ post.metadata.title }}</h1>
-
-        <div class="post-meta">
-            <time class="post-date" datetime="{{ post.metadata.date }}">
-                {{ post.metadata.date | date(format="%B %d, %Y") }}
-            </time>
-
-            {% if post.metadata.author %}
-            <span class="post-author">by {{ post.metadata.author }}</span>
-            {% endif %}
-
-            {% if reading_time %}
-            <span class="reading-time">{{ reading_time }} min read</span>
-            {% endif %}
-
-            {% if post.metadata.status == "draft" %}
-            <span class="draft-badge">Draft</span>
+<article class="post-standalone">
+    <!-- Artistic header -->
+    <header class="post-standalone-header">
+        <div class="post-title-area">
+            <h1 class="post-standalone-title">{{ post.metadata.title }}</h1>
+            
+            {% if post.metadata.description %}
+            <div class="post-standalone-description">
+                {{ post.metadata.description }}
+            </div>
             {% endif %}
         </div>
 
-        {% if post.metadata.description %}
-        <div class="post-description">
-            <p>{{ post.metadata.description }}</p>
-        </div>
-        {% endif %}
+        <div class="post-standalone-meta">
+            <div class="meta-row">
+                <time class="post-date">{{ post.metadata.date | date(format="%B %d, %Y") }}</time>
+                
+                {% if post.metadata.author %}
+                <span class="post-author">{{ post.metadata.author }}</span>
+                {% endif %}
+                
+                {% if reading_time %}
+                <span class="reading-time">{{ reading_time }} minute read</span>
+                {% endif %}
+            </div>
 
-        {% if post.metadata.tags %}
-        <div class="post-tags">
-            {% for tag in post.metadata.tags %}
-            <a href="/tags/{{ tag }}.html" class="tag">#{{ tag }}</a>
-            {% endfor %}
+            {% if post.metadata.tags %}
+            <div class="post-tags-standalone">
+                <span class="tags-intro">exploring:</span>
+                {% for tag in post.metadata.tags %}
+                <a href="/tags/{{ tag }}.html" class="tag-link-standalone">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </header>
 
-    <div class="post-content">
+    <!-- Content with artistic typography -->
+    <div class="post-standalone-content">
         {{ content | safe }}
     </div>
 
-    <footer class="post-footer">
+    <!-- Minimal footer -->
+    <footer class="post-standalone-footer">
         <div class="post-navigation">
-            <a href="/" class="back-home">← Home</a>
-            <a href="/archive.html" class="view-archive">Archive →</a>
+            <a href="/" class="nav-link">← all posts</a>
+            
+            {% if post.metadata.tags %}
+            <div class="related-tags">
+                <span class="related-label">more in:</span>
+                {% for tag in post.metadata.tags %}
+                <a href="/tags/{{ tag }}.html" class="related-tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </footer>
 </article>
