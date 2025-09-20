@@ -1,8 +1,8 @@
 # Blogr - CLI Static Site Generator
 
-## Project Status: Phase 3 Complete ✅
+## Project Status: Phase 4 Complete ✅
 
-**Current Status**: Phase 3 (TUI Development) is **COMPLETE** with all deliverables implemented and tested.
+**Current Status**: Phase 4 (Static Site Generation) is **COMPLETE** with all deliverables implemented and tested.
 
 ### 🎉 What's Working Now:
 - ✅ **Full CLI Framework**: Complete command structure with `blogr init`, theme management, project operations
@@ -19,11 +19,15 @@
 - ✅ **Markdown Rendering**: Live preview with syntax highlighting and proper formatting
 - ✅ **Keyboard Navigation**: Vim-like modal editing with intuitive shortcuts
 - ✅ **Project Analytics**: Real-time statistics with word counts, reading time, tag analysis
+- ✅ **Static Site Generator**: Complete site building with HTML generation, asset processing, and multi-page output
+- ✅ **Development Server**: Local HTTP server with automatic site building and live preview
+- ✅ **Template Processing**: Tera integration with theme templates and markdown rendering
+- ✅ **Asset Management**: Theme assets, static file copying, and proper MIME type handling
 - ✅ **Zero Clippy Issues**: Production-ready code quality with comprehensive error handling
 - ✅ **Theme System**: Trait-based architecture ready for community contributions
 
-### 🚧 Next: Phase 4 (Static Site Generation)
-Ready to implement site building, template processing, and deployment features.
+### 🚧 Next: Phase 5 (Deployment & Publishing)
+Ready to implement GitHub Pages deployment, RSS feeds, and automated publishing workflows.
 
 ## Project Overview
 
@@ -465,10 +469,17 @@ blogr project check                   # Validate project structure
 blogr project clean                   # Clean build artifacts
 blogr project stats                   # Detailed analytics (words, tags, reading time)
 
-# Build & Deploy (Placeholder implementations for Phase 4+)
+# Build & Deploy (✅ PHASE 4 COMPLETE)
 blogr build [OPTIONS]                 # Build static site
-blogr serve [OPTIONS]                 # Development server
-blogr deploy [OPTIONS]                # Deploy to GitHub Pages
+  --output <DIR>                       # Output directory (default: _site)
+  --drafts                            # Include draft posts
+  --future                            # Include future-dated posts
+blogr serve [OPTIONS]                 # Development server with live preview
+  --port <PORT>                       # Port number (default: 3000)
+  --host <HOST>                       # Host address (default: 127.0.0.1)
+  --drafts                            # Include draft posts
+  --open                              # Open browser automatically
+blogr deploy [OPTIONS]                # Deploy to GitHub Pages (Phase 5)
 ```
 
 **🔧 Project Structure Created by `blogr init`:**

@@ -5,6 +5,7 @@ use std::path::PathBuf;
 mod commands;
 mod config;
 mod content;
+mod generator;
 mod project;
 mod tui;
 mod tui_integration;

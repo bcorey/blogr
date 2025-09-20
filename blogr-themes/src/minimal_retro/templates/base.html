@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="{{ config.blog.language | default(value="en") }}">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ config.blog.title }}{% endblock %}</title>
+    <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
 
     {% block meta %}
-    <meta name="description" content="{{ config.blog.description }}">
-    <meta name="author" content="{{ config.blog.author }}">
+    <meta name="description" content="{{ site.blog.description }}">
+    <meta name="author" content="{{ site.blog.author }}">
     {% endblock %}
 
     <!-- Retro Font from Google Fonts -->
@@ -24,15 +24,15 @@
         <header class="site-header">
             <div class="header-content">
                 <h1 class="site-title">
-                    <a href="/">{{ config.blog.title }}</a>
+                    <a href="/">{{ site.blog.title }}</a>
                 </h1>
-                <p class="site-tagline">{{ config.blog.description }}</p>
+                <p class="site-tagline">{{ site.blog.description }}</p>
                 <nav class="main-nav">
                     <ul>
                         <li><a href="/">Home</a></li>
-                        <li><a href="/archive">Archive</a></li>
-                        <li><a href="/tags">Tags</a></li>
-                        {% if config.blog.author %}<li><a href="/about">About</a></li>{% endif %}
+                        <li><a href="/archive.html">Archive</a></li>
+                        <li><a href="/tags/index.html">Tags</a></li>
+                        {% if site.blog.author %}<li><a href="/about.html">About</a></li>{% endif %}
                     </ul>
                 </nav>
             </div>
@@ -45,13 +45,13 @@
         <footer class="site-footer">
             <div class="footer-content">
                 <div class="footer-left">
-                    <p>&copy; {{ "now" | date(format="%Y") }} {{ config.blog.author | default(value="Anonymous") }}. All rights reserved.</p>
+                    <p>&copy; 2024 {{ site.blog.author }}. All rights reserved.</p>
                 </div>
                 <div class="footer-right">
                     <p class="powered-by">Powered by <a href="https://github.com/yourusername/blogr" target="_blank" rel="noopener">Blogr</a></p>
-                    {% if config.github %}
+                    {% if site.github %}
                     <p class="github-link">
-                        <a href="https://github.com/{{ config.github.username }}/{{ config.github.repository }}" target="_blank" rel="noopener">
+                        <a href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}" target="_blank" rel="noopener">
                             View on GitHub
                         </a>
                     </p>

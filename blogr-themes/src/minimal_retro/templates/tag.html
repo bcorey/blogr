@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Tag: {{ tag }} - {{ config.blog.title }}{% endblock %}
+{% block title %}Tag: {{ tag }} - {{ site.blog.title }}{% endblock %}
 
 {% block meta %}
-<meta name="description" content="Posts tagged with {{ tag }} on {{ config.blog.title }}">
+<meta name="description" content="Posts tagged with {{ tag }} on {{ site.blog.title }}">
 {% endblock %}
 
 {% block content %}
 <div class="tag-page">
     <header class="tag-header">
         <h1 class="tag-title">Posts tagged with <span class="tag-name">#{{ tag }}</span></h1>
-        <p class="tag-subtitle">{{ posts | length }} post{{ posts | length | pluralize }} found</p>
+        <p class="tag-subtitle">{{ posts | length }} posts found</p>
     </header>
 
     {% if posts %}
@@ -18,41 +18,35 @@
             {% for post in posts %}
             <article class="tag-post">
                 <div class="post-date">
-                    <time datetime="{{ post.date }}">
-                        {{ post.date | date(format="%b %d, %Y") }}
+                    <time datetime="{{ post.metadata.date }}">
+                        {{ post.metadata.date | date(format="%b %d, %Y") }}
                     </time>
                 </div>
 
                 <div class="post-content">
                     <h2 class="post-title">
-                        <a href="/posts/{{ post.slug }}">{{ post.title }}</a>
+                        <a href="/posts/{{ post.metadata.slug }}.html">{{ post.metadata.title }}</a>
                     </h2>
 
-                    {% if post.description %}
-                    <p class="post-description">{{ post.description }}</p>
+                    {% if post.metadata.description %}
+                    <p class="post-description">{{ post.metadata.description }}</p>
                     {% endif %}
 
                     <div class="post-meta">
-                        {% if config.theme.config.show_author and post.author %}
-                        <span class="post-author">by {{ post.author }}</span>
+                        {% if post.metadata.author %}
+                        <span class="post-author">by {{ post.metadata.author }}</span>
                         {% endif %}
 
-                        {% if config.theme.config.show_reading_time and post.reading_time %}
-                        <span class="reading-time">{{ post.reading_time }} min read</span>
-                        {% endif %}
-
-                        {% if post.status == "draft" %}
+                        {% if post.metadata.status == "draft" %}
                         <span class="draft-badge">Draft</span>
                         {% endif %}
                     </div>
 
-                    {% if post.tags and post.tags | length > 1 %}
+                    {% if post.metadata.tags %}
                     <div class="post-tags">
-                        <span class="tags-label">Other tags:</span>
-                        {% for post_tag in post.tags %}
-                            {% if post_tag != tag %}
-                            <a href="/tags/{{ post_tag | slugify }}" class="tag">#{{ post_tag }}</a>
-                            {% endif %}
+                        <span class="tags-label">Tags:</span>
+                        {% for post_tag in post.metadata.tags %}
+                        <a href="/tags/{{ post_tag }}.html" class="tag">#{{ post_tag }}</a>
                         {% endfor %}
                     </div>
                     {% endif %}
@@ -60,36 +54,16 @@
             </article>
             {% endfor %}
         </div>
-
-        <div class="tag-pagination">
-            <!-- Future enhancement: Add pagination if needed -->
-        </div>
     {% else %}
         <div class="no-posts">
             <p>No posts found with the tag "{{ tag }}".</p>
-            <p class="no-posts-hint">Try browsing <a href="/tags">all available tags</a> or go back to the <a href="/">homepage</a>.</p>
+            <p class="no-posts-hint">Try browsing <a href="/tags/index.html">all available tags</a> or go back to the <a href="/">homepage</a>.</p>
         </div>
     {% endif %}
 
     <div class="tag-navigation">
-        <a href="/tags" class="back-tags">← All Tags</a>
-        <a href="/archive" class="view-archive">View Archive →</a>
+        <a href="/tags/index.html" class="back-tags">← All Tags</a>
+        <a href="/archive.html" class="view-archive">View Archive →</a>
     </div>
-
-    <aside class="related-tags">
-        {% if all_tags and all_tags | length > 1 %}
-        <h3 class="related-title">Other Tags</h3>
-        <div class="tags-cloud">
-            {% for other_tag in all_tags %}
-                {% if other_tag.name != tag %}
-                <a href="/tags/{{ other_tag.name | slugify }}" class="tag-cloud-item"
-                   style="font-size: {{ other_tag.count | times: 0.8 | plus: 1.0 }}em;">
-                    #{{ other_tag.name }} ({{ other_tag.count }})
-                </a>
-                {% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
-    </aside>
 </div>
 {% endblock %}

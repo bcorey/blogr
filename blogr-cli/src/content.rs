@@ -61,7 +61,7 @@ impl Default for PostStatus {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
     pub metadata: PostMetadata,
     pub content: String,

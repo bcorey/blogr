@@ -45,3 +45,8 @@ pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
         _ => None,
     }
 }
+
+#[must_use]
+pub fn get_theme_by_name(name: &str) -> Option<Box<dyn Theme>> {
+    get_theme(name)
+}

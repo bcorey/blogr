@@ -111,6 +111,12 @@ impl Theme for MinimalRetroTheme {
             include_str!("templates/tag.html").to_string(),
         );
 
+        // Tags index template
+        templates.insert(
+            "tags.html".to_string(),
+            include_str!("templates/tags.html").to_string(),
+        );
+
         templates
     }
 
