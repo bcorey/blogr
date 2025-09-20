@@ -46,8 +46,17 @@ impl Theme for MinimalRetroTheme {
             "font_family".to_string(),
             ConfigOption {
                 option_type: "string".to_string(),
-                default: "Monaco, 'Courier New', monospace".to_string(),
-                description: "Font family (retro monospace)".to_string(),
+                default: "'Crimson Text', 'Playfair Display', Georgia, serif".to_string(),
+                description: "Artistic serif font family".to_string(),
+            },
+        );
+
+        config_schema.insert(
+            "accent_font".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "'Space Mono', 'Courier Prime', monospace".to_string(),
+                description: "Monospace accent font for tags and metadata".to_string(),
             },
         );
 
@@ -69,11 +78,20 @@ impl Theme for MinimalRetroTheme {
             },
         );
 
+        config_schema.insert(
+            "expandable_posts".to_string(),
+            ConfigOption {
+                option_type: "boolean".to_string(),
+                default: "true".to_string(),
+                description: "Enable expandable post previews on homepage".to_string(),
+            },
+        );
+
         ThemeInfo {
             name: "Minimal Retro".to_string(),
-            version: "1.0.0".to_string(),
+            version: "2.0.0".to_string(),
             author: "Blogr Team".to_string(),
-            description: "A minimal theme with warm retro colors and clean typography".to_string(),
+            description: "An artistic, minimal theme focused on content with expandable posts and beautiful typography".to_string(),
             config_schema,
         }
     }
