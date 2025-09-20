@@ -116,7 +116,17 @@ jobs:
       # Install musl-tools for Linux musl target
       - name: Install musl tools
         if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools musl-dev
+          
+          # Set environment variables for static OpenSSL linking with musl
+          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          
+          # Install OpenSSL development packages
+          sudo apt-get install -y libssl-dev pkg-config
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
