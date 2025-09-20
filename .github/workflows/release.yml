@@ -183,7 +183,6 @@ jobs:
     name: Publish to Crates.io
     needs: [changelog, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(needs.changelog.outputs.version, '-')
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
