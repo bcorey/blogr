@@ -42,6 +42,11 @@ impl Editor {
 
     /// Handle a key event and return true if the content was modified
     pub fn handle_key_event(&mut self, key: KeyEvent) -> bool {
+        self.handle_key_event_with_height(key, None)
+    }
+
+    /// Handle a key event with widget height and return true if the content was modified
+    pub fn handle_key_event_with_height(&mut self, key: KeyEvent, height: Option<u16>) -> bool {
         // Handle key combinations with modifiers first
         if key.modifiers.contains(KeyModifiers::CONTROL) {
             match key.code {
@@ -117,12 +122,12 @@ impl Editor {
                 false
             }
             KeyCode::PageUp => {
-                self.page_up();
+                self.page_up_with_height(height);
                 self.update_scroll();
                 false
             }
             KeyCode::PageDown => {
-                self.page_down();
+                self.page_down_with_height(height);
                 self.update_scroll();
                 false
             }
@@ -244,9 +249,12 @@ impl Editor {
         }
     }
 
-    /// Page up
-    fn page_up(&mut self) {
-        let page_size = 10; // TODO: Calculate based on widget height
+    /// Page up with specified height
+    fn page_up_with_height(&mut self, height: Option<u16>) {
+        let page_size = height
+            .map(|h| h.saturating_sub(3) as usize)
+            .unwrap_or(10)
+            .max(1);
         if self.cursor.0 >= page_size {
             self.cursor.0 -= page_size;
         } else {
@@ -255,9 +263,12 @@ impl Editor {
         self.move_cursor_to_line_end();
     }
 
-    /// Page down
-    fn page_down(&mut self) {
-        let page_size = 10; // TODO: Calculate based on widget height
+    /// Page down with specified height
+    fn page_down_with_height(&mut self, height: Option<u16>) {
+        let page_size = height
+            .map(|h| h.saturating_sub(3) as usize)
+            .unwrap_or(10)
+            .max(1);
         if self.cursor.0 + page_size < self.content.len() {
             self.cursor.0 += page_size;
         } else {

@@ -37,6 +37,11 @@ impl Preview {
 
     /// Handle key events for scrolling
     pub fn handle_key_event(&mut self, key: KeyEvent) {
+        self.handle_key_event_with_height(key, None)
+    }
+
+    /// Handle key events for scrolling with widget height
+    pub fn handle_key_event_with_height(&mut self, key: KeyEvent, height: Option<u16>) {
         match key.code {
             KeyCode::Up => {
                 if self.scroll > 0 {
@@ -49,7 +54,10 @@ impl Preview {
                 }
             }
             KeyCode::PageUp => {
-                let page_size = 10; // TODO: Calculate based on widget height
+                let page_size = height
+                    .map(|h| h.saturating_sub(3) as usize)
+                    .unwrap_or(10)
+                    .max(1);
                 if self.scroll >= page_size {
                     self.scroll -= page_size;
                 } else {
@@ -57,7 +65,10 @@ impl Preview {
                 }
             }
             KeyCode::PageDown => {
-                let page_size = 10; // TODO: Calculate based on widget height
+                let page_size = height
+                    .map(|h| h.saturating_sub(3) as usize)
+                    .unwrap_or(10)
+                    .max(1);
                 if self.scroll + page_size < self.content.len() {
                     self.scroll += page_size;
                 } else {
@@ -97,7 +108,26 @@ impl Preview {
 
         frame.render_widget(paragraph, area);
 
-        // TODO: Add scroll indicator
+        // Add scroll indicator if content is scrollable
+        if self.content.len() > inner_area.height as usize {
+            let scroll_ratio =
+                self.scroll as f32 / (self.content.len() - inner_area.height as usize) as f32;
+            let indicator_y = (scroll_ratio * (inner_area.height as f32 - 1.0)) as u16;
+
+            // Draw scroll indicator on the right edge
+            if inner_area.width > 0 {
+                let indicator_area = ratatui::layout::Rect {
+                    x: inner_area.x + inner_area.width - 1,
+                    y: inner_area.y + indicator_y,
+                    width: 1,
+                    height: 1,
+                };
+
+                let indicator = ratatui::widgets::Paragraph::new("▐")
+                    .style(ratatui::style::Style::default().fg(theme.primary_color));
+                frame.render_widget(indicator, indicator_area);
+            }
+        }
     }
 
     /// Get the current scroll position
