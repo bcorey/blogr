@@ -250,6 +250,7 @@ dependencies = [
  "serde",
  "serde_json",
  "syntect",
+ "tempfile",
  "tera",
  "thiserror 1.0.69",
  "tokio",
