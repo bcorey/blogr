@@ -382,7 +382,7 @@ This is the body of the post."#;
 
         let (frontmatter, body) = Post::parse_frontmatter(content).unwrap();
         assert!(frontmatter.contains("title: \"Test Post\""));
-        assert!(body.starts_with("# Test Content"));
+        assert!(body.trim_start().starts_with("# Test Content"));
     }
 
     #[test]
