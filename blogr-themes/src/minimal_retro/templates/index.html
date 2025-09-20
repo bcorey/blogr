@@ -151,8 +151,20 @@ async function loadMorePosts() {
     document.getElementById('loading-indicator').style.display = 'block';
     
     try {
-        const response = await fetch(`/api/posts?page=${currentPage + 1}&limit=10`);
-        const data = await response.json();
+        // Try static JSON file first (for deployed sites)
+        let response;
+        let data;
+        
+        try {
+            response = await fetch(`/api/posts-page-${currentPage + 1}.json`);
+            if (!response.ok) throw new Error('Static file not found');
+            data = await response.json();
+        } catch (staticError) {
+            // Fallback to dynamic API (for development server)
+            response = await fetch(`/api/posts?page=${currentPage + 1}&limit=10`);
+            if (!response.ok) throw new Error('API endpoint not available');
+            data = await response.json();
+        }
         
         if (data.posts && data.posts.length > 0) {
             const postsContainer = document.querySelector('.posts-container');

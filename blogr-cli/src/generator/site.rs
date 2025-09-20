@@ -120,6 +120,9 @@ impl SiteBuilder {
         // Generate RSS feed
         self.generate_rss_feed(&all_posts)?;
 
+        // Generate static JSON files for pagination
+        self.generate_posts_json(&all_posts)?;
+
         // Copy theme assets
         self.copy_theme_assets()?;
 
@@ -656,6 +659,65 @@ impl SiteBuilder {
             },
         );
 
+        Ok(())
+    }
+
+    /// Generate static JSON files for post pagination
+    fn generate_posts_json(&self, posts: &[Post]) -> Result<()> {
+        const POSTS_PER_PAGE: usize = 10;
+
+        // Create api directory
+        let api_dir = self.output_dir.join("api");
+        fs::create_dir_all(&api_dir)?;
+
+        // Generate paginated JSON files
+        let total_posts = posts.len();
+        let total_pages = total_posts.div_ceil(POSTS_PER_PAGE);
+
+        for page in 1..=total_pages {
+            let start_index = (page - 1) * POSTS_PER_PAGE;
+            let end_index = (start_index + POSTS_PER_PAGE).min(total_posts);
+            let page_posts = &posts[start_index..end_index];
+
+            // Prepare posts with rendered content
+            let mut posts_with_content = Vec::new();
+            for post in page_posts {
+                // Convert markdown to HTML for each post
+                let html_content = crate::generator::markdown::render_markdown(&post.content)?;
+
+                // Calculate reading time (average 200 words per minute)
+                let word_count = post.content.split_whitespace().count();
+                let reading_time = (word_count / 200).max(1);
+
+                // Create a struct that includes both post data and rendered content
+                let post_data = serde_json::json!({
+                    "metadata": post.metadata,
+                    "content": html_content,
+                    "reading_time": reading_time
+                });
+
+                posts_with_content.push(post_data);
+            }
+
+            // Create response structure matching the API format
+            let response = serde_json::json!({
+                "posts": posts_with_content,
+                "has_more": page < total_pages,
+                "total": total_posts,
+                "page": page,
+                "limit": POSTS_PER_PAGE
+            });
+
+            // Write JSON file for this page
+            let json_file = api_dir.join(format!("posts-page-{}.json", page));
+            let json_content = serde_json::to_string_pretty(&response)
+                .map_err(|e| anyhow!("Failed to serialize posts JSON for page {}: {}", page, e))?;
+
+            fs::write(&json_file, json_content)
+                .map_err(|e| anyhow!("Failed to write posts JSON file for page {}: {}", page, e))?;
+        }
+
+        println!("📄 Generated {} paginated JSON files", total_pages);
         Ok(())
     }
 }
