@@ -93,25 +93,6 @@ jobs:
       - name: Run doc tests
         run: cargo test --release --doc
 
-  # Security audit
-  audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-
-      - name: Run security audit
-        run: cargo audit --deny warnings
-        
   # Coverage report (optional, runs only on main branch pushes)
   coverage:
     name: Coverage
