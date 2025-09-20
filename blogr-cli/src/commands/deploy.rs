@@ -87,10 +87,9 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     Console::step(5, 7, "Copying built files...");
 
-    // Clear the deployment branch (except .git)
+    // Clear the deployment branch (except .git) and copy built files
+    // Note: This modifies the working directory, but we'll restore it when switching back to main
     clear_deployment_branch(&project.root)?;
-
-    // Copy built site to deployment branch root
     copy_site_files(&temp_output, &project.root)?;
 
     // Smart CNAME file creation based on deployment type
@@ -196,6 +195,11 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
 
     // Switch back to original branch
     checkout_branch(&repo, &current_branch)?;
+
+    // Force reset the working directory to match the original branch
+    // This ensures that any files modified during deployment don't affect the main branch
+    let head_commit = repo.head()?.peel_to_commit()?;
+    repo.reset(head_commit.as_object(), git2::ResetType::Hard, None)?;
 
     // Restore stashed changes if any were stashed
     if let Some(_stash_id) = stash_id {
