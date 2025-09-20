@@ -591,11 +591,11 @@ impl SiteBuilder {
     /// Register template functions for URL generation
     fn register_template_functions(tera: &mut Tera, config: &Config) -> Result<()> {
         let base_url = config.get_effective_base_url();
-        
+
         // Determine if we should use relative paths (for local development) or full URLs
-        let use_relative_paths = base_url.starts_with("http://127.0.0.1") || 
-                                 base_url.starts_with("http://localhost") ||
-                                 base_url == "https://username.github.io/repository";
+        let use_relative_paths = base_url.starts_with("http://127.0.0.1")
+            || base_url.starts_with("http://localhost")
+            || base_url == "https://username.github.io/repository";
 
         // Clone base_url for use in closures
         let base_url_for_asset = base_url.clone();
