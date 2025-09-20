@@ -1,0 +1,38 @@
+# Git
+.git/
+.gitignore
+
+# Build artifacts
+target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+CHANGELOG.md
+PLAN.md
+*.md
+
+# GitHub
+.github/
+
+# Local development
+.env
+.env.local
+
+# Test files
+tests/
+benches/
+
+# Examples
+examples/

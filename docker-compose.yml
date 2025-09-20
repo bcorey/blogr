@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Development service
+  blogr-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+    command: cargo run --bin blogr -- serve --host 0.0.0.0 --port 3000
+
+  # Production service
+  blogr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./blog-data:/home/blogr/blog
+    environment:
+      - RUST_LOG=info
+    command: blogr serve --host 0.0.0.0 --port 3000
+
+volumes:
+  cargo-cache:
+  target-cache:

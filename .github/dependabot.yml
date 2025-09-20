@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # Enable version updates for Cargo
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "bahdotsh"
+    assignees:
+      - "bahdotsh"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+    # Group minor and patch updates
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bahdotsh"
+    assignees:
+      - "bahdotsh"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"

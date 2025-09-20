@@ -1,0 +1,217 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create release for'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Generate changelog and create GitHub release
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.git-cliff.outputs.content }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git-cliff
+
+      - name: Get version from tag
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Generate changelog
+        id: git-cliff
+        run: |
+          # Generate changelog for the current version
+          git cliff --tag ${{ steps.get-version.outputs.version }} --strip header > CHANGELOG_CURRENT.md
+          
+          # Also update the full changelog
+          git cliff --output CHANGELOG.md
+          
+          # Set output for GitHub release
+          {
+            echo 'content<<EOF'
+            cat CHANGELOG_CURRENT.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: Upload changelog artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: |
+            CHANGELOG.md
+            CHANGELOG_CURRENT.md
+
+  # Build release binaries
+  build:
+    name: Build Release
+    needs: changelog
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: blogr
+            asset_name: blogr-linux-x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: blogr
+            asset_name: blogr-linux-x86_64-musl
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: blogr.exe
+            asset_name: blogr-windows-x86_64.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: blogr
+            asset_name: blogr-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: blogr
+            asset_name: blogr-macos-aarch64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Install cargo-chef for optimized dependency caching
+      - name: Install cargo-chef
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-chef
+
+      # Install musl-tools for Linux musl target
+      - name: Install musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      # Prepare the build plan for cargo-chef
+      - name: Prepare build plan
+        run: cargo chef prepare --recipe-path recipe.json
+
+      # Cook dependencies (this will be cached)
+      - name: Cook dependencies
+        run: cargo chef cook --release --target ${{ matrix.target }} --recipe-path recipe.json
+
+      # Build the release binary
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --bin blogr
+
+      # Create release archive
+      - name: Create release archive (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          echo "ASSET_PATH=target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
+          echo "ASSET_NAME=${{ matrix.asset_name }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Create release archive (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          echo "ASSET_PATH=target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
+          echo "ASSET_NAME=${{ matrix.asset_name }}.zip" >> $env:GITHUB_ENV
+
+      # Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ env.ASSET_PATH }}
+
+  # Create GitHub release
+  release:
+    name: Create GitHub Release
+    needs: [changelog, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.changelog.outputs.version }}
+          name: Release ${{ needs.changelog.outputs.version }}
+          body: ${{ needs.changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ contains(needs.changelog.outputs.version, '-') }}
+          files: |
+            blogr-linux-x86_64/blogr-linux-x86_64.tar.gz
+            blogr-linux-x86_64-musl/blogr-linux-x86_64-musl.tar.gz
+            blogr-windows-x86_64/blogr-windows-x86_64.exe.zip
+            blogr-macos-x86_64/blogr-macos-x86_64.tar.gz
+            blogr-macos-aarch64/blogr-macos-aarch64.tar.gz
+            changelog/CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to crates.io (optional)
+  publish:
+    name: Publish to Crates.io
+    needs: [changelog, build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(needs.changelog.outputs.version, '-')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Publish blogr-themes to crates.io
+        run: cargo publish --package blogr-themes --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for blogr-themes to be available
+        run: sleep 30
+
+      - name: Publish blogr-cli to crates.io
+        run: cargo publish --package blogr-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
