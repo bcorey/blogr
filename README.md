@@ -48,7 +48,7 @@ cd blogr
 cargo install --path blogr-cli
 ```
 
-**Install from crates.io:** (coming soon)
+**Install from crates.io:**
 ```bash
 cargo install blogr-cli
 ```
