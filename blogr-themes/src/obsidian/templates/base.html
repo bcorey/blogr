@@ -5,6 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
 
+        <!-- Favicon -->
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>"
+        />
+
         {% block meta %}
         <meta name="description" content="{{ site.blog.description }}" />
         <meta name="author" content="{{ site.blog.author }}" />
@@ -88,20 +94,29 @@
             .workspace-leaf-content {
                 flex: 1;
                 background-color: var(--background-primary);
+                display: flex;
+                justify-content: center;
+                width: 100%;
             }
 
             .markdown-preview-view {
                 padding: 0;
                 background-color: var(--background-primary);
+                width: 100%;
+                max-width: 100%;
+                display: flex;
+                justify-content: center;
             }
 
             .markdown-rendered {
-                max-width: 700px;
+                max-width: 900px;
                 margin: 0 auto;
                 padding: 40px 20px;
                 font-size: 16px;
                 line-height: 1.6;
                 color: var(--text-normal);
+                width: 100%;
+                box-sizing: border-box;
             }
 
             /* Typography */
@@ -359,8 +374,16 @@
             }
 
             /* Responsive design */
+            @media (max-width: 1200px) {
+                .markdown-rendered {
+                    max-width: 800px;
+                    padding: 40px 24px;
+                }
+            }
+
             @media (max-width: 768px) {
                 .markdown-rendered {
+                    max-width: 100%;
                     padding: 20px 16px;
                 }
 
@@ -370,18 +393,22 @@
             }
         </style>
 
-        <!-- Load user-supplied Obsidian CSS with enhanced error handling -->
+        <!-- Load bundled default Obsidian CSS -->
+        <link rel="stylesheet" href="/css/obsidian-default.css" />
+
+        <!-- Load user-supplied Obsidian CSS with error handling -->
         <link
             rel="stylesheet"
-            href="{{ url(path='static/obsidian.css') | safe }}"
-            onerror="console.warn('Custom Obsidian CSS not found at static/obsidian.css - using fallback styles')"
-            onload="console.log('Custom Obsidian CSS loaded successfully')"
+            href="/{{ site.theme.config.obsidian_css | default(value='static/obsidian.css') }}"
+            onerror="this.onerror=null;console.warn('Custom Obsidian CSS not found - using default styles. You can add a custom Obsidian theme by saving it as static/obsidian.css in your blog directory.');"
+            onload="console.log('Custom Obsidian CSS loaded successfully');"
         />
 
         {% block extra_head %}{% endblock %}
 
         <script>
-            (function () {
+            // Wait for DOM to be ready
+            document.addEventListener("DOMContentLoaded", function () {
                 var mode =
                     "{{ site.theme.config.color_mode | default(value='auto') }}";
                 var isDark =
@@ -389,32 +416,37 @@
                     window.matchMedia("(prefers-color-scheme: dark)").matches;
                 var body = document.body;
 
-                if (mode === "auto") {
-                    body.classList.toggle("theme-dark", isDark);
-                    body.classList.toggle("theme-light", !isDark);
-                } else {
+                if (body) {
+                    if (mode === "auto") {
+                        body.classList.toggle("theme-dark", isDark);
+                        body.classList.toggle("theme-light", !isDark);
+                    } else {
+                        body.classList.add(
+                            mode === "dark" ? "theme-dark" : "theme-light",
+                        );
+                    }
+
+                    // Add Obsidian workspace classes
                     body.classList.add(
-                        mode === "dark" ? "theme-dark" : "theme-light",
+                        "mod-macos",
+                        "is-frameless",
+                        "is-hidden-frameless",
                     );
-                }
 
-                // Add Obsidian workspace classes
-                body.classList.add(
-                    "mod-macos",
-                    "is-frameless",
-                    "is-hidden-frameless",
-                );
-
-                // Listen for system theme changes
-                if (mode === "auto" && window.matchMedia) {
-                    window
-                        .matchMedia("(prefers-color-scheme: dark)")
-                        .addEventListener("change", function (e) {
-                            body.classList.toggle("theme-dark", e.matches);
-                            body.classList.toggle("theme-light", !e.matches);
-                        });
+                    // Listen for system theme changes
+                    if (mode === "auto" && window.matchMedia) {
+                        window
+                            .matchMedia("(prefers-color-scheme: dark)")
+                            .addEventListener("change", function (e) {
+                                body.classList.toggle("theme-dark", e.matches);
+                                body.classList.toggle(
+                                    "theme-light",
+                                    !e.matches,
+                                );
+                            });
+                    }
                 }
-            })();
+            });
         </script>
     </head>
     <body class="workspace-leaf-content">
@@ -423,8 +455,8 @@
                 <div class="workspace-split mod-vertical mod-root">
                     <div class="workspace-leaf mod-active">
                         <div class="workspace-leaf-content">
-                            <div class="view-content">
-                                <div class="markdown-reading-view">
+                            <div class="view-content" style="width: 100%; display: flex; justify-content: center;">
+                                <div class="markdown-reading-view" style="width: 100%; display: flex; justify-content: center;">
                                     <div
                                         class="markdown-preview-view markdown-rendered"
                                     >

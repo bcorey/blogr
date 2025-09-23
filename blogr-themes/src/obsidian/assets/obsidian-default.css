@@ -1,0 +1,614 @@
+/* Default Obsidian-compatible CSS for Blogr */
+
+/* Additional Obsidian-specific styles not covered in base.html */
+
+/* Frontmatter styling */
+.frontmatter-container {
+    margin: 16px 0;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.frontmatter-section {
+    margin: 0;
+}
+
+.frontmatter-section-simple {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+.frontmatter-alias-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+.frontmatter-alias {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.frontmatter-alias-icon {
+    font-size: 1em;
+}
+
+/* Navigation and workspace enhancements */
+.nav-header {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 24px;
+}
+
+.nav-buttons-container {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-action-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+    text-decoration: none;
+    border-radius: 6px;
+    border: 1px solid var(--background-modifier-border);
+    transition: all 0.2s ease;
+    font-size: 0.9em;
+}
+
+.nav-action-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+    text-decoration: none;
+}
+
+.nav-action-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Enhanced CodeMirror styling */
+.mod-cm6 {
+    margin: 24px 0;
+}
+
+.is-readable-line-width {
+    max-width: none;
+}
+
+.cm-editor {
+    background-color: transparent;
+}
+
+.cm-scroller {
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+.cm-content {
+    padding: 0;
+    min-height: auto;
+}
+
+/* Tree/folder navigation styling */
+.tree-item-self {
+    padding: 8px 0;
+    font-weight: 600;
+    color: var(--text-normal);
+    border-bottom: 2px solid var(--background-modifier-border);
+    margin-bottom: 16px;
+}
+
+.tree-item-inner {
+    font-size: 1.1em;
+}
+
+.nav-folder-title-content {
+    color: var(--text-normal);
+    font-weight: 600;
+}
+
+.nav-folder {
+    margin: 24px 0;
+}
+
+.nav-folder-children {
+    margin: 16px 0;
+}
+
+/* Enhanced embedded content */
+.embedded-backlinks {
+    margin: 32px 0;
+}
+
+.markdown-embed {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    margin: 16px 0;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    transition: all 0.2s ease;
+}
+
+.markdown-embed:hover {
+    border-color: var(--interactive-accent);
+    background-color: var(--background-modifier-hover);
+}
+
+.markdown-embed-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+}
+
+.markdown-embed-link {
+    color: var(--text-accent);
+    text-decoration: none;
+}
+
+.markdown-embed-link:hover {
+    color: var(--text-accent-hover);
+    text-decoration: underline;
+}
+
+.markdown-embed-content {
+    margin: 12px 0 0 0;
+}
+
+.markdown-embed-excerpt {
+    font-style: italic;
+    color: var(--text-muted);
+    margin: 8px 0;
+    padding-left: 12px;
+    border-left: 2px solid var(--background-modifier-border);
+}
+
+.embedded-content-preview {
+    margin-top: 12px;
+}
+
+/* Search result styling */
+.search-result-container {
+    margin: 24px 0;
+}
+
+.search-result-file-matches {
+    margin: 16px 0;
+}
+
+.search-result-file-title {
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.search-result-file-match {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.search-result-file-match:last-child {
+    border-bottom: none;
+}
+
+.search-result-file-match-content {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.search-result-count {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+/* Tag enhancements */
+.tag-pane {
+    margin: 24px 0;
+}
+
+.tag-pane-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tag-pane-title-text {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.tag-pane-title-count {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.tag-container-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-item {
+    display: inline-block;
+}
+
+.tag-with-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tag-count {
+    background-color: var(--background-modifier-border);
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+/* Backlink pane styling */
+.backlink-pane {
+    margin: 32px 0;
+    padding-top: 24px;
+    border-top: 2px solid var(--background-modifier-border);
+}
+
+/* Metadata container */
+.metadata-container {
+    margin: 24px 0;
+}
+
+/* Archive page specific styles */
+.archive-page {
+    /* This will be overridden by the Obsidian structure, but keeping for compatibility */
+}
+
+.archive-header {
+    margin-bottom: 32px;
+}
+
+.archive-title {
+    font-size: 2em;
+    margin-bottom: 8px;
+}
+
+.archive-subtitle {
+    color: var(--text-muted);
+    font-size: 1.1em;
+}
+
+.archive-content {
+    margin: 24px 0;
+}
+
+.archive-year {
+    margin-bottom: 32px;
+}
+
+.year-title {
+    font-size: 1.5em;
+    margin-bottom: 16px;
+    color: var(--text-accent);
+    border-bottom: 2px solid var(--text-accent);
+    padding-bottom: 8px;
+}
+
+.year-posts {
+    margin-left: 16px;
+}
+
+.archive-post {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.archive-post:last-child {
+    border-bottom: none;
+}
+
+.post-date {
+    min-width: 80px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.post-content {
+    flex: 1;
+}
+
+.post-title {
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+}
+
+.post-title a {
+    color: var(--text-normal);
+    text-decoration: none;
+}
+
+.post-title a:hover {
+    color: var(--text-accent);
+    text-decoration: underline;
+}
+
+.post-description {
+    margin: 8px 0;
+    color: var(--text-muted);
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.post-author {
+    color: var(--text-muted);
+}
+
+.draft-badge {
+    background-color: var(--callout-warning);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.post-tags {
+    margin-top: 8px;
+}
+
+.archive-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.back-home,
+.view-tags {
+    color: var(--text-accent);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--background-modifier-border);
+    transition: all 0.2s ease;
+}
+
+.back-home:hover,
+.view-tags:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent-hover);
+}
+
+/* No posts state */
+.no-posts {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-muted);
+}
+
+.no-posts-hint {
+    font-size: 0.9em;
+    margin-top: 8px;
+}
+
+/* Tags page specific styles */
+.tags-page {
+    /* This will be overridden by the Obsidian structure, but keeping for compatibility */
+}
+
+.tags-header {
+    margin-bottom: 32px;
+}
+
+.tags-title {
+    font-size: 2em;
+    margin-bottom: 8px;
+}
+
+.tags-subtitle {
+    color: var(--text-muted);
+    font-size: 1.1em;
+}
+
+/* Keyboard shortcut styling */
+kbd {
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'SF Mono', Monaco, 'Roboto Mono', monospace;
+    font-size: 0.85em;
+    color: var(--text-normal);
+}
+
+/* Responsive design improvements */
+@media (max-width: 1200px) {
+    .markdown-rendered {
+        max-width: 800px !important;
+        padding: 40px 24px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .markdown-rendered {
+        max-width: 100% !important;
+        padding: 20px 16px !important;
+    }
+
+    .frontmatter-section-simple,
+    .frontmatter-alias-list {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .archive-post {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .post-date {
+        min-width: auto;
+    }
+
+    .archive-navigation {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .tag-container-grid {
+        gap: 6px;
+    }
+
+    .nav-buttons-container {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .markdown-rendered {
+        padding: 16px 12px;
+    }
+
+    .callout {
+        padding: 12px;
+    }
+
+    .markdown-embed {
+        padding: 12px;
+    }
+
+    .frontmatter-container {
+        padding: 8px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .nav-header,
+    .backlink-pane,
+    .archive-navigation {
+        display: none;
+    }
+
+    .callout {
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+    }
+
+    .tag {
+        border: 1px solid #ccc;
+        background-color: #f0f0f0;
+    }
+}
+
+/* Enhanced focus styles for accessibility */
+a:focus,
+.nav-action-button:focus,
+.tag:focus {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --background-modifier-border: #000000;
+        --text-muted: #333333;
+    }
+
+    .theme-dark {
+        --background-modifier-border: #ffffff;
+        --text-muted: #cccccc;
+    }
+}
+
+/* Additional missing styles for template elements */
+.tree-item-flair {
+    background-color: var(--tag-background);
+    color: var(--tag-color);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.75em;
+    font-weight: 500;
+    margin-left: 8px;
+}
+
+.search-excerpt {
+    font-style: italic;
+    color: var(--text-muted);
+    margin: 8px 0;
+    padding-left: 12px;
+    border-left: 2px solid var(--background-modifier-border);
+    background-color: var(--background-secondary);
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+}
+
+/* Ensure proper content variable handling */
+.cm-content {
+    /* Override any CodeMirror specific styles that might interfere */
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+}
+
+/* Additional responsive improvements */
+@media (max-width: 600px) {
+    .frontmatter-container {
+        margin: 12px 0;
+        padding: 8px;
+    }
+    
+    .callout {
+        margin: 12px 0;
+        padding: 12px;
+    }
+    
+    .markdown-embed {
+        margin: 12px 0;
+        padding: 12px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

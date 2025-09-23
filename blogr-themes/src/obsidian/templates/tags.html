@@ -1,13 +1,10 @@
-{% extends "base.html" %} {% block title %}Tags - {{ site.blog.title }}{%
-endblock %} {% block meta %}
+{% extends "base.html" %} 
+{% block title %}Tags - {{ site.blog.title }}{% endblock %} 
+{% block meta %}
 <meta name="description" content="Browse all tags on {{ site.blog.title }}" />
-{% endblock %} {% block content %}
-<div class="tags-page">
-    <header class="tags-header">
-        <h1 class="tags-title">All Tags</h1>
-        <p class="tags-subtitle">Browse posts by topic</p>
-    </header>
-    <div class="markdown-preview-sizer markdown-preview-section">
+{% endblock %} 
+{% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
         <div
             class="inline-title"
             contenteditable="false"
@@ -143,6 +140,5 @@ endblock %} {% block meta %}
                 </p>
             </div>
         </div>
-    </div>
-    {% endblock %}
 </div>
+{% endblock %}

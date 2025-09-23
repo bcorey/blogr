@@ -74,11 +74,22 @@ impl Theme for ObsidianTheme {
     }
 
     fn assets(&self) -> HashMap<String, Vec<u8>> {
-        HashMap::new()
+        let mut assets = HashMap::new();
+
+        // Bundle a default Obsidian-compatible CSS
+        assets.insert(
+            "css/obsidian-default.css".to_string(),
+            include_bytes!("assets/obsidian-default.css").to_vec(),
+        );
+
+        assets
     }
 
     fn preview_tui_style(&self) -> Style {
+        use ratatui::style::Color;
         Style::default()
+            .fg(Color::Rgb(167, 139, 250)) // Obsidian purple accent
+            .bg(Color::Rgb(32, 32, 32)) // Dark background similar to Obsidian
     }
 }
 
