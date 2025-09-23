@@ -2,8 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub mod minimal_retro;
+pub mod obsidian;
 
 pub use minimal_retro::MinimalRetroTheme;
+pub use obsidian::ObsidianTheme;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeInfo {
@@ -35,6 +37,9 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
     let minimal_retro = MinimalRetroTheme::new();
     themes.insert("minimal-retro".to_string(), Box::new(minimal_retro));
 
+    let obsidian = ObsidianTheme::new();
+    themes.insert("obsidian".to_string(), Box::new(obsidian));
+
     themes
 }
 
@@ -42,6 +47,7 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
 pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
     match name {
         "minimal-retro" => Some(Box::new(MinimalRetroTheme::new()) as Box<dyn Theme>),
+        "obsidian" => Some(Box::new(ObsidianTheme::new()) as Box<dyn Theme>),
         _ => None,
     }
 }

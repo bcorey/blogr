@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Archive — {{ site.blog.title }}{% endblock %}
+{% block content %}
+<section>
+  <h1>Archive</h1>
+  {% for p in posts %}
+    <article>
+      <h2><a href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}">{{ p.metadata.title }}</a></h2>
+      <time>{{ p.metadata.date }}</time>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}
