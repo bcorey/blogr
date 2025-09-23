@@ -1,13 +1,34 @@
-{% extends "base.html" %}
-{% block title %}Archive — {{ site.blog.title }}{% endblock %}
-{% block content %}
-<section>
-  <h1>Archive</h1>
-  {% for p in posts %}
-    <article>
-      <h2><a href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}">{{ p.metadata.title }}</a></h2>
-      <time>{{ p.metadata.date }}</time>
-    </article>
-  {% endfor %}
-</section>
+{% extends "base.html" %} {% block title %}Archive — {{ site.blog.title }}{%
+endblock %} {% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        Archive
+    </div>
+
+    <div class="nav-folder-children">
+        {% for p in posts %}
+        <div class="nav-file">
+            <div class="nav-file-title">
+                <div class="nav-file-title-content">
+                    <a
+                        href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}"
+                        class="internal-link"
+                    >
+                        {{ p.metadata.title }}
+                    </a>
+                </div>
+            </div>
+            <div class="nav-file-tag">
+                <time class="tag">{{ p.metadata.date }}</time>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

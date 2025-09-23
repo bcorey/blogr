@@ -1,9 +1,36 @@
-{% extends "base.html" %}
-{% block title %}{{ post.metadata.title }} — {{ site.blog.title }}{% endblock %}
-{% block content %}
-<article>
-  <h1>{{ post.metadata.title }}</h1>
-  {% if post.metadata.description %}<p>{{ post.metadata.description }}</p>{% endif %}
-  {{ content | safe }}
-</article>
+{% extends "base.html" %} {% block title %}{{ post.metadata.title }} — {{
+site.blog.title }}{% endblock %} {% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        {{ post.metadata.title }}
+    </div>
+
+    {% if post.metadata.description %}
+    <div class="callout" data-callout="abstract">
+        <div class="callout-title">
+            <div class="callout-icon"></div>
+            <div class="callout-title-inner">Abstract</div>
+        </div>
+        <div class="callout-content">
+            <p>{{ post.metadata.description }}</p>
+        </div>
+    </div>
+    {% endif %} {% if post.metadata.tags %}
+    <div class="tag-container">
+        {% for tag in post.metadata.tags %}
+        <a class="tag" href="{{ url(path='tags/' ~ tag ~ '.html') }}"
+            >#{{ tag }}</a
+        >
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mod-cm6">{{ content | safe }}</div>
+</div>
 {% endblock %}

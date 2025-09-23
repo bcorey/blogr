@@ -1,39 +1,115 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
 
-  {% block meta %}
-  <meta name="description" content="{{ site.blog.description }}">
-  <meta name="author" content="{{ site.blog.author }}">
-  {% endblock %}
+        {% block meta %}
+        <meta name="description" content="{{ site.blog.description }}" />
+        <meta name="author" content="{{ site.blog.author }}" />
+        {% endblock %}
 
-  <!-- Load user-supplied Obsidian CSS from project static/ -->
-  <link rel="stylesheet"
-        href="{{ url(path=site.theme.config.obsidian_css | default(value='static/obsidian.css')) | safe }}">
+        <!-- Fallback minimal Obsidian-compatible styles -->
+        <style>
+            .markdown-preview-view {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+            }
+            .markdown-rendered {
+                max-width: 700px;
+                margin: 0 auto;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            .callout {
+                padding: 12px;
+                margin: 12px 0;
+                border-left: 4px solid var(--accent-color, #7c3aed);
+                background: var(--background-secondary, #f8f9fa);
+            }
+            .workspace-leaf-content {
+                background: var(--background-primary, #ffffff);
+            }
+            .theme-dark {
+                --background-primary: #202020;
+                --background-secondary: #161616;
+                --text-normal: #dcddde;
+            }
+            .theme-light {
+                --background-primary: #ffffff;
+                --background-secondary: #f2f3f5;
+                --text-normal: #2e3338;
+            }
+        </style>
 
-  {% block extra_head %}{% endblock %}
-  <script>
-  (function () {
-    var mode = "{{ site.theme.config.color_mode | default(value='auto') }}";
-    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (mode === 'auto') {
-      document.body.classList.toggle('theme-dark', isDark);
-      document.body.classList.toggle('theme-light', !isDark);
-    } else {
-      document.body.classList.add(mode === 'dark' ? 'theme-dark' : 'theme-light');
-    }
-  })();
-  </script>
-</head>
-<body>
-  <main class="markdown-preview-view">
-    <div class="markdown-rendered">
-      {% block content %}{% endblock %}
-    </div>
-  </main>
-  {% block extra_scripts %}{% endblock %}
-</body>
+        <!-- Load user-supplied Obsidian CSS from project static/ -->
+        {% set css_path = site.theme.config.obsidian_css |
+        default(value='static/obsidian.css') %} {% if css_path |
+        regex_match(pattern="^static/[^./][^/]*\.css$") %}
+        <link
+            rel="stylesheet"
+            href="{{ url(path=css_path) | safe }}"
+            onerror="console.warn('Failed to load Obsidian CSS: {{ css_path }}')"
+        />
+        {% else %}
+        <!-- Invalid CSS path, using fallback only -->
+        <script>
+            console.warn(
+                "Invalid Obsidian CSS path: {{ css_path }}. Using fallback styles.",
+            );
+        </script>
+        {% endif %} {% block extra_head %}{% endblock %}
+        <script>
+            (function () {
+                var mode =
+                    "{{ site.theme.config.color_mode | default(value='auto') }}";
+                var isDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+                var body = document.body;
+
+                if (mode === "auto") {
+                    body.classList.toggle("theme-dark", isDark);
+                    body.classList.toggle("theme-light", !isDark);
+                } else {
+                    body.classList.add(
+                        mode === "dark" ? "theme-dark" : "theme-light",
+                    );
+                }
+
+                // Add Obsidian workspace structure
+                body.classList.add(
+                    "mod-macos",
+                    "is-frameless",
+                    "is-hidden-frameless",
+                );
+            })();
+        </script>
+    </head>
+    <body class="workspace-leaf-content">
+        <div class="app-container">
+            <div class="workspace">
+                <div class="workspace-split mod-vertical mod-root">
+                    <div class="workspace-leaf mod-active">
+                        <div class="workspace-leaf-content">
+                            <div class="view-content">
+                                <div class="markdown-reading-view">
+                                    <div
+                                        class="markdown-preview-view markdown-rendered"
+                                    >
+                                        <div class="markdown-preview-section">
+                                            {% block content %}{% endblock %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% block extra_scripts %}{% endblock %}
+    </body>
 </html>

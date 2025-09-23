@@ -1,10 +1,28 @@
-{% extends "base.html" %}
-{% block title %}Tags — {{ site.blog.title }}{% endblock %}
-{% block content %}
-<section>
-  <h1>Tags</h1>
-  {% for tag in tags %}
-    <a href="{{ url(path='tags/' ~ tag ~ '.html') }}">#{{ tag }}</a>
-  {% endfor %}
-</section>
+{% extends "base.html" %} {% block title %}Tags — {{ site.blog.title }}{%
+endblock %} {% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        Tags
+    </div>
+
+    <div class="tag-container">
+        {% for tag in tags %}
+        <a href="{{ url(path='tags/' ~ tag ~ '.html') }}" class="tag"
+            >#{{ tag }}</a
+        >
+        {% endfor %}
+    </div>
+
+    <div class="callout" data-callout="tip">
+        <div class="callout-content">
+            <p>Click on any tag to see all posts with that tag.</p>
+        </div>
+    </div>
+</div>
 {% endblock %}

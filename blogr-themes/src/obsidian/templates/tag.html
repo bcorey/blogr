@@ -1,12 +1,44 @@
-{% extends "base.html" %}
-{% block title %}{{ tag }} — {{ site.blog.title }}{% endblock %}
-{% block content %}
-<section>
-  <h1>#{{ tag }}</h1>
-  {% for p in posts %}
-    <article>
-      <h2><a href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}">{{ p.metadata.title }}</a></h2>
-    </article>
-  {% endfor %}
-</section>
+{% extends "base.html" %} {% block title %}{{ tag }} — {{ site.blog.title }}{%
+endblock %} {% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        #{{ tag }}
+    </div>
+
+    <div class="callout" data-callout="note">
+        <div class="callout-content">
+            <p>Posts tagged with <span class="tag">#{{ tag }}</span></p>
+        </div>
+    </div>
+
+    <div class="nav-folder-children">
+        {% for p in posts %}
+        <div class="nav-file">
+            <div class="nav-file-title">
+                <div class="nav-file-title-content">
+                    <a
+                        href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}"
+                        class="internal-link"
+                    >
+                        {{ p.metadata.title }}
+                    </a>
+                </div>
+            </div>
+            {% if p.metadata.description %}
+            <div class="nav-file-tag">
+                <span class="tag"
+                    >{{ p.metadata.description | truncate(length=50) }}</span
+                >
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

@@ -1,13 +1,48 @@
-{% extends "base.html" %}
-{% block title %}{{ site.blog.title }}{% endblock %}
+{% extends "base.html" %} {% block title %}{{ site.blog.title }}{% endblock %}
 {% block content %}
-<section>
-  {% for p in posts %}
-    <article>
-      <h2><a href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}">{{ p.metadata.title }}</a></h2>
-      {% if p.metadata.description %}<p>{{ p.metadata.description }}</p>{% endif %}
-      {{ p.content | safe }}
-    </article>
-  {% endfor %}
-</section>
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        {{ site.blog.title }}
+    </div>
+
+    {% if site.blog.description %}
+    <div class="callout" data-callout="info">
+        <div class="callout-content">
+            <p>{{ site.blog.description }}</p>
+        </div>
+    </div>
+    {% endif %} {% for p in posts %}
+    <div class="markdown-embed">
+        <div class="markdown-embed-title">
+            <a
+                href="{{ url(path='posts/' ~ p.metadata.slug ~ '.html') }}"
+                class="markdown-embed-link"
+            >
+                {{ p.metadata.title }}
+            </a>
+        </div>
+        <div class="markdown-embed-content">
+            {% if p.metadata.description %}
+            <blockquote>{{ p.metadata.description }}</blockquote>
+            {% endif %} {% if p.metadata.tags %}
+            <div class="tag-container">
+                {% for tag in p.metadata.tags %}
+                <a class="tag" href="{{ url(path='tags/' ~ tag ~ '.html') }}"
+                    >#{{ tag }}</a
+                >
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mod-cm6">{{ p.content | safe }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}
