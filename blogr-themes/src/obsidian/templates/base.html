@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
 
         {% block meta %}
@@ -10,106 +10,65 @@
         <meta name="author" content="{{ site.blog.author }}" />
         {% endblock %}
 
-        <!-- Fallback minimal Obsidian-compatible styles -->
-        <style>
-            .markdown-preview-view {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    sans-serif;
-            }
-            .markdown-rendered {
-                max-width: 700px;
-                margin: 0 auto;
-                padding: 20px;
-                line-height: 1.6;
-            }
-            .callout {
-                padding: 12px;
-                margin: 12px 0;
-                border-left: 4px solid var(--accent-color, #7c3aed);
-                background: var(--background-secondary, #f8f9fa);
-            }
-            .workspace-leaf-content {
-                background: var(--background-primary, #ffffff);
-            }
-            .theme-dark {
-                --background-primary: #202020;
-                --background-secondary: #161616;
-                --text-normal: #dcddde;
-            }
-            .theme-light {
-                --background-primary: #ffffff;
-                --background-secondary: #f2f3f5;
-                --text-normal: #2e3338;
-            }
-        </style>
+        <!-- Artistic Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap"
+            rel="stylesheet"
+        />
 
-        <!-- Load user-supplied Obsidian CSS from project static/ -->
-        {% set css_path = site.theme.config.obsidian_css |
-        default(value='static/obsidian.css') %} {% if css_path |
-        regex_match(pattern="^static/[^./][^/]*\.css$") %}
         <link
             rel="stylesheet"
-            href="{{ url(path=css_path) | safe }}"
-            onerror="console.warn('Failed to load Obsidian CSS: {{ css_path }}')"
+            href="{{ url(path='static/obsidian.css') | safe }}"
         />
-        {% else %}
-        <!-- Invalid CSS path, using fallback only -->
-        <script>
-            console.warn(
-                "Invalid Obsidian CSS path: {{ css_path }}. Using fallback styles.",
-            );
-        </script>
-        {% endif %} {% block extra_head %}{% endblock %}
-        <script>
-            (function () {
-                var mode =
-                    "{{ site.theme.config.color_mode | default(value='auto') }}";
-                var isDark =
-                    window.matchMedia &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches;
-                var body = document.body;
 
-                if (mode === "auto") {
-                    body.classList.toggle("theme-dark", isDark);
-                    body.classList.toggle("theme-light", !isDark);
-                } else {
-                    body.classList.add(
-                        mode === "dark" ? "theme-dark" : "theme-light",
-                    );
-                }
-
-                // Add Obsidian workspace structure
-                body.classList.add(
-                    "mod-macos",
-                    "is-frameless",
-                    "is-hidden-frameless",
-                );
-            })();
-        </script>
+        {% block extra_head %}{% endblock %}
     </head>
-    <body class="workspace-leaf-content">
-        <div class="app-container">
-            <div class="workspace">
-                <div class="workspace-split mod-vertical mod-root">
-                    <div class="workspace-leaf mod-active">
-                        <div class="workspace-leaf-content">
-                            <div class="view-content">
-                                <div class="markdown-reading-view">
-                                    <div
-                                        class="markdown-preview-view markdown-rendered"
-                                    >
-                                        <div class="markdown-preview-section">
-                                            {% block content %}{% endblock %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+    <body>
+        <div class="page-container">
+            <!-- Minimal header with just title -->
+            <header class="site-header">
+                <h1 class="site-title">
+                    <a href="{{ url(path='') | safe }}"
+                        >{{ site.blog.title }}</a
+                    >
+                </h1>
+                {% if site.blog.description %}
+                <p class="site-subtitle">{{ site.blog.description }}</p>
+                {% endif %}
+            </header>
+
+            <!-- Main content area -->
+            <main class="main-content">{% block content %}{% endblock %}</main>
+
+            <!-- Minimal footer -->
+            <footer class="site-footer">
+                <div class="footer-content">
+                    <p class="author-credit">{{ site.blog.author }}</p>
+                    <div class="footer-links">
+                        {% if site.github %}
+                        <a
+                            href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="github-link"
+                            >github</a
+                        >
+                        {% endif %}
+                        <span class="separator">·</span>
+                        <a
+                            href="https://github.com/bahdotsh/blogr"
+                            target="_blank"
+                            rel="noopener"
+                            class="blogr-link"
+                            >blogr</a
+                        >
                     </div>
                 </div>
-            </div>
+            </footer>
         </div>
+
         {% block extra_scripts %}{% endblock %}
     </body>
 </html>

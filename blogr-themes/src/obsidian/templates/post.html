@@ -1,36 +1,69 @@
-{% extends "base.html" %} {% block title %}{{ post.metadata.title }} — {{
-site.blog.title }}{% endblock %} {% block content %}
-<div class="markdown-preview-sizer markdown-preview-section">
-    <div
-        class="inline-title"
-        contenteditable="false"
-        spellcheck="false"
-        tabindex="-1"
-        enterkeyhint="done"
-    >
-        {{ post.metadata.title }}
+{% extends "base.html" %}
+
+{% block title %}{{ post.metadata.title }} - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ post.metadata.description }}">
+<meta name="author" content="{{ post.metadata.author }}">
+{% endblock %}
+
+{% block content %}
+<article class="post-standalone">
+    <!-- Artistic header -->
+    <header class="post-standalone-header">
+        <div class="post-title-area">
+            <h1 class="post-standalone-title">{{ post.metadata.title }}</h1>
+            
+            {% if post.metadata.description %}
+            <div class="post-standalone-description">
+                {{ post.metadata.description }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="post-standalone-meta">
+            <div class="meta-row">
+                <time class="post-date">{{ post.metadata.date | date(format="%B %d, %Y") }}</time>
+                
+                {% if post.metadata.author %}
+                <span class="post-author">{{ post.metadata.author }}</span>
+                {% endif %}
+                
+                {% if reading_time %}
+                <span class="reading-time">{{ reading_time }} minute read</span>
+                {% endif %}
+            </div>
+
+            {% if post.metadata.tags %}
+            <div class="post-tags-standalone">
+                <span class="tags-intro">exploring:</span>
+                {% for tag in post.metadata.tags %}
+                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag-link-standalone">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Content with artistic typography -->
+    <div class="post-standalone-content">
+        {{ content | safe }}
     </div>
 
-    {% if post.metadata.description %}
-    <div class="callout" data-callout="abstract">
-        <div class="callout-title">
-            <div class="callout-icon"></div>
-            <div class="callout-title-inner">Abstract</div>
+    <!-- Minimal footer -->
+    <footer class="post-standalone-footer">
+        <div class="post-navigation">
+            <a href="{{ url(path='') | safe }}" class="nav-link">← all posts</a>
+            
+            {% if post.metadata.tags %}
+            <div class="related-tags">
+                <span class="related-label">more in:</span>
+                {% for tag in post.metadata.tags %}
+                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="related-tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-        <div class="callout-content">
-            <p>{{ post.metadata.description }}</p>
-        </div>
-    </div>
-    {% endif %} {% if post.metadata.tags %}
-    <div class="tag-container">
-        {% for tag in post.metadata.tags %}
-        <a class="tag" href="{{ url(path='tags/' ~ tag ~ '.html') }}"
-            >#{{ tag }}</a
-        >
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="mod-cm6">{{ content | safe }}</div>
-</div>
+    </footer>
+</article>
 {% endblock %}
