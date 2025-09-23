@@ -37,7 +37,17 @@ impl SiteBuilder {
         include_future: bool,
     ) -> Result<Self> {
         let config = project.load_config()?;
+        Self::new_with_config(project, config, output_dir, include_drafts, include_future)
+    }
 
+    /// Create a new site builder with pre-loaded config
+    pub fn new_with_config(
+        project: Project,
+        config: Config,
+        output_dir: Option<PathBuf>,
+        include_drafts: bool,
+        include_future: bool,
+    ) -> Result<Self> {
         // Get theme
         let theme_name = &config.theme.name;
         let theme = get_theme_by_name(theme_name)

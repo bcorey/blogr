@@ -27,7 +27,7 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     let project = Project::find_project()?
         .ok_or_else(|| anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
 
-    // Load configuration and verify GitHub settings
+    // Load configuration BEFORE any git operations to preserve current settings
     let mut config = project.load_config()?;
 
     // Ensure URL configuration consistency
@@ -78,7 +78,14 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     // Build the site AFTER handling git state to ensure build directory exists
     // Use a temporary directory outside the project to avoid conflicts
     let temp_output = std::env::temp_dir().join(format!("blogr-deploy-{}", Uuid::new_v4()));
-    let site_builder = SiteBuilder::new(project.clone(), Some(temp_output.clone()), false, false)?;
+    // Use the pre-loaded config to avoid issues with git stashing
+    let site_builder = SiteBuilder::new_with_config(
+        project.clone(),
+        config.clone(),
+        Some(temp_output.clone()),
+        false,
+        false,
+    )?;
     site_builder.build()?;
 
     Console::step(4, 7, &format!("Preparing {} branch...", branch));
