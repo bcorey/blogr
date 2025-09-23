@@ -1,69 +1,159 @@
-{% extends "base.html" %}
-
-{% block title %}{{ post.metadata.title }} - {{ site.blog.title }}{% endblock %}
-
-{% block meta %}
-<meta name="description" content="{{ post.metadata.description }}">
-<meta name="author" content="{{ post.metadata.author }}">
-{% endblock %}
-
-{% block content %}
-<article class="post-standalone">
-    <!-- Artistic header -->
-    <header class="post-standalone-header">
-        <div class="post-title-area">
-            <h1 class="post-standalone-title">{{ post.metadata.title }}</h1>
-            
-            {% if post.metadata.description %}
-            <div class="post-standalone-description">
-                {{ post.metadata.description }}
-            </div>
-            {% endif %}
+{% extends "base.html" %} {% block title %}{{ post.metadata.title }} - {{
+site.blog.title }}{% endblock %} {% block meta %}
+<meta
+    name="description"
+    content="{{ post.metadata.description | default(value=post.metadata.title) }}"
+/>
+<meta
+    name="author"
+    content="{{ post.metadata.author | default(value=site.blog.author) }}"
+/>
+<meta name="published" content="{{ post.metadata.date }}" />
+{% if post.metadata.tags %}
+<meta name="keywords" content="{{ post.metadata.tags | join(sep=', ') }}" />
+{% endif %} {% endblock %} {% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <!-- Obsidian-style navigation -->
+    <div class="nav-header">
+        <div class="nav-buttons-container">
+            <a
+                href="{{ url(path='') | safe }}"
+                class="nav-action-button"
+                aria-label="Back to home"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="m12 19-7-7 7-7" />
+                    <path d="M19 12H5" />
+                </svg>
+                Home
+            </a>
         </div>
-
-        <div class="post-standalone-meta">
-            <div class="meta-row">
-                <time class="post-date">{{ post.metadata.date | date(format="%B %d, %Y") }}</time>
-                
-                {% if post.metadata.author %}
-                <span class="post-author">{{ post.metadata.author }}</span>
-                {% endif %}
-                
-                {% if reading_time %}
-                <span class="reading-time">{{ reading_time }} minute read</span>
-                {% endif %}
-            </div>
-
-            {% if post.metadata.tags %}
-            <div class="post-tags-standalone">
-                <span class="tags-intro">exploring:</span>
-                {% for tag in post.metadata.tags %}
-                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag-link-standalone">{{ tag }}</a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-    </header>
-
-    <!-- Content with artistic typography -->
-    <div class="post-standalone-content">
-        {{ content | safe }}
     </div>
 
-    <!-- Minimal footer -->
-    <footer class="post-standalone-footer">
-        <div class="post-navigation">
-            <a href="{{ url(path='') | safe }}" class="nav-link">← all posts</a>
-            
-            {% if post.metadata.tags %}
-            <div class="related-tags">
-                <span class="related-label">more in:</span>
-                {% for tag in post.metadata.tags %}
-                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="related-tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
+    <!-- Post title in Obsidian style -->
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        {{ post.metadata.title }}
+    </div>
+
+    <!-- Post metadata in callout format -->
+    {% if post.metadata.description %}
+    <div class="callout" data-callout="abstract">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14.828 14.828a4 4 0 0 1-5.656 0M9 10h1m4 0h1m-6 4h8m-4-8V4m0 2v2"
+                    />
+                </svg>
             </div>
-            {% endif %}
+            <div class="callout-title-inner">Abstract</div>
         </div>
-    </footer>
-</article>
+        <div class="callout-content">
+            <p>{{ post.metadata.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Metadata bar -->
+    <div class="metadata-container">
+        <div class="frontmatter">
+            <div class="frontmatter-container">
+                <div class="frontmatter-section">
+                    <div class="frontmatter-alias-list">
+                        <div class="frontmatter-alias">
+                            <span class="frontmatter-alias-icon">📅</span>
+                            <time datetime="{{ post.metadata.date }}"
+                                >{{ post.metadata.date }}</time
+                            >
+                        </div>
+                        {% if post.metadata.author %}
+                        <div class="frontmatter-alias">
+                            <span class="frontmatter-alias-icon">👤</span>
+                            <span>{{ post.metadata.author }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tags in Obsidian style -->
+    {% if post.metadata.tags %}
+    <div class="tag-container">
+        {% for tag in post.metadata.tags %}
+        <a
+            class="tag"
+            href="{{ url(path='tags/' ~ tag ~ '.html') }}"
+            target="_blank"
+            rel="noopener"
+        >
+            <span class="tag-name">#{{ tag }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Post content with Obsidian editor styling -->
+    <div class="mod-cm6 is-readable-line-width">
+        <div class="cm-editor">
+            <div class="cm-scroller">
+                <div
+                    class="cm-content"
+                    contenteditable="false"
+                    style="tab-size: 4"
+                >
+                    {{ content | safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Obsidian-style backlinks section -->
+    <div class="backlink-pane">
+        <div class="tree-item-self nav-folder-title">
+            <div class="tree-item-inner nav-folder-title-content">Related</div>
+        </div>
+        <div class="search-result-container">
+            <div class="search-result-file-matches">
+                <div class="search-result-file-title">
+                    <a
+                        href="{{ url(path='archive.html') | safe }}"
+                        class="internal-link"
+                        >All Posts</a
+                    >
+                </div>
+                {% if post.metadata.tags %} {% for tag in post.metadata.tags %}
+                <div class="search-result-file-title">
+                    <a
+                        href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}"
+                        class="internal-link"
+                        >Posts tagged #{{ tag }}</a
+                    >
+                </div>
+                {% endfor %} {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

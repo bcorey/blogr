@@ -17,7 +17,7 @@ A fast, lightweight static site generator built in Rust for creating and managin
 
 **Site Generation**
 - Fast static site builds
-- Minimal Retro theme included
+- Multiple themes: Minimal Retro and Obsidian (supports community themes)
 - Syntax highlighting for code blocks
 - RSS/Atom feeds
 - SEO-friendly output
@@ -72,13 +72,20 @@ Get a token at: https://github.com/settings/tokens (needs `repo` and `workflow` 
 blogr new "Hello World"
 ```
 
-**4. Preview your blog**
+**4. Choose a theme (optional)**
+```bash
+# Use default Minimal Retro theme, or switch to Obsidian
+blogr theme set obsidian              # For Obsidian community themes
+curl -o static/obsidian.css https://raw.githubusercontent.com/kepano/obsidian-minimal/HEAD/obsidian.css
+```
+
+**5. Preview your blog**
 ```bash
 blogr serve
 # Opens http://localhost:3000
 ```
 
-**5. Deploy to GitHub Pages**
+**6. Deploy to GitHub Pages**
 ```bash
 blogr deploy
 ```
@@ -227,18 +234,80 @@ fn main() {
 
 ## Themes
 
-**Minimal Retro** (included)
+**Minimal Retro** (default)
 - Clean, artistic design
 - Retro color scheme
 - Expandable post previews
 - Mobile responsive
 - Syntax highlighting
 
+**Obsidian** (community themes support)
+- Uses authentic Obsidian workspace structure
+- Compatible with any Obsidian community theme CSS
+- Familiar note-taking interface
+- Callouts, backlinks, and embedded content
+- Dark/light mode with system detection
+
 **Theme Commands**
 ```bash
-blogr theme list        # Show available themes
-blogr theme set minimal-retro  # Switch theme
+blogr theme list              # Show available themes
+blogr theme set minimal-retro # Switch to Minimal Retro theme
+blogr theme set obsidian      # Switch to Obsidian theme
+blogr theme info obsidian     # Show theme configuration options
 ```
+
+**Available Themes:**
+
+- **Minimal Retro** - Clean, artistic design with retro aesthetics
+- **Obsidian** - Adopts Obsidian community themes for familiar note-taking styling
+
+**Obsidian Theme Setup**
+
+The Obsidian theme allows you to use any Obsidian community theme CSS with your blog:
+
+1. **Switch to Obsidian theme:**
+   ```bash
+   blogr theme set obsidian
+   ```
+
+2. **Add an Obsidian community theme:**
+   ```bash
+   # Download a popular theme (example: Minimal by @kepano)
+   curl -o static/obsidian.css https://raw.githubusercontent.com/kepano/obsidian-minimal/HEAD/obsidian.css
+   
+   # Or use any other Obsidian theme CSS file
+   # Save it as static/obsidian.css in your blog directory
+   ```
+
+3. **Configure theme options (optional):**
+   ```bash
+   blogr config edit
+   ```
+   ```toml
+   [theme.config]
+   obsidian_css = "static/obsidian.css"  # Path to your Obsidian CSS
+   color_mode = "auto"                   # auto | dark | light
+   ```
+
+4. **Build and deploy:**
+   ```bash
+   blogr build
+   blogr deploy
+   ```
+
+**Popular Obsidian Themes:**
+- **Minimal by @kepano**: `https://raw.githubusercontent.com/kepano/obsidian-minimal/HEAD/obsidian.css`
+- **California Coast**: Available in Obsidian community themes
+- **Atom**: Available in Obsidian community themes
+- **Shimmering Focus**: Available in Obsidian community themes
+
+**Obsidian Theme Features:**
+- ✅ Full Obsidian workspace HTML structure
+- ✅ Supports any Obsidian community theme CSS
+- ✅ Automatic dark/light mode detection
+- ✅ Fallback styles when CSS fails to load
+- ✅ Obsidian-style callouts, tags, and embeds
+- ✅ Compatible with existing Blogr functionality
 
 **Custom Themes**
 Themes are Rust modules in `blogr-themes/src/`. Each theme provides templates, CSS, and configuration options.

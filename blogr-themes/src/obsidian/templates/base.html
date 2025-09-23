@@ -10,65 +10,435 @@
         <meta name="author" content="{{ site.blog.author }}" />
         {% endblock %}
 
-        <!-- Artistic Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap"
-            rel="stylesheet"
-        />
+        <!-- Comprehensive fallback Obsidian-compatible styles -->
+        <style>
+            /* CSS Custom Properties for Obsidian theming */
+            :root {
+                --background-primary: #ffffff;
+                --background-secondary: #f2f3f5;
+                --background-modifier-border: #e9ecef;
+                --text-normal: #2e3338;
+                --text-muted: #7c7c7c;
+                --text-faint: #999999;
+                --text-accent: #7c3aed;
+                --text-accent-hover: #5b21b6;
+                --interactive-accent: #7c3aed;
+                --interactive-accent-hover: #5b21b6;
+                --background-modifier-hover: #f8f9fa;
+                --background-modifier-active: #e9ecef;
+                --tag-background: #e9ecef;
+                --tag-color: #6b7280;
+                --callout-info: #2196f3;
+                --callout-tip: #4caf50;
+                --callout-warning: #ff9800;
+                --callout-error: #f44336;
+                --callout-abstract: #00bcd4;
+                --callout-note: #ff9800;
+            }
 
+            .theme-dark {
+                --background-primary: #202020;
+                --background-secondary: #161616;
+                --background-modifier-border: #2a2a2a;
+                --text-normal: #dcddde;
+                --text-muted: #999999;
+                --text-faint: #666666;
+                --text-accent: #a78bfa;
+                --text-accent-hover: #c4b5fd;
+                --interactive-accent: #a78bfa;
+                --interactive-accent-hover: #c4b5fd;
+                --background-modifier-hover: #2a2a2a;
+                --background-modifier-active: #333333;
+                --tag-background: #2a2a2a;
+                --tag-color: #999999;
+            }
+
+            .theme-light {
+                --background-primary: #ffffff;
+                --background-secondary: #f2f3f5;
+                --background-modifier-border: #e9ecef;
+                --text-normal: #2e3338;
+                --text-muted: #7c7c7c;
+                --text-faint: #999999;
+            }
+
+            /* Base Obsidian structure */
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                background-color: var(--background-primary);
+                color: var(--text-normal);
+                margin: 0;
+                padding: 0;
+                line-height: 1.6;
+            }
+
+            .app-container {
+                min-height: 100vh;
+                background-color: var(--background-primary);
+            }
+
+            .workspace {
+                display: flex;
+                width: 100%;
+                min-height: 100vh;
+            }
+
+            .workspace-leaf-content {
+                flex: 1;
+                background-color: var(--background-primary);
+            }
+
+            .markdown-preview-view {
+                padding: 0;
+                background-color: var(--background-primary);
+            }
+
+            .markdown-rendered {
+                max-width: 700px;
+                margin: 0 auto;
+                padding: 40px 20px;
+                font-size: 16px;
+                line-height: 1.6;
+                color: var(--text-normal);
+            }
+
+            /* Typography */
+            .inline-title {
+                font-size: 2.25em;
+                font-weight: 700;
+                margin-bottom: 0.5em;
+                color: var(--text-normal);
+                border: none;
+                background: transparent;
+                display: block;
+                line-height: 1.2;
+            }
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                color: var(--text-normal);
+                font-weight: 600;
+                margin-top: 1.5em;
+                margin-bottom: 0.5em;
+                line-height: 1.3;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+            h3 {
+                font-size: 1.25em;
+            }
+            h4 {
+                font-size: 1.125em;
+            }
+            h5 {
+                font-size: 1em;
+            }
+            h6 {
+                font-size: 0.875em;
+            }
+
+            /* Links */
+            a {
+                color: var(--text-accent);
+                text-decoration: none;
+            }
+
+            a:hover {
+                color: var(--text-accent-hover);
+                text-decoration: underline;
+            }
+
+            .internal-link {
+                color: var(--text-accent);
+                text-decoration: none;
+            }
+
+            .internal-link:hover {
+                color: var(--text-accent-hover);
+                text-decoration: underline;
+            }
+
+            /* Callouts */
+            .callout {
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 8px;
+                border-left: 4px solid var(--interactive-accent);
+                background-color: var(--background-secondary);
+                position: relative;
+            }
+
+            .callout[data-callout="info"] {
+                border-left-color: var(--callout-info);
+            }
+
+            .callout[data-callout="tip"] {
+                border-left-color: var(--callout-tip);
+            }
+
+            .callout[data-callout="warning"] {
+                border-left-color: var(--callout-warning);
+            }
+
+            .callout[data-callout="error"] {
+                border-left-color: var(--callout-error);
+            }
+
+            .callout[data-callout="abstract"] {
+                border-left-color: var(--callout-abstract);
+            }
+
+            .callout[data-callout="note"] {
+                border-left-color: var(--callout-note);
+            }
+
+            .callout-title {
+                font-weight: 600;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .callout-content {
+                margin: 0;
+            }
+
+            /* Tags */
+            .tag {
+                background-color: var(--tag-background);
+                color: var(--tag-color);
+                padding: 4px 8px;
+                border-radius: 12px;
+                text-decoration: none;
+                font-size: 0.85em;
+                margin-right: 8px;
+                margin-bottom: 4px;
+                display: inline-block;
+                border: 1px solid var(--background-modifier-border);
+                transition: all 0.2s ease;
+            }
+
+            .tag:hover {
+                background-color: var(--interactive-accent);
+                color: white;
+                border-color: var(--interactive-accent);
+            }
+
+            .tag-container {
+                margin: 16px 0;
+            }
+
+            /* Embedded content */
+            .markdown-embed {
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 8px;
+                margin: 16px 0;
+                padding: 16px;
+                background-color: var(--background-secondary);
+            }
+
+            .markdown-embed-title {
+                font-weight: 600;
+                margin-bottom: 8px;
+                font-size: 1.1em;
+            }
+
+            .markdown-embed-link {
+                color: var(--text-accent);
+                text-decoration: none;
+            }
+
+            .markdown-embed-link:hover {
+                color: var(--text-accent-hover);
+                text-decoration: underline;
+            }
+
+            /* Navigation elements */
+            .nav-folder-children {
+                margin: 16px 0;
+            }
+
+            .nav-file {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid var(--background-modifier-border);
+            }
+
+            .nav-file:last-child {
+                border-bottom: none;
+            }
+
+            .nav-file-title {
+                flex: 1;
+            }
+
+            .nav-file-title-content {
+                color: var(--text-normal);
+            }
+
+            .nav-file-tag {
+                margin-left: 12px;
+            }
+
+            /* Code */
+            code {
+                background-color: var(--background-secondary);
+                padding: 2px 4px;
+                border-radius: 4px;
+                font-family: "SF Mono", Monaco, "Roboto Mono", monospace;
+                font-size: 0.9em;
+                color: var(--text-normal);
+            }
+
+            pre {
+                background-color: var(--background-secondary);
+                padding: 16px;
+                border-radius: 8px;
+                overflow-x: auto;
+                border: 1px solid var(--background-modifier-border);
+            }
+
+            pre code {
+                background: none;
+                padding: 0;
+            }
+
+            /* Blockquotes */
+            blockquote {
+                border-left: 4px solid var(--text-accent);
+                padding-left: 16px;
+                margin: 16px 0;
+                font-style: italic;
+                color: var(--text-muted);
+                background-color: var(--background-secondary);
+                padding: 16px;
+                border-radius: 0 8px 8px 0;
+            }
+
+            /* Lists */
+            ul,
+            ol {
+                padding-left: 24px;
+            }
+
+            li {
+                margin: 4px 0;
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 16px 0;
+            }
+
+            th,
+            td {
+                border: 1px solid var(--background-modifier-border);
+                padding: 8px 12px;
+                text-align: left;
+            }
+
+            th {
+                background-color: var(--background-secondary);
+                font-weight: 600;
+            }
+
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .markdown-rendered {
+                    padding: 20px 16px;
+                }
+
+                .inline-title {
+                    font-size: 1.8em;
+                }
+            }
+        </style>
+
+        <!-- Load user-supplied Obsidian CSS with enhanced error handling -->
         <link
             rel="stylesheet"
             href="{{ url(path='static/obsidian.css') | safe }}"
+            onerror="console.warn('Custom Obsidian CSS not found at static/obsidian.css - using fallback styles')"
+            onload="console.log('Custom Obsidian CSS loaded successfully')"
         />
 
         {% block extra_head %}{% endblock %}
+
+        <script>
+            (function () {
+                var mode =
+                    "{{ site.theme.config.color_mode | default(value='auto') }}";
+                var isDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+                var body = document.body;
+
+                if (mode === "auto") {
+                    body.classList.toggle("theme-dark", isDark);
+                    body.classList.toggle("theme-light", !isDark);
+                } else {
+                    body.classList.add(
+                        mode === "dark" ? "theme-dark" : "theme-light",
+                    );
+                }
+
+                // Add Obsidian workspace classes
+                body.classList.add(
+                    "mod-macos",
+                    "is-frameless",
+                    "is-hidden-frameless",
+                );
+
+                // Listen for system theme changes
+                if (mode === "auto" && window.matchMedia) {
+                    window
+                        .matchMedia("(prefers-color-scheme: dark)")
+                        .addEventListener("change", function (e) {
+                            body.classList.toggle("theme-dark", e.matches);
+                            body.classList.toggle("theme-light", !e.matches);
+                        });
+                }
+            })();
+        </script>
     </head>
-    <body>
-        <div class="page-container">
-            <!-- Minimal header with just title -->
-            <header class="site-header">
-                <h1 class="site-title">
-                    <a href="{{ url(path='') | safe }}"
-                        >{{ site.blog.title }}</a
-                    >
-                </h1>
-                {% if site.blog.description %}
-                <p class="site-subtitle">{{ site.blog.description }}</p>
-                {% endif %}
-            </header>
-
-            <!-- Main content area -->
-            <main class="main-content">{% block content %}{% endblock %}</main>
-
-            <!-- Minimal footer -->
-            <footer class="site-footer">
-                <div class="footer-content">
-                    <p class="author-credit">{{ site.blog.author }}</p>
-                    <div class="footer-links">
-                        {% if site.github %}
-                        <a
-                            href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}"
-                            target="_blank"
-                            rel="noopener"
-                            class="github-link"
-                            >github</a
-                        >
-                        {% endif %}
-                        <span class="separator">·</span>
-                        <a
-                            href="https://github.com/bahdotsh/blogr"
-                            target="_blank"
-                            rel="noopener"
-                            class="blogr-link"
-                            >blogr</a
-                        >
+    <body class="workspace-leaf-content">
+        <div class="app-container">
+            <div class="workspace">
+                <div class="workspace-split mod-vertical mod-root">
+                    <div class="workspace-leaf mod-active">
+                        <div class="workspace-leaf-content">
+                            <div class="view-content">
+                                <div class="markdown-reading-view">
+                                    <div
+                                        class="markdown-preview-view markdown-rendered"
+                                    >
+                                        <div class="markdown-preview-section">
+                                            {% block content %}{% endblock %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </footer>
+            </div>
         </div>
-
         {% block extra_scripts %}{% endblock %}
     </body>
 </html>

@@ -1,291 +1,142 @@
-{% extends "base.html" %}
-
-{% block title %}{{ site.blog.title }}{% endblock %}
-
+{% extends "base.html" %} {% block title %}{{ site.blog.title }}{% endblock %}
 {% block content %}
-<div class="posts-container">
-    {% if posts %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <!-- Blog title as inline title -->
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        {{ site.blog.title }}
+    </div>
+
+    <!-- Blog description as info callout -->
+    {% if site.blog.description %}
+    <div class="callout" data-callout="info">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                </svg>
+            </div>
+            <div class="callout-title-inner">About this blog</div>
+        </div>
+        <div class="callout-content">
+            <p>{{ site.blog.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Posts as embedded notes -->
+    <div class="embedded-backlinks">
+        <div class="tree-item-self nav-folder-title">
+            <div class="tree-item-inner nav-folder-title-content">
+                Recent Posts
+            </div>
+        </div>
+
         {% for post in posts %}
-        <article class="post-entry" data-post-id="{{ loop.index }}">
-            <!-- Post Header -->
-            <header class="post-entry-header" onclick="togglePost({{ loop.index }})">
-                <h2 class="post-entry-title">{{ post.metadata.title }}</h2>
-                
-                <div class="post-entry-meta">
-                    <time class="post-date">{{ post.metadata.date | date(format="%b %d, %Y") }}</time>
-                    
-                    {% if post.metadata.author %}
-                    <span class="post-author">{{ post.metadata.author }}</span>
-                    {% endif %}
-                    
-                    {% if post.reading_time %}
-                    <span class="reading-time">{{ post.reading_time }}min</span>
-                    {% endif %}
+        <div class="markdown-embed">
+            <div class="markdown-embed-title">
+                <div class="markdown-embed-link">
+                    <a
+                        href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}"
+                        class="internal-link"
+                    >
+                        {{ post.metadata.title }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="markdown-embed-content">
+                <!-- Post metadata -->
+                <div class="frontmatter-container">
+                    <div class="frontmatter-section-simple">
+                        <span class="frontmatter-alias">
+                            <span class="frontmatter-alias-icon">📅</span>
+                            <time datetime="{{ post.metadata.date }}"
+                                >{{ post.metadata.date }}</time
+                            >
+                        </span>
+                        {% if post.metadata.author %}
+                        <span class="frontmatter-alias">
+                            <span class="frontmatter-alias-icon">👤</span>
+                            <span>{{ post.metadata.author }}</span>
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <!-- Tags as artistic elements -->
+                <!-- Post description or excerpt -->
+                {% if post.metadata.description %}
+                <blockquote class="markdown-embed-excerpt">
+                    {{ post.metadata.description }}
+                </blockquote>
+                {% endif %}
+
+                <!-- Post tags -->
                 {% if post.metadata.tags %}
-                <div class="post-tags-preview">
+                <div class="tag-container">
                     {% for tag in post.metadata.tags %}
-                    <span class="tag-bubble">{{ tag }}</span>
+                    <a
+                        class="tag"
+                        href="{{ url(path='tags/' ~ tag ~ '.html') }}"
+                    >
+                        <span class="tag-name">#{{ tag }}</span>
+                    </a>
                     {% endfor %}
                 </div>
                 {% endif %}
 
-                <!-- Expand indicator -->
-                <div class="expand-indicator">
-                    <span class="expand-text">read</span>
-                    <span class="expand-arrow">↓</span>
-                </div>
-            </header>
-
-            <!-- Expandable Content -->
-            <div class="post-entry-content" id="post-content-{{ loop.index }}">
-                {% if post.metadata.description %}
-                <div class="post-description">
-                    {{ post.metadata.description }}
-                </div>
-                {% endif %}
-                
-                <div class="post-full-content">
+                <!-- Post content preview -->
+                <div class="embedded-content-preview">
                     {{ post.content | safe }}
                 </div>
-
-                <!-- Post Footer with full tags -->
-                <footer class="post-entry-footer">
-                    {% if post.metadata.tags %}
-                    <div class="post-tags-full">
-                        <span class="tags-label">tagged:</span>
-                        {% for tag in post.metadata.tags %}
-                        <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag-link">{{ tag }}</a>{% if not loop.last %}, {% endif %}
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="post-actions">
-                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}" class="permalink">permalink</a>
-                        <button class="collapse-btn" onclick="togglePost({{ loop.index }})">collapse</button>
-                    </div>
-                </footer>
             </div>
-        </article>
-        {% endfor %}
-    {% else %}
-    <div class="empty-state">
-        <h2>No posts yet</h2>
-        <p>This space is waiting for stories to fill it.</p>
-    </div>
-    {% endif %}
-</div>
-
-<!-- Loading indicator for infinite scroll -->
-<div id="loading-indicator" style="display: none; text-align: center; padding: 20px;">
-    <div class="loading-spinner">Loading more posts...</div>
-</div>
-
-<!-- End of posts indicator -->
-<div id="end-of-posts" style="display: none; text-align: center; padding: 20px; color: #666;">
-    <p>✨ You've reached the end!</p>
-</div>
-
-<script>
-let currentPage = 1;
-let isLoading = false;
-let hasMorePosts = {{ has_more | default(value="false") }};
-let totalPosts = {{ total_posts | default(value=0) }};
-let loadedPosts = {{ posts | length | default(value=0) }};
-let maxPostId = {{ posts | length | default(value=0) }};
-
-function togglePost(postId) {
-    const content = document.getElementById('post-content-' + postId);
-    const article = document.querySelector('[data-post-id="' + postId + '"]');
-    const arrow = article.querySelector('.expand-arrow');
-    const text = article.querySelector('.expand-text');
-    
-    if (content.classList.contains('expanded')) {
-        content.classList.remove('expanded');
-        article.classList.remove('expanded');
-        arrow.textContent = '↓';
-        text.textContent = 'read';
-    } else {
-        // Close other expanded posts
-        document.querySelectorAll('.post-entry-content.expanded').forEach(el => {
-            el.classList.remove('expanded');
-        });
-        document.querySelectorAll('.post-entry.expanded').forEach(el => {
-            el.classList.remove('expanded');
-            el.querySelector('.expand-arrow').textContent = '↓';
-            el.querySelector('.expand-text').textContent = 'read';
-        });
-        
-        // Open this post
-        content.classList.add('expanded');
-        article.classList.add('expanded');
-        arrow.textContent = '↑';
-        text.textContent = 'close';
-        
-        // Smooth scroll to post
-        article.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// Close expanded posts when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.post-entry')) {
-        document.querySelectorAll('.post-entry-content.expanded').forEach(el => {
-            el.classList.remove('expanded');
-        });
-        document.querySelectorAll('.post-entry.expanded').forEach(el => {
-            el.classList.remove('expanded');
-            el.querySelector('.expand-arrow').textContent = '↓';
-            el.querySelector('.expand-text').textContent = 'read';
-        });
-    }
-});
-
-// Infinite scroll functionality
-async function loadMorePosts() {
-    if (isLoading || !hasMorePosts) return;
-    
-    isLoading = true;
-    document.getElementById('loading-indicator').style.display = 'block';
-    
-    try {
-        // Try static JSON file first (for deployed sites)
-        let response;
-        let data;
-        
-        try {
-            response = await fetch(`/api/posts-page-${currentPage + 1}.json`);
-            if (!response.ok) throw new Error('Static file not found');
-            data = await response.json();
-        } catch (staticError) {
-            // Fallback to dynamic API (for development server)
-            response = await fetch(`/api/posts?page=${currentPage + 1}&limit=10`);
-            if (!response.ok) throw new Error('API endpoint not available');
-            data = await response.json();
-        }
-        
-        if (data.posts && data.posts.length > 0) {
-            const postsContainer = document.querySelector('.posts-container');
-            
-            data.posts.forEach((post, index) => {
-                maxPostId++;
-                const postElement = createPostElement(post, maxPostId);
-                postsContainer.appendChild(postElement);
-            });
-            
-            currentPage++;
-            hasMorePosts = data.has_more;
-            loadedPosts += data.posts.length;
-            
-            if (!hasMorePosts) {
-                document.getElementById('end-of-posts').style.display = 'block';
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load more posts:', error);
-    } finally {
-        isLoading = false;
-        document.getElementById('loading-indicator').style.display = 'none';
-    }
-}
-
-function createPostElement(post, postId) {
-    const article = document.createElement('article');
-    article.className = 'post-entry';
-    article.setAttribute('data-post-id', postId);
-    
-    // Format date
-    const date = new Date(post.metadata.date);
-    const formattedDate = date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-    });
-    
-    // Build tags HTML
-    let tagsHtml = '';
-    if (post.metadata.tags && post.metadata.tags.length > 0) {
-        tagsHtml = `
-            <div class="post-tags-preview">
-                ${post.metadata.tags.map(tag => `<span class="tag-bubble">${tag}</span>`).join('')}
-            </div>
-        `;
-    }
-    
-    let tagsFullHtml = '';
-    if (post.metadata.tags && post.metadata.tags.length > 0) {
-        tagsFullHtml = `
-            <div class="post-tags-full">
-                <span class="tags-label">tagged:</span>
-                ${post.metadata.tags.map(tag => `<a href="tags/${tag}.html" class="tag-link">${tag}</a>`).join(', ')}
-            </div>
-        `;
-    }
-    
-    article.innerHTML = `
-        <header class="post-entry-header" onclick="togglePost(${postId})">
-            <h2 class="post-entry-title">${post.metadata.title}</h2>
-            
-            <div class="post-entry-meta">
-                <time class="post-date">${formattedDate}</time>
-                
-                ${post.metadata.author ? `<span class="post-author">${post.metadata.author}</span>` : ''}
-                
-                ${post.reading_time ? `<span class="reading-time">${post.reading_time}min</span>` : ''}
-            </div>
-
-            ${tagsHtml}
-
-            <div class="expand-indicator">
-                <span class="expand-text">read</span>
-                <span class="expand-arrow">↓</span>
-            </div>
-        </header>
-
-        <div class="post-entry-content" id="post-content-${postId}">
-            ${post.metadata.description ? `<div class="post-description">${post.metadata.description}</div>` : ''}
-            
-            <div class="post-full-content">
-                ${post.content}
-            </div>
-
-            <footer class="post-entry-footer">
-                ${tagsFullHtml}
-
-                <div class="post-actions">
-                    <a href="posts/${post.metadata.slug}.html" class="permalink">permalink</a>
-                    <button class="collapse-btn" onclick="togglePost(${postId})">collapse</button>
-                </div>
-            </footer>
         </div>
-    `;
-    
-    return article;
-}
+        {% endfor %}
+    </div>
 
-// Scroll event listener for infinite scroll
-let scrollTimeout;
-window.addEventListener('scroll', function() {
-    if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-    }
-    
-    scrollTimeout = setTimeout(function() {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000) {
-            loadMorePosts();
-        }
-    }, 100);
-});
-
-// Initial check if we need to load more posts (in case the page is short)
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        if (document.body.offsetHeight <= window.innerHeight && hasMorePosts) {
-            loadMorePosts();
-        }
-    }, 100);
-});
-</script>
+    <!-- Navigation callout -->
+    <div class="callout" data-callout="tip">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M9 11H1l4-4M9 11l-4 4M21 12c0 4.418-4.03 8-9 8" />
+                </svg>
+            </div>
+            <div class="callout-title-inner">Explore</div>
+        </div>
+        <div class="callout-content">
+            <p>
+                Browse by
+                <a href="{{ url(path='tags.html') }}" class="internal-link"
+                    >tags</a
+                >
+                or view the complete
+                <a href="{{ url(path='archive.html') }}" class="internal-link"
+                    >archive</a
+                >.
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}

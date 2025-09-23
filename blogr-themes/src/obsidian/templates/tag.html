@@ -1,12 +1,10 @@
-{% extends "base.html" %}
-
-{% block title %}{{ tag }} - {{ site.blog.title }}{% endblock %}
-
-{% block meta %}
-<meta name="description" content="Posts exploring {{ tag }} on {{ site.blog.title }}">
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}{{ tag }} - {{ site.blog.title }}{%
+endblock %} {% block meta %}
+<meta
+    name="description"
+    content="Posts exploring {{ tag }} on {{ site.blog.title }}"
+/>
+{% endblock %} {% block content %}
 <div class="tag-collection">
     <!-- Artistic tag header -->
     <header class="tag-collection-header">
@@ -15,7 +13,8 @@
             <h1 class="tag-name">{{ tag }}</h1>
         </div>
         <p class="tag-description">
-            {{ posts | length }} {% if posts | length == 1 %}story{% else %}stories{% endif %} exploring this theme
+            {{ posts | length }} {% if posts | length == 1 %}story{% else
+            %}stories{% endif %} exploring this theme
         </p>
     </header>
 
@@ -29,25 +28,31 @@
                     {{ post.metadata.date | date(format="%b %Y") }}
                 </time>
             </div>
-            
+
             <div class="story-content">
                 <h2 class="story-title">
-                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title }}</a>
+                    <a
+                        href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}"
+                        >{{ post.metadata.title }}</a
+                    >
                 </h2>
-                
+
                 {% if post.metadata.description %}
                 <p class="story-excerpt">{{ post.metadata.description }}</p>
                 {% endif %}
-                
+
                 <!-- Other tags for this post -->
                 {% if post.metadata.tags and post.metadata.tags | length > 1 %}
                 <div class="story-other-tags">
                     <span class="also-tagged">also:</span>
-                    {% for post_tag in post.metadata.tags %}
-                        {% if post_tag != tag %}
-                        <a href="{{ url(path='tags/' ~ post_tag ~ '.html') | safe }}" class="other-tag">{{ post_tag }}</a>{% if not loop.last and post_tag != tag %}, {% endif %}
-                        {% endif %}
-                    {% endfor %}
+                    {% for post_tag in post.metadata.tags %} {% if post_tag !=
+                    tag %}
+                    <a
+                        href="{{ url(path='tags/' ~ post_tag ~ '.html') | safe }}"
+                        class="other-tag"
+                        >{{ post_tag }}</a
+                    >{% if not loop.last and post_tag != tag %}, {% endif %} {%
+                    endif %} {% endfor %}
                 </div>
                 {% endif %}
             </div>
@@ -56,9 +61,13 @@
     </div>
     {% else %}
     <div class="empty-tag">
-        <p class="empty-message">No stories found exploring <em>{{ tag }}</em> yet.</p>
+        <p class="empty-message">
+            No stories found exploring <em>{{ tag }}</em> yet.
+        </p>
         <p class="empty-hint">
-            <a href="{{ url(path='') | safe }}" class="return-home">← return to all stories</a>
+            <a href="{{ url(path='') | safe }}" class="return-home"
+                >← return to all stories</a
+            >
         </p>
     </div>
     {% endif %}
@@ -70,186 +79,315 @@
 </div>
 
 <style>
-/* Tag Collection Styles */
-.tag-collection {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.tag-collection-header {
-    text-align: center;
-    margin-bottom: var(--spacing-2xl);
-    padding-bottom: var(--spacing-xl);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.tag-display {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-md);
-}
-
-.tag-symbol {
-    font-size: var(--text-3xl);
-    color: var(--color-primary);
-    font-family: var(--font-mono);
-    font-weight: 700;
-}
-
-.tag-name {
-    font-size: var(--text-3xl);
-    font-weight: 600;
-    color: var(--color-text);
-    font-style: italic;
-}
-
-.tag-description {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-    font-style: italic;
-}
-
-/* Story Items */
-.tag-stories {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-}
-
-.story-item {
-    display: flex;
-    gap: var(--spacing-lg);
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.story-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.story-date {
-    flex-shrink: 0;
-    width: 80px;
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-    text-align: right;
-}
-
-.story-content {
-    flex: 1;
-}
-
-.story-title {
-    font-size: var(--text-xl);
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-    line-height: var(--leading-tight);
-}
-
-.story-title a {
-    color: var(--color-text);
-    text-decoration: none;
-    transition: color var(--transition-fast);
-}
-
-.story-title a:hover {
-    color: var(--color-primary);
-}
-
-.story-excerpt {
-    color: var(--color-text-muted);
-    margin-bottom: var(--spacing-sm);
-    line-height: var(--leading-relaxed);
-    font-style: italic;
-}
-
-.story-other-tags {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--color-text-light);
-}
-
-.also-tagged {
-    font-style: italic;
-    margin-right: var(--spacing-xs);
-}
-
-.other-tag {
-    color: var(--color-text-muted);
-    text-decoration: none;
-    transition: color var(--transition-fast);
-}
-
-.other-tag:hover {
-    color: var(--color-primary);
-}
-
-/* Empty State */
-.empty-tag {
-    text-align: center;
-    padding: var(--spacing-2xl) 0;
-}
-
-.empty-message {
-    font-size: var(--text-lg);
-    color: var(--color-text-muted);
-    font-style: italic;
-    margin-bottom: var(--spacing-lg);
-}
-
-.empty-hint {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-}
-
-.return-home {
-    color: var(--color-primary);
-    text-decoration: none;
-    transition: color var(--transition-fast);
-}
-
-.return-home:hover {
-    color: var(--color-secondary);
-    text-decoration: underline;
-}
-
-/* Tag Footer */
-.tag-footer {
-    margin-top: var(--spacing-2xl);
-    padding-top: var(--spacing-xl);
-    border-top: 1px solid var(--color-border);
-    text-align: center;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .story-item {
-        flex-direction: column;
-        gap: var(--spacing-sm);
+    /* Tag Collection Styles */
+    .tag-collection {
+        max-width: 600px;
+        margin: 0 auto;
     }
-    
-    .story-date {
-        width: auto;
-        text-align: left;
+
+    .tag-collection-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+        padding-bottom: var(--spacing-xl);
+        border-bottom: 1px solid var(--color-border);
     }
-    
+
     .tag-display {
-        flex-direction: column;
-        gap: var(--spacing-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
     }
-    
+
     .tag-symbol {
-        font-size: var(--text-2xl);
+        font-size: var(--text-3xl);
+        color: var(--color-primary);
+        font-family: var(--font-mono);
+        font-weight: 700;
     }
-    
+
     .tag-name {
-        font-size: var(--text-2xl);
+        font-size: var(--text-3xl);
+        font-weight: 600;
+        color: var(--color-text);
+        font-style: italic;
     }
-}
+
+    .tag-description {
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+        font-style: italic;
+    }
+
+    /* Story Items */
+    .tag-stories {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xl);
+    }
+
+    .story-item {
+        display: flex;
+        gap: var(--spacing-lg);
+        padding-bottom: var(--spacing-lg);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .story-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .story-date {
+        flex-shrink: 0;
+        width: 80px;
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+        text-align: right;
+    }
+
+    .story-content {
+        flex: 1;
+    }
+
+    .story-title {
+        font-size: var(--text-xl);
+        font-weight: 600;
+        margin-bottom: var(--spacing-sm);
+        line-height: var(--leading-tight);
+    }
+
+    .story-title a {
+        color: var(--color-text);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+
+    .story-title a:hover {
+        color: var(--color-primary);
+    }
+
+    .story-excerpt {
+        color: var(--color-text-muted);
+        margin-bottom: var(--spacing-sm);
+        line-height: var(--leading-relaxed);
+        font-style: italic;
+    }
+
+    .story-other-tags {
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        color: var(--color-text-light);
+    }
+
+    .also-tagged {
+        font-style: italic;
+        margin-right: var(--spacing-xs);
+    }
+
+    .other-tag {
+        color: var(--color-text-muted);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+
+    .other-tag:hover {
+        color: var(--color-primary);
+    }
+
+    /* Empty State */
+    .empty-tag {
+        text-align: center;
+        padding: var(--spacing-2xl) 0;
+    }
+
+    .empty-message {
+        font-size: var(--text-lg);
+        color: var(--color-text-muted);
+        font-style: italic;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .empty-hint {
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+    }
+
+    .return-home {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+
+    .return-home:hover {
+        color: var(--color-secondary);
+        text-decoration: underline;
+    }
+
+    /* Tag Footer */
+    .tag-footer {
+        margin-top: var(--spacing-2xl);
+        padding-top: var(--spacing-xl);
+        border-top: 1px solid var(--color-border);
+        text-align: center;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .story-item {
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .story-date {
+            width: auto;
+            text-align: left;
+        }
+
+        .tag-display {
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .tag-symbol {
+            font-size: var(--text-2xl);
+        }
+
+        .tag-name {
+            font-size: var(--text-2xl);
+        }
+    }
 </style>
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div
+        class="inline-title"
+        contenteditable="false"
+        spellcheck="false"
+        tabindex="-1"
+        enterkeyhint="done"
+    >
+        #{{ tag }}
+    </div>
+
+    <div class="callout" data-callout="note">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+                    />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+            </div>
+            <div class="callout-title-inner">Tagged Posts</div>
+        </div>
+        <div class="callout-content">
+            <p>All posts tagged with <span class="tag">#{{ tag }}</span></p>
+        </div>
+    </div>
+
+    <!-- Backlinks section in Obsidian style -->
+    <div class="backlink-pane">
+        <div class="tree-item-self nav-folder-title">
+            <div class="tree-item-inner nav-folder-title-content">
+                Linked Mentions
+                <span class="tree-item-flair">{{ posts | length }}</span>
+            </div>
+        </div>
+
+        <div class="search-result-container">
+            {% for post in posts %}
+            <div class="search-result-file-matches">
+                <div class="search-result-file-title">
+                    <a
+                        href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}"
+                        class="internal-link"
+                    >
+                        {{ post.metadata.title }}
+                    </a>
+                </div>
+
+                <div class="search-result-file-match">
+                    <!-- Post metadata -->
+                    <div class="search-result-file-match-content">
+                        <div class="frontmatter-section-simple">
+                            <span class="frontmatter-alias">
+                                <span class="frontmatter-alias-icon">📅</span>
+                                <time datetime="{{ post.metadata.date }}"
+                                    >{{ post.metadata.date }}</time
+                                >
+                            </span>
+                            {% if post.metadata.author %}
+                            <span class="frontmatter-alias">
+                                <span class="frontmatter-alias-icon">👤</span>
+                                <span>{{ post.metadata.author }}</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Post description if available -->
+                        {% if post.metadata.description %}
+                        <blockquote class="search-excerpt">
+                            {{ post.metadata.description }}
+                        </blockquote>
+                        {% endif %}
+
+                        <!-- Other tags from this post -->
+                        {% if post.metadata.tags %}
+                        <div class="tag-container">
+                            {% for post_tag in post.metadata.tags %} {% if
+                            post_tag != tag %}
+                            <a
+                                href="{{ url(path='tags/' ~ post_tag ~ '.html') }}"
+                                class="tag"
+                            >
+                                <span class="tag-name">#{{ post_tag }}</span>
+                            </a>
+                            {% endif %} {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if posts | length == 0 %}
+    <!-- No posts with this tag -->
+    <div class="callout" data-callout="warning">
+        <div class="callout-content">
+            <p>
+                No posts found with the tag <span class="tag">#{{ tag }}</span>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation callout -->
+    <div class="callout" data-callout="tip">
+        <div class="callout-content">
+            <p>
+                Browse all
+                <a href="{{ url(path='tags.html') }}" class="internal-link"
+                    >tags</a
+                >, view the
+                <a href="{{ url(path='archive.html') }}" class="internal-link"
+                    >archive</a
+                >, or return to
+                <a href="{{ url(path='') }}" class="internal-link">home</a>.
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}
