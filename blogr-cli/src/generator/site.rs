@@ -600,8 +600,22 @@ impl SiteBuilder {
         let js_dir = self.output_dir.join("js");
         fs::create_dir_all(&js_dir)?;
 
+        // Inject configuration into search.js
+        let field_boosts_json = serde_json::to_string(&self.config.search.field_boosts)
+            .unwrap_or_else(|_| r#"{"title": 5, "tags": 3, "content": 1}"#.to_string());
+
+        let search_js_content = EMBEDDED_SEARCH_JS
+            .replace(
+                "lazyLoad: true,",
+                &format!("lazyLoad: {},", self.config.search.lazy_load),
+            )
+            .replace(
+                r#"boost: { title: 5, tags: 3, content: 1 }"#,
+                &format!("boost: {}", field_boosts_json),
+            );
+
         let search_js_dst = js_dir.join("search.js");
-        fs::write(&search_js_dst, EMBEDDED_SEARCH_JS)
+        fs::write(&search_js_dst, search_js_content)
             .map_err(|e| anyhow!("Failed to write embedded search.js: {}", e))?;
 
         let vendor_dir_dst = js_dir.join("vendor");
@@ -789,7 +803,7 @@ impl SiteBuilder {
     fn generate_search_index(&self, posts: &[Post]) -> Result<()> {
         use crate::generator::SearchIndexer;
 
-        let indexer = SearchIndexer::new();
+        let indexer = SearchIndexer::new(self.config.search.clone());
         indexer.generate_index(posts, &self.output_dir)?;
         Ok(())
     }

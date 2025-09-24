@@ -26,36 +26,8 @@ pub struct SearchDocument {
     pub excerpt: String,
 }
 
-/// Search index configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchConfig {
-    /// Whether search is enabled
-    pub enabled: bool,
-    /// Fields to include in search
-    pub fields: Vec<String>,
-    /// Paths to exclude from search
-    pub exclude: Vec<String>,
-    /// Maximum content length in characters
-    pub max_content_chars: usize,
-    /// Excerpt length in words
-    pub excerpt_words: usize,
-}
-
-impl Default for SearchConfig {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            fields: vec![
-                "title".to_string(),
-                "tags".to_string(),
-                "content".to_string(),
-            ],
-            exclude: vec!["drafts/".to_string()],
-            max_content_chars: 2000,
-            excerpt_words: 30,
-        }
-    }
-}
+// Re-export SearchConfig from the main config module
+pub use crate::config::SearchConfig;
 
 /// Search index generator
 pub struct SearchIndexer {
@@ -63,16 +35,8 @@ pub struct SearchIndexer {
 }
 
 impl SearchIndexer {
-    /// Create a new search indexer with default configuration
-    pub fn new() -> Self {
-        Self {
-            config: SearchConfig::default(),
-        }
-    }
-
     /// Create a new search indexer with custom configuration
-    #[allow(dead_code)]
-    pub fn with_config(config: SearchConfig) -> Self {
+    pub fn new(config: SearchConfig) -> Self {
         Self { config }
     }
 
@@ -93,9 +57,14 @@ impl SearchIndexer {
             }
         }
 
-        // Serialize to minified JSON
-        let json_content = serde_json::to_string(&documents)
-            .map_err(|e| anyhow::anyhow!("Failed to serialize search index: {}", e))?;
+        // Serialize to JSON (minified or pretty based on config)
+        let json_content = if self.config.minify {
+            serde_json::to_string(&documents)
+                .map_err(|e| anyhow::anyhow!("Failed to serialize search index: {}", e))?
+        } else {
+            serde_json::to_string_pretty(&documents)
+                .map_err(|e| anyhow::anyhow!("Failed to serialize search index: {}", e))?
+        };
 
         // Write to output directory
         let index_file = output_dir.join("search_index.json");
@@ -123,7 +92,12 @@ impl SearchIndexer {
     /// Convert a post to a search document
     fn post_to_search_document(&self, post: &Post) -> Result<SearchDocument> {
         // Convert markdown to plain text
-        let plain_text = markdown::markdown_to_text(&post.content);
+        let mut plain_text = markdown::markdown_to_text(&post.content);
+
+        // Apply stopword removal if enabled
+        if self.config.remove_stopwords {
+            plain_text = self.remove_stopwords(&plain_text);
+        }
 
         // Truncate content if needed
         let content = if plain_text.len() > self.config.max_content_chars {
@@ -155,6 +129,28 @@ impl SearchIndexer {
             excerpt,
         })
     }
+
+    /// Remove common English stopwords from text
+    fn remove_stopwords(&self, text: &str) -> String {
+        // Common English stopwords
+        const STOPWORDS: &[&str] = &[
+            "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he", "in",
+            "is", "it", "its", "of", "on", "that", "the", "to", "was", "will", "with", "but", "or",
+            "not", "this", "these", "those", "they", "their", "them", "we", "our", "us", "you",
+            "your", "i", "me", "my", "mine", "have", "had", "do", "does", "did", "can", "could",
+            "should", "would", "may", "might", "must", "shall", "will", "am", "is", "are", "was",
+            "were", "been", "being", "get", "got",
+        ];
+
+        text.split_whitespace()
+            .filter(|word| {
+                let lower = word.to_lowercase();
+                let clean = lower.trim_matches(|c: char| !c.is_alphabetic());
+                !STOPWORDS.contains(&clean)
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
 }
 
 #[cfg(test)]
@@ -184,7 +180,27 @@ mod tests {
 
     #[test]
     fn test_search_document_creation() {
-        let indexer = SearchIndexer::new();
+        let mut field_boosts = std::collections::HashMap::new();
+        field_boosts.insert("title".to_string(), 5.0);
+        field_boosts.insert("tags".to_string(), 3.0);
+        field_boosts.insert("content".to_string(), 1.0);
+
+        let config = SearchConfig {
+            enabled: true,
+            fields: vec![
+                "title".to_string(),
+                "tags".to_string(),
+                "content".to_string(),
+            ],
+            exclude: vec!["drafts/".to_string()],
+            max_content_chars: 2000,
+            excerpt_words: 30,
+            minify: true,
+            lazy_load: true,
+            remove_stopwords: false,
+            field_boosts,
+        };
+        let indexer = SearchIndexer::new(config);
         let post = create_test_post();
         let document = indexer.post_to_search_document(&post).unwrap();
 
@@ -198,7 +214,27 @@ mod tests {
     #[test]
     fn test_index_generation() {
         let temp_dir = TempDir::new().unwrap();
-        let indexer = SearchIndexer::new();
+        let mut field_boosts = std::collections::HashMap::new();
+        field_boosts.insert("title".to_string(), 5.0);
+        field_boosts.insert("tags".to_string(), 3.0);
+        field_boosts.insert("content".to_string(), 1.0);
+
+        let config = SearchConfig {
+            enabled: true,
+            fields: vec![
+                "title".to_string(),
+                "tags".to_string(),
+                "content".to_string(),
+            ],
+            exclude: vec!["drafts/".to_string()],
+            max_content_chars: 2000,
+            excerpt_words: 30,
+            minify: true,
+            lazy_load: true,
+            remove_stopwords: false,
+            field_boosts,
+        };
+        let indexer = SearchIndexer::new(config);
         let post = create_test_post();
 
         indexer.generate_index(&[post], temp_dir.path()).unwrap();
@@ -217,7 +253,27 @@ mod tests {
         let mut post = create_test_post();
         post.metadata.status = PostStatus::Draft;
 
-        let indexer = SearchIndexer::new();
+        let mut field_boosts = std::collections::HashMap::new();
+        field_boosts.insert("title".to_string(), 5.0);
+        field_boosts.insert("tags".to_string(), 3.0);
+        field_boosts.insert("content".to_string(), 1.0);
+
+        let config = SearchConfig {
+            enabled: true,
+            fields: vec![
+                "title".to_string(),
+                "tags".to_string(),
+                "content".to_string(),
+            ],
+            exclude: vec!["drafts/".to_string()],
+            max_content_chars: 2000,
+            excerpt_words: 30,
+            minify: true,
+            lazy_load: true,
+            remove_stopwords: false,
+            field_boosts,
+        };
+        let indexer = SearchIndexer::new(config);
         let temp_dir = TempDir::new().unwrap();
 
         indexer.generate_index(&[post], temp_dir.path()).unwrap();

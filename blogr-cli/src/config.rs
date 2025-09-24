@@ -23,7 +23,10 @@ pub struct Config {
     pub theme: ThemeConfig,
     pub github: Option<GitHubConfig>,
     pub build: BuildConfig,
+    #[serde(default)]
     pub dev: DevConfig,
+    #[serde(default)]
+    pub search: SearchConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +103,106 @@ fn default_port() -> u16 {
     3000
 }
 
+impl Default for DevConfig {
+    fn default() -> Self {
+        Self {
+            port: default_port(),
+            auto_reload: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchConfig {
+    /// Whether search is enabled
+    #[serde(default = "default_search_enabled")]
+    pub enabled: bool,
+    /// Fields to include in search
+    #[serde(default = "default_search_fields")]
+    pub fields: Vec<String>,
+    /// Paths to exclude from search
+    #[serde(default = "default_search_exclude")]
+    pub exclude: Vec<String>,
+    /// Maximum content length in characters
+    #[serde(default = "default_max_content_chars")]
+    pub max_content_chars: usize,
+    /// Excerpt length in words
+    #[serde(default = "default_excerpt_words")]
+    pub excerpt_words: usize,
+    /// Whether to minify the search index JSON
+    #[serde(default = "default_minify")]
+    pub minify: bool,
+    /// Whether to lazy load search assets
+    #[serde(default = "default_lazy_load")]
+    pub lazy_load: bool,
+    /// Whether to remove common stopwords from search
+    #[serde(default = "default_remove_stopwords")]
+    pub remove_stopwords: bool,
+    /// Field boost weights for search scoring
+    #[serde(default = "default_field_boosts")]
+    pub field_boosts: std::collections::HashMap<String, f32>,
+}
+
+fn default_search_enabled() -> bool {
+    true
+}
+
+fn default_search_fields() -> Vec<String> {
+    vec![
+        "title".to_string(),
+        "tags".to_string(),
+        "content".to_string(),
+    ]
+}
+
+fn default_search_exclude() -> Vec<String> {
+    vec!["drafts/".to_string()]
+}
+
+fn default_max_content_chars() -> usize {
+    2000
+}
+
+fn default_excerpt_words() -> usize {
+    30
+}
+
+fn default_minify() -> bool {
+    true
+}
+
+fn default_lazy_load() -> bool {
+    true
+}
+
+fn default_remove_stopwords() -> bool {
+    false
+}
+
+fn default_field_boosts() -> std::collections::HashMap<String, f32> {
+    let mut boosts = std::collections::HashMap::new();
+    boosts.insert("title".to_string(), 5.0);
+    boosts.insert("tags".to_string(), 3.0);
+    boosts.insert("content".to_string(), 1.0);
+    boosts
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_search_enabled(),
+            fields: default_search_fields(),
+            exclude: default_search_exclude(),
+            max_content_chars: default_max_content_chars(),
+            excerpt_words: default_excerpt_words(),
+            minify: default_minify(),
+            lazy_load: default_lazy_load(),
+            remove_stopwords: default_remove_stopwords(),
+            field_boosts: default_field_boosts(),
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -122,10 +225,8 @@ impl Default for Config {
                 drafts: false,
                 future_posts: false,
             },
-            dev: DevConfig {
-                port: 3000,
-                auto_reload: true,
-            },
+            dev: DevConfig::default(),
+            search: SearchConfig::default(),
         }
     }
 }
@@ -506,5 +607,36 @@ mod tests {
 
         config.blog.title = "".to_string();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_backward_compatibility() {
+        // Test that old config files without [search] and [dev] sections can still be parsed
+        let old_config_toml = r#"
+[blog]
+title = "My Blog"
+author = "Test Author"
+description = "Test Description"
+base_url = "https://example.com"
+
+[theme]
+name = "minimal-retro"
+
+[build]
+output_dir = "dist"
+"#;
+
+        let config: Config = toml::from_str(old_config_toml).unwrap();
+
+        // Should use default search config
+        assert!(config.search.enabled);
+        assert_eq!(config.search.fields, vec!["title", "tags", "content"]);
+        assert!(config.search.minify);
+        assert!(config.search.lazy_load);
+        assert!(!config.search.remove_stopwords);
+
+        // Should use default dev config
+        assert_eq!(config.dev.port, 3000);
+        assert!(config.dev.auto_reload);
     }
 }

@@ -15,12 +15,15 @@ class BlogrSearch {
             showMoreStep: 10,
             minQueryLength: 2,
             debounceMs: 300,
+            lazyLoad: true,
+            miniSearchUrl: 'js/vendor/minisearch.min.js',
             ...options
         };
         
         this.miniSearch = null;
         this.indexData = null;
         this.isInitialized = false;
+        this.isLoading = false;
         this.debounceTimer = null;
         this.baseHref = '/';
         this.currentResults = [];
@@ -31,17 +34,35 @@ class BlogrSearch {
     
     async init() {
         try {
-            await this.loadSearchIndex();
-            this.setupEventListeners();
-            this.isInitialized = true;
-            console.log('🔍 Blogr search initialized');
+            if (this.options.lazyLoad) {
+                // For lazy loading, just set up event listeners
+                // The search index will be loaded on first search
+                this.setupEventListeners();
+                console.log('🔍 Blogr search initialized (lazy loading)');
+            } else {
+                await this.loadSearchIndex();
+                this.setupEventListeners();
+                this.isInitialized = true;
+                console.log('🔍 Blogr search initialized');
+            }
         } catch (error) {
             console.error('Failed to initialize search:', error);
         }
     }
     
     async loadSearchIndex() {
+        if (this.isInitialized || this.isLoading) {
+            return;
+        }
+        
+        this.isLoading = true;
+        
         try {
+            // Load MiniSearch if not already available
+            if (typeof MiniSearch === 'undefined') {
+                await this.loadMiniSearch();
+            }
+            
             const baseEl = document.querySelector('meta[name="blogr-base"]');
             this.baseHref = baseEl ? baseEl.getAttribute('content') || '/' : '/';
             const indexPath = this.joinUrl(this.baseHref, this.options.indexUrl);
@@ -64,11 +85,29 @@ class BlogrSearch {
             });
             
             this.miniSearch.addAll(this.indexData);
+            this.isInitialized = true;
             console.log(`📚 Loaded ${this.indexData.length} documents for search`);
         } catch (error) {
             console.error('Error loading search index:', error);
             throw error;
+        } finally {
+            this.isLoading = false;
         }
+    }
+    
+    async loadMiniSearch() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = this.joinUrl(this.baseHref, this.options.miniSearchUrl);
+            script.onload = () => {
+                console.log('📦 MiniSearch library loaded');
+                resolve();
+            };
+            script.onerror = () => {
+                reject(new Error('Failed to load MiniSearch library'));
+            };
+            document.head.appendChild(script);
+        });
     }
     
     setupEventListeners() {
@@ -208,15 +247,32 @@ class BlogrSearch {
         }, this.options.debounceMs);
     }
     
-    performSearch(query) {
-        if (!this.isInitialized || !this.miniSearch) {
-            return;
-        }
-        
+    async performSearch(query) {
         const trimmedQuery = query.trim();
         
         if (trimmedQuery.length < this.options.minQueryLength) {
             this.hideResults();
+            return;
+        }
+        
+        // Lazy load search index if not initialized
+        if (!this.isInitialized && this.options.lazyLoad) {
+            if (this.isLoading) {
+                this.showLoading();
+                return;
+            }
+            
+            try {
+                this.showLoading();
+                await this.loadSearchIndex();
+            } catch (error) {
+                console.error('Failed to load search:', error);
+                this.showError('Failed to load search. Please try again.');
+                return;
+            }
+        }
+        
+        if (!this.isInitialized || !this.miniSearch) {
             return;
         }
         
@@ -367,6 +423,18 @@ class BlogrSearch {
         resultsContainer.innerHTML = `
             <div class="search-error">
                 <p>${message}</p>
+            </div>
+        `;
+        this.showResults();
+    }
+    
+    showLoading() {
+        const resultsContainer = document.querySelector(this.options.resultsContainer);
+        if (!resultsContainer) return;
+        
+        resultsContainer.innerHTML = `
+            <div class="search-loading">
+                <p>Loading search...</p>
             </div>
         `;
         this.showResults();
