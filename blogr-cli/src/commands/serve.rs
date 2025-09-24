@@ -46,6 +46,9 @@ pub async fn handle_serve(port: u16, host: String, drafts: bool, open: bool) -> 
     let project = Project::find_project()?
         .ok_or_else(|| anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
 
+    // Ensure templates generate root-relative URLs in dev (so assets load locally)
+    std::env::set_var("BLOGR_DEV", "1");
+
     // Build site initially
     Console::info("Building site...");
 

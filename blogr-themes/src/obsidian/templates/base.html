@@ -373,6 +373,210 @@
                 font-weight: 600;
             }
 
+            /* Search Styles */
+            .search-form {
+                position: relative;
+                margin: 0;
+            }
+
+            .search-container {
+                display: flex;
+                align-items: center;
+                background: var(--background-secondary);
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 6px;
+                padding: 8px 12px;
+                transition: all 0.2s ease;
+                max-width: 400px;
+            }
+
+            .search-container:focus-within {
+                border-color: var(--interactive-accent);
+                box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+            }
+
+            #search-input {
+                flex: 1;
+                border: none;
+                background: transparent;
+                padding: 4px 8px;
+                font-family: inherit;
+                font-size: 14px;
+                color: var(--text-normal);
+                outline: none;
+            }
+
+            #search-input::placeholder {
+                color: var(--text-muted);
+            }
+
+            .search-button {
+                background: none;
+                border: none;
+                padding: 4px;
+                cursor: pointer;
+                color: var(--text-muted);
+                transition: color 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .search-button:hover {
+                color: var(--interactive-accent);
+            }
+
+            .search-results {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--background-primary);
+                border: 1px solid var(--background-modifier-border);
+                border-top: none;
+                border-radius: 0 0 6px 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 1000;
+                margin-top: -1px;
+            }
+
+            .search-results-visible {
+                display: block !important;
+            }
+
+            .search-result-item {
+                padding: 12px;
+                border-bottom: 1px solid var(--background-modifier-border);
+                transition: background-color 0.2s ease;
+            }
+
+            .search-result-item:last-child {
+                border-bottom: none;
+            }
+
+            .search-result-item:hover {
+                background-color: var(--background-modifier-hover);
+            }
+
+            .search-result-item.is-active {
+                background-color: var(--background-modifier-hover);
+                outline: 2px solid var(--interactive-accent);
+            }
+
+            .search-result-title {
+                margin: 0 0 6px 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text-normal);
+            }
+
+            .search-result-link {
+                color: var(--text-normal);
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+            .search-result-link:hover {
+                color: var(--interactive-accent);
+            }
+
+            .search-result-meta {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 6px;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            .search-result-tags {
+                display: flex;
+                gap: 4px;
+                flex-wrap: wrap;
+            }
+
+            .search-tag {
+                background: var(--tag-background);
+                color: var(--tag-color);
+                padding: 2px 6px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 500;
+            }
+
+            .search-result-excerpt {
+                margin: 0;
+                font-size: 14px;
+                color: var(--text-muted);
+                line-height: 1.4;
+            }
+
+            .search-highlight {
+                background: var(--tag-background);
+                color: var(--tag-color);
+                padding: 1px 3px;
+                border-radius: 3px;
+                font-weight: 600;
+            }
+
+            .search-result-actions {
+                display: flex;
+                gap: 8px;
+                margin-top: 8px;
+            }
+
+            .search-action {
+                background: var(--background-secondary);
+                color: var(--text-muted);
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .search-action:hover {
+                color: var(--interactive-accent);
+                border-color: var(--interactive-accent);
+            }
+
+            .search-results-footer {
+                padding: 8px 12px;
+                display: flex;
+                justify-content: center;
+                background: var(--background-primary);
+            }
+
+            .search-results-more {
+                background: var(--interactive-accent);
+                color: #fff;
+                border: none;
+                border-radius: 16px;
+                padding: 6px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .search-results-more:hover {
+                background: var(--interactive-accent-hover);
+            }
+
+            .search-no-results,
+            .search-error {
+                padding: 16px;
+                text-align: center;
+                color: var(--text-muted);
+            }
+
+            .search-suggestions {
+                font-size: 14px;
+                margin-top: 6px;
+            }
+
             /* Responsive design */
             @media (max-width: 1200px) {
                 .markdown-rendered {
@@ -390,20 +594,30 @@
                 .inline-title {
                     font-size: 1.8em;
                 }
+
+                .search-container {
+                    max-width: 100%;
+                }
+                
+                .search-results {
+                    left: 0;
+                    right: 0;
+                }
             }
         </style>
 
         <!-- Load bundled default Obsidian CSS -->
-        <link rel="stylesheet" href="/css/obsidian-default.css" />
+        <link rel="stylesheet" href="{{ url(path='css/obsidian-default.css') | safe }}" />
 
         <!-- Load user-supplied Obsidian CSS with error handling -->
         <link
             rel="stylesheet"
-            href="/{{ site.theme.config.obsidian_css | default(value='static/obsidian.css') }}"
+            href="{{ url(path=site.theme.config.obsidian_css | default(value='static/obsidian.css')) | safe }}"
             onerror="this.onerror=null;console.warn('Custom Obsidian CSS not found - using default styles. You can add a custom Obsidian theme by saving it as static/obsidian.css in your blog directory.');"
             onload="console.log('Custom Obsidian CSS loaded successfully');"
         />
 
+        <meta name="blogr-base" content="{{ url(path='') | safe }}" />
         {% block extra_head %}{% endblock %}
 
         <script>
@@ -455,6 +669,29 @@
                 <div class="workspace-split mod-vertical mod-root">
                     <div class="workspace-leaf mod-active">
                         <div class="workspace-leaf-content">
+                            <!-- Search bar -->
+                            <div class="search-bar-container" style="padding: 16px; border-bottom: 1px solid var(--background-modifier-border);">
+                                <form id="search-form" class="search-form" role="search">
+                                    <div class="search-container">
+                                        <input 
+                                            id="search-input" 
+                                            name="q" 
+                                            type="search" 
+                                            placeholder="Search posts..." 
+                                            autocomplete="off"
+                                            aria-label="Search posts"
+                                        />
+                                        <button type="submit" class="search-button" aria-label="Search">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="11" cy="11" r="8"></circle>
+                                                <path d="m21 21-4.35-4.35"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div id="search-results" class="search-results" hidden></div>
+                                </form>
+                            </div>
+                            
                             <div class="view-content" style="width: 100%; display: flex; justify-content: center;">
                                 <div class="markdown-reading-view" style="width: 100%; display: flex; justify-content: center;">
                                     <div
@@ -471,6 +708,10 @@
                 </div>
             </div>
         </div>
+        <!-- Search functionality -->
+        <script src="{{ url(path='js/vendor/minisearch.min.js') | safe }}"></script>
+        <script src="{{ url(path='js/search.js') | safe }}"></script>
+        
         {% block extra_scripts %}{% endblock %}
     </body>
 </html>

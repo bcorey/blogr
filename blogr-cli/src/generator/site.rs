@@ -10,6 +10,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tera::{Context, Tera};
 
+// Embed search assets so they are always available in builds and deployments
+// Paths are relative to this file: blogr-cli/src/generator/site.rs → ../../static/...
+const EMBEDDED_SEARCH_JS: &str = include_str!("../../static/js/search.js");
+const EMBEDDED_MINISEARCH_JS: &str = include_str!("../../static/js/vendor/minisearch.min.js");
+
 /// Static site generator
 pub struct SiteBuilder {
     /// Project reference
@@ -141,6 +146,9 @@ impl SiteBuilder {
 
         // Copy project static assets
         self.copy_static_assets()?;
+
+        // Copy built-in search assets
+        self.copy_search_assets()?;
 
         // Generate CNAME file if domain configuration exists
         self.generate_cname_file()?;
@@ -586,6 +594,40 @@ impl SiteBuilder {
         Ok(())
     }
 
+    /// Copy built-in search assets
+    fn copy_search_assets(&self) -> Result<()> {
+        // Always emit embedded assets first for reliability (works in release binaries)
+        let js_dir = self.output_dir.join("js");
+        fs::create_dir_all(&js_dir)?;
+
+        let search_js_dst = js_dir.join("search.js");
+        fs::write(&search_js_dst, EMBEDDED_SEARCH_JS)
+            .map_err(|e| anyhow!("Failed to write embedded search.js: {}", e))?;
+
+        let vendor_dir_dst = js_dir.join("vendor");
+        fs::create_dir_all(&vendor_dir_dst)?;
+        let minisearch_dst = vendor_dir_dst.join("minisearch.min.js");
+        fs::write(&minisearch_dst, EMBEDDED_MINISEARCH_JS)
+            .map_err(|e| anyhow!("Failed to write embedded minisearch.min.js: {}", e))?;
+
+        // Optionally override with local files if present (useful during development)
+        let dev_static = std::env::current_dir()?.join("blogr-cli/static");
+        if dev_static.exists() {
+            let search_js_src = dev_static.join("js/search.js");
+            if search_js_src.exists() {
+                let _ = fs::copy(&search_js_src, &search_js_dst);
+            }
+            let vendor_src = dev_static.join("js/vendor");
+            if vendor_src.exists() {
+                let _ = crate::generator::assets::copy_dir_recursive(&vendor_src, &vendor_dir_dst);
+            }
+        }
+
+        Ok(())
+    }
+
+    // (Removed unused copy_search_assets_from to avoid dead_code warnings)
+
     /// Get the output directory
     pub fn output_dir(&self) -> &Path {
         &self.output_dir
@@ -609,10 +651,9 @@ impl SiteBuilder {
     fn register_template_functions(tera: &mut Tera, config: &Config) -> Result<()> {
         let base_url = config.get_effective_base_url();
 
-        // Use relative paths for all cases except when explicitly serving locally
-        // This avoids HTML escaping issues and works for both custom domains and github.io URLs
-        let use_relative_paths =
-            !base_url.starts_with("http://127.0.0.1") && !base_url.starts_with("http://localhost");
+        // Use relative paths when running the local dev server; otherwise use base_url-prefixed URLs
+        let is_dev = std::env::var("BLOGR_DEV").is_ok();
+        let use_relative_paths = is_dev;
 
         // Clone base_url for use in closures
         let base_url_for_asset = base_url.clone();
@@ -628,11 +669,16 @@ impl SiteBuilder {
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| tera::Error::msg("asset_url requires a 'path' argument"))?;
 
+                // If absolute URL, return as-is
+                if path.starts_with("http://") || path.starts_with("https://") {
+                    return Ok(Value::String(path.to_string()));
+                }
+
                 let url = if use_relative_for_asset {
-                    // Use relative paths for local development
+                    // Local development: root-relative
                     format!("/{}", path.trim_start_matches('/'))
                 } else {
-                    // Use full URLs for production
+                    // Production: prefix with base_url
                     format!(
                         "{}/{}",
                         base_url_for_asset.trim_end_matches('/'),
@@ -653,15 +699,20 @@ impl SiteBuilder {
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| tera::Error::msg("url requires a 'path' argument"))?;
 
+                // If absolute URL, return as-is
+                if path.starts_with("http://") || path.starts_with("https://") {
+                    return Ok(Value::String(path.to_string()));
+                }
+
                 let url = if use_relative_for_url {
-                    // Use relative paths for local development
+                    // Local development: root-relative
                     if path.is_empty() {
                         "/".to_string()
                     } else {
                         format!("/{}", path.trim_start_matches('/'))
                     }
                 } else {
-                    // Use full URLs for production
+                    // Production: prefix with base_url
                     format!(
                         "{}/{}",
                         base_url_for_url.trim_end_matches('/'),

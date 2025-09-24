@@ -17,11 +17,12 @@
 
     <link rel="stylesheet" href="{{ asset_url(path='css/style.css') | safe }}">
 
+    <meta name="blogr-base" content="{{ url(path='') | safe }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
     <div class="page-container">
-        <!-- Minimal header with just title -->
+        <!-- Minimal header with title and search -->
         <header class="site-header">
             <h1 class="site-title">
                 <a href="{{ url(path='') | safe }}">{{ site.blog.title }}</a>
@@ -29,6 +30,27 @@
             {% if site.blog.description %}
             <p class="site-subtitle">{{ site.blog.description }}</p>
             {% endif %}
+            
+            <!-- Search form -->
+            <form id="search-form" class="search-form" role="search">
+                <div class="search-container">
+                    <input 
+                        id="search-input" 
+                        name="q" 
+                        type="search" 
+                        placeholder="Search posts..." 
+                        autocomplete="off"
+                        aria-label="Search posts"
+                    />
+                    <button type="submit" class="search-button" aria-label="Search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="search-results" class="search-results" hidden></div>
+            </form>
         </header>
 
         <!-- Main content area -->
@@ -52,6 +74,10 @@
         </footer>
     </div>
 
+    <!-- Search functionality -->
+    <script src="{{ url(path='js/vendor/minisearch.min.js') | safe }}"></script>
+    <script src="{{ url(path='js/search.js') | safe }}"></script>
+    
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
