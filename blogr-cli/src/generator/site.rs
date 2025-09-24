@@ -133,6 +133,9 @@ impl SiteBuilder {
         // Generate static JSON files for pagination
         self.generate_posts_json(&all_posts)?;
 
+        // Generate search index
+        self.generate_search_index(&all_posts)?;
+
         // Copy theme assets
         self.copy_theme_assets()?;
 
@@ -728,6 +731,15 @@ impl SiteBuilder {
         }
 
         println!("📄 Generated {} paginated JSON files", total_pages);
+        Ok(())
+    }
+
+    /// Generate search index
+    fn generate_search_index(&self, posts: &[Post]) -> Result<()> {
+        use crate::generator::SearchIndexer;
+
+        let indexer = SearchIndexer::new();
+        indexer.generate_index(posts, &self.output_dir)?;
         Ok(())
     }
 }
