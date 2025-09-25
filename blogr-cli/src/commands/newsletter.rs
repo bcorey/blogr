@@ -8,7 +8,7 @@ use crate::newsletter::{
     NewsletterApiServer, NewsletterManager, PluginManager, SubscriberStatus,
 };
 use crate::project::Project;
-use crate::tui::{self, EventHandler};
+use crate::tui;
 
 /// Handle the fetch-subscribers command
 pub async fn handle_fetch_subscribers(interactive: bool) -> Result<()> {
@@ -160,34 +160,30 @@ pub fn handle_approve() -> Result<()> {
         return Ok(());
     }
 
-    // Initialize TUI with optimized settings
-    let mut tui = tui::init()?;
+    // Initialize TUI with optimized settings for approval interface
+    let mut tui = tui::init_optimized()?; // Use optimized TUI with faster event handling
     tui.init()?;
 
     // Create modern approval app
     let mut app = ModernApprovalApp::new(database)?;
 
-    // Optimized main loop with high refresh rate for smooth animations
-    let events = EventHandler::new(16); // 60fps for buttery smooth experience
-    let mut last_update = std::time::Instant::now();
-
+    // Main event loop - use the TUI's built-in event handler for optimal performance
     loop {
         // Update animations and state
         let needs_update = app.update();
 
-        // Only redraw if needed (performance optimization)
-        if app.needs_redraw()
-            || needs_update
-            || last_update.elapsed() > std::time::Duration::from_millis(100)
-        {
+        // Only redraw when actually needed to maximize performance
+        if app.needs_redraw() || needs_update {
             tui.draw_approval(&mut app)?;
-            last_update = std::time::Instant::now();
         }
 
-        // Handle events with timeout for responsiveness
-        match events.next()? {
+        // Handle events using TUI's optimized event handler
+        match tui.events.next()? {
             crate::tui::Event::Tick => {
-                // Tick events are used for animations
+                // Minimal tick processing for animations only
+                if app.has_active_animations() {
+                    // Animation update already handled above
+                }
             }
             crate::tui::Event::Key(key_event) => {
                 use crate::newsletter::ApprovalResult;
@@ -201,18 +197,15 @@ pub fn handle_approve() -> Result<()> {
                 }
             }
             crate::tui::Event::Mouse(_) => {
-                // Mouse events could be handled for future enhancements
+                // Mouse events - no processing needed for keyboard-driven interface
             }
-            crate::tui::Event::Resize(width, height) => {
-                // Handle terminal resize gracefully
-                if width > 0 && height > 0 {
-                    // Force redraw on resize
-                    tui.draw_approval(&mut app)?;
-                }
+            crate::tui::Event::Resize(_width, _height) => {
+                // Terminal resize - let ratatui handle this automatically
+                app.mark_for_redraw();
             }
             crate::tui::Event::Redraw => {
-                // Force redraw
-                tui.draw_approval(&mut app)?;
+                // Force redraw requested
+                app.mark_for_redraw();
             }
         }
 

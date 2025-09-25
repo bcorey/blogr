@@ -111,3 +111,11 @@ pub fn init() -> AppResult<Tui<CrosstermBackend<io::Stderr>>> {
     let events = EventHandler::new(250);
     Ok(Tui::new(terminal, events))
 }
+
+/// Initialize the terminal user interface with optimized settings for high-performance interfaces.
+pub fn init_optimized() -> AppResult<Tui<CrosstermBackend<io::Stderr>>> {
+    let backend = CrosstermBackend::new(io::stderr());
+    let terminal = Terminal::new(backend)?;
+    let events = EventHandler::new(16); // 60fps for smooth interactions
+    Ok(Tui::new(terminal, events))
+}

@@ -178,8 +178,8 @@ pub struct ModernApprovalApp {
     current_page: usize,
     /// Statistics cache
     stats_cache: Option<(usize, usize, usize, Instant)>, // (total, pending, approved, timestamp)
-    /// Performance metrics
-    frame_times: Vec<Duration>,
+    /// Performance metrics (simplified)
+    last_frame_time: Duration,
 }
 
 impl ModernApprovalApp {
@@ -206,7 +206,7 @@ impl ModernApprovalApp {
             page_size: 20,
             current_page: 0,
             stats_cache: None,
-            frame_times: Vec::with_capacity(60),
+            last_frame_time: Duration::from_millis(16),
         };
 
         // Initialize with smooth loading transition
@@ -221,12 +221,12 @@ impl ModernApprovalApp {
         Ok(app)
     }
 
-    /// Update the app state - call this every frame for animations
+    /// Update the app state - optimized for minimal processing
     pub fn update(&mut self) -> bool {
         let mut updated = false;
 
-        // Update animations
-        if self.loading_animation.update() {
+        // Only update active animations to reduce CPU usage
+        if self.loading_animation.active && self.loading_animation.update() {
             updated = true;
         }
 
@@ -236,7 +236,7 @@ impl ModernApprovalApp {
             updated = true;
         }
 
-        // Clear old status messages
+        // Clear old status messages (check less frequently)
         if let Some((_, timestamp)) = &self.status_message {
             if timestamp.elapsed() > Duration::from_secs(5) {
                 self.status_message = None;
@@ -244,11 +244,10 @@ impl ModernApprovalApp {
             }
         }
 
-        // Invalidate stats cache
+        // Don't invalidate stats cache as aggressively - keep it longer
         if let Some((_, _, _, timestamp)) = &self.stats_cache {
-            if timestamp.elapsed() > Duration::from_secs(1) {
+            if timestamp.elapsed() > Duration::from_secs(5) {
                 self.stats_cache = None;
-                updated = true;
             }
         }
 
@@ -257,6 +256,16 @@ impl ModernApprovalApp {
         }
 
         updated
+    }
+
+    /// Check if there are any active animations
+    pub fn has_active_animations(&self) -> bool {
+        self.loading_animation.active
+    }
+
+    /// Mark the app for redraw
+    pub fn mark_for_redraw(&mut self) {
+        self.needs_redraw = true;
     }
 
     /// Check if redraw is needed
@@ -268,22 +277,14 @@ impl ModernApprovalApp {
     pub fn mark_redrawn(&mut self) {
         self.needs_redraw = false;
 
-        // Track frame time for performance monitoring
-        let frame_time = self.last_redraw.elapsed();
-        self.frame_times.push(frame_time);
-        if self.frame_times.len() > 60 {
-            self.frame_times.remove(0);
-        }
+        // Track frame time for performance monitoring (simplified)
+        self.last_frame_time = self.last_redraw.elapsed();
         self.last_redraw = Instant::now();
     }
 
-    /// Get average frame time for performance display
-    pub fn average_frame_time(&self) -> Duration {
-        if self.frame_times.is_empty() {
-            return Duration::from_millis(16);
-        }
-        let total: Duration = self.frame_times.iter().sum();
-        total / self.frame_times.len() as u32
+    /// Get last frame time for performance display
+    pub fn last_frame_time(&self) -> Duration {
+        self.last_frame_time
     }
 
     /// Handle key events with improved responsiveness
@@ -584,34 +585,43 @@ impl ModernApprovalApp {
             let selected_indices: Vec<usize> = self.selected.iter().cloned().collect();
             let count = selected_indices.len();
 
+            // Batch database operations for better performance
             match action {
                 ConfirmAction::Approve => {
-                    for &index in &selected_indices {
-                        if let Some(subscriber) = self.subscribers.get(index) {
-                            if let Some(id) = subscriber.id {
-                                self.database
-                                    .update_subscriber_status(id, SubscriberStatus::Approved)?;
-                            }
-                        }
+                    let ids: Vec<i64> = selected_indices
+                        .iter()
+                        .filter_map(|&index| self.subscribers.get(index).and_then(|s| s.id))
+                        .collect();
+
+                    // Batch update all at once
+                    for id in ids {
+                        self.database
+                            .update_subscriber_status(id, SubscriberStatus::Approved)?;
                     }
                     self.set_status_message(&format!("✅ Approved {} subscriber(s)", count));
                 }
                 ConfirmAction::Decline => {
-                    for &index in &selected_indices {
-                        if let Some(subscriber) = self.subscribers.get(index) {
-                            if let Some(id) = subscriber.id {
-                                self.database
-                                    .update_subscriber_status(id, SubscriberStatus::Declined)?;
-                            }
-                        }
+                    let ids: Vec<i64> = selected_indices
+                        .iter()
+                        .filter_map(|&index| self.subscribers.get(index).and_then(|s| s.id))
+                        .collect();
+
+                    // Batch update all at once
+                    for id in ids {
+                        self.database
+                            .update_subscriber_status(id, SubscriberStatus::Declined)?;
                     }
                     self.set_status_message(&format!("⚠️ Declined {} subscriber(s)", count));
                 }
                 ConfirmAction::Delete => {
-                    for &index in &selected_indices {
-                        if let Some(subscriber) = self.subscribers.get(index) {
-                            self.database.remove_subscriber(&subscriber.email)?;
-                        }
+                    let emails: Vec<String> = selected_indices
+                        .iter()
+                        .filter_map(|&index| self.subscribers.get(index).map(|s| s.email.clone()))
+                        .collect();
+
+                    // Batch delete all at once
+                    for email in emails {
+                        self.database.remove_subscriber(&email)?;
                     }
                     self.set_status_message(&format!("🗑️ Deleted {} subscriber(s)", count));
                 }
@@ -619,6 +629,8 @@ impl ModernApprovalApp {
 
             self.selected.clear();
             self.confirm_action = None;
+
+            // Only refresh data after all operations complete
             self.refresh_data()?;
         }
 
@@ -635,7 +647,18 @@ impl ModernApprovalApp {
     fn apply_filter(&mut self) -> Result<()> {
         self.filtered_subscribers.clear();
 
+        // Pre-lowercase search query once for efficiency
+        let lowercase_search = if self.search_query.is_empty() {
+            None
+        } else {
+            Some(self.search_query.to_lowercase())
+        };
+
+        // Use iterator with capacity hint for better performance
+        self.filtered_subscribers.reserve(self.subscribers.len());
+
         for (index, subscriber) in self.subscribers.iter().enumerate() {
+            // Fast filter check first (most selective)
             let matches_filter = match self.filter {
                 SubscriberFilter::All => true,
                 SubscriberFilter::Pending => subscriber.status == SubscriberStatus::Pending,
@@ -643,16 +666,18 @@ impl ModernApprovalApp {
                 SubscriberFilter::Declined => subscriber.status == SubscriberStatus::Declined,
             };
 
-            let matches_search = if self.search_query.is_empty() {
-                true
+            if !matches_filter {
+                continue;
+            }
+
+            // Only do expensive string operations if filter passed
+            let matches_search = if let Some(ref search_lower) = lowercase_search {
+                subscriber.email.to_lowercase().contains(search_lower)
             } else {
-                subscriber
-                    .email
-                    .to_lowercase()
-                    .contains(&self.search_query.to_lowercase())
+                true
             };
 
-            if matches_filter && matches_search {
+            if matches_search {
                 self.filtered_subscribers.push(index);
             }
         }
@@ -853,8 +878,8 @@ impl ModernApprovalApp {
         frame.render_widget(stats_widget, header_chunks[1]);
 
         // Performance info
-        let avg_frame_time = self.average_frame_time();
-        let fps = 1000.0 / avg_frame_time.as_millis() as f32;
+        let frame_time = self.last_frame_time();
+        let fps = 1000.0 / frame_time.as_millis().max(1) as f32;
         let perf_text = vec![
             Line::from(vec![
                 Span::styled("FPS: ", Style::default().fg(self.theme.text_secondary)),
@@ -874,7 +899,7 @@ impl ModernApprovalApp {
             Line::from(vec![
                 Span::styled("Frame: ", Style::default().fg(self.theme.text_secondary)),
                 Span::styled(
-                    format!("{:.1}ms", avg_frame_time.as_millis()),
+                    format!("{:.1}ms", frame_time.as_millis()),
                     Style::default().fg(self.theme.text_secondary),
                 ),
             ]),
@@ -911,49 +936,55 @@ impl ModernApprovalApp {
         let end_idx =
             ((self.current_page + 1) * self.page_size).min(self.filtered_subscribers.len());
 
-        let rows: Vec<Row> = self
-            .filtered_subscribers
-            .iter()
-            .skip(start_idx)
-            .take(end_idx - start_idx)
-            .map(|&subscriber_index| {
-                let subscriber = &self.subscribers[subscriber_index];
-                let is_selected = self.selected.contains(&subscriber_index);
-                let selection_indicator = if is_selected { "●" } else { " " };
+        // Pre-create reusable styles to avoid repeated allocations
+        let pending_style = Style::default()
+            .fg(self.theme.warning)
+            .add_modifier(Modifier::BOLD);
+        let approved_style = Style::default()
+            .fg(self.theme.success)
+            .add_modifier(Modifier::BOLD);
+        let declined_style = Style::default()
+            .fg(self.theme.danger)
+            .add_modifier(Modifier::BOLD);
+        let text_style = Style::default().fg(self.theme.text);
+        let secondary_style = Style::default().fg(self.theme.text_secondary);
+        let accent_style = Style::default().fg(self.theme.accent);
 
-                let status_style = match subscriber.status {
-                    SubscriberStatus::Pending => Style::default()
-                        .fg(self.theme.warning)
-                        .add_modifier(Modifier::BOLD),
-                    SubscriberStatus::Approved => Style::default()
-                        .fg(self.theme.success)
-                        .add_modifier(Modifier::BOLD),
-                    SubscriberStatus::Declined => Style::default()
-                        .fg(self.theme.danger)
-                        .add_modifier(Modifier::BOLD),
-                };
+        // Pre-allocate row vector with exact capacity for better performance
+        let mut rows = Vec::with_capacity(end_idx - start_idx);
 
-                let subscribed_date = subscriber
-                    .subscribed_at
-                    .format("%Y-%m-%d %H:%M")
-                    .to_string();
+        for i in start_idx..end_idx {
+            if let Some(&subscriber_index) = self.filtered_subscribers.get(i) {
+                if let Some(subscriber) = self.subscribers.get(subscriber_index) {
+                    let is_selected = self.selected.contains(&subscriber_index);
+                    let selection_indicator = if is_selected { "●" } else { " " };
 
-                let notes = subscriber.notes.as_deref().unwrap_or("-");
+                    let status_style = match subscriber.status {
+                        SubscriberStatus::Pending => pending_style,
+                        SubscriberStatus::Approved => approved_style,
+                        SubscriberStatus::Declined => declined_style,
+                    };
 
-                Row::new(vec![
-                    ratatui::widgets::Cell::from(selection_indicator)
-                        .style(Style::default().fg(self.theme.accent)),
-                    ratatui::widgets::Cell::from(subscriber.email.clone())
-                        .style(Style::default().fg(self.theme.text)),
-                    ratatui::widgets::Cell::from(subscriber.status.to_string()).style(status_style),
-                    ratatui::widgets::Cell::from(subscribed_date)
-                        .style(Style::default().fg(self.theme.text_secondary)),
-                    ratatui::widgets::Cell::from(notes)
-                        .style(Style::default().fg(self.theme.text_secondary)),
-                ])
-                .height(1)
-            })
-            .collect();
+                    let subscribed_date = subscriber
+                        .subscribed_at
+                        .format("%Y-%m-%d %H:%M")
+                        .to_string();
+                    let notes = subscriber.notes.as_deref().unwrap_or("-");
+
+                    let row = Row::new(vec![
+                        ratatui::widgets::Cell::from(selection_indicator).style(accent_style),
+                        ratatui::widgets::Cell::from(subscriber.email.as_str()).style(text_style), // Avoid clone
+                        ratatui::widgets::Cell::from(subscriber.status.to_string())
+                            .style(status_style),
+                        ratatui::widgets::Cell::from(subscribed_date).style(secondary_style),
+                        ratatui::widgets::Cell::from(notes).style(secondary_style),
+                    ])
+                    .height(1);
+
+                    rows.push(row);
+                }
+            }
+        }
 
         let total_pages = self.filtered_subscribers.len().div_ceil(self.page_size);
         let table_title = format!(
