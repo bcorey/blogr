@@ -78,6 +78,13 @@
     {% endif %}
 </div>
 
+<!-- Newsletter subscription form -->
+{% if newsletter.enabled and newsletter_form %}
+<section class="newsletter-section">
+    {{ newsletter_form | safe }}
+</section>
+{% endif %}
+
 <!-- Loading indicator for infinite scroll -->
 <div id="loading-indicator" style="display: none; text-align: center; padding: 20px;">
     <div class="loading-spinner">Loading more posts...</div>
