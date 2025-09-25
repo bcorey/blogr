@@ -2,7 +2,7 @@
 
 use anyhow::{Context, Result};
 use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 
 use super::database::NewsletterDatabase;
 use super::fetcher::EmailFetcher;
@@ -15,7 +15,7 @@ pub struct NewsletterManager {
 
 impl NewsletterManager {
     /// Create a new newsletter manager
-    pub fn new(config: Config, project_root: &PathBuf) -> Result<Self> {
+    pub fn new(config: Config, project_root: &Path) -> Result<Self> {
         let db_path = project_root.join(".blogr").join("newsletter.db");
 
         // Ensure .blogr directory exists
@@ -32,6 +32,16 @@ impl NewsletterManager {
     /// Check if newsletter functionality is enabled
     pub fn is_enabled(&self) -> bool {
         self.config.newsletter.enabled
+    }
+
+    /// Get a reference to the database
+    pub fn database(&self) -> &NewsletterDatabase {
+        &self.database
+    }
+
+    /// Take ownership of the database
+    pub fn take_database(self) -> NewsletterDatabase {
+        self.database
     }
 
     /// Get IMAP configuration, either from config file or environment
@@ -162,12 +172,8 @@ impl NewsletterManager {
         Ok(password.trim().to_string())
     }
 
-    /// Get database reference
-    pub fn database(&self) -> &NewsletterDatabase {
-        &self.database
-    }
-
     /// Get mutable database reference
+    #[allow(dead_code)]
     pub fn database_mut(&mut self) -> &mut NewsletterDatabase {
         &mut self.database
     }
@@ -287,6 +293,7 @@ pub fn setup_imap_config() -> Result<ImapConfig> {
 }
 
 /// Interactive SMTP configuration setup
+#[allow(dead_code)]
 pub fn setup_smtp_config() -> Result<SmtpConfig> {
     use std::io::{self, Write};
 

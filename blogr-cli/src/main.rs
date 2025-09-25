@@ -247,6 +247,34 @@ enum NewsletterAction {
         #[arg(long)]
         interactive: bool,
     },
+    /// Launch approval UI for managing subscriber requests
+    Approve,
+    /// List all subscribers
+    List {
+        /// Filter by status (pending, approved, declined)
+        #[arg(long)]
+        status: Option<String>,
+    },
+    /// Remove a subscriber by email address
+    Remove {
+        /// Email address to remove
+        email: String,
+        /// Skip confirmation prompt
+        #[arg(short, long)]
+        force: bool,
+    },
+    /// Export subscribers to CSV or JSON
+    Export {
+        /// Output format (csv, json)
+        #[arg(short, long, default_value = "csv")]
+        format: String,
+        /// Output file path (prints to stdout if not specified)
+        #[arg(short, long)]
+        output: Option<String>,
+        /// Filter by status (pending, approved, declined)
+        #[arg(long)]
+        status: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -345,6 +373,16 @@ async fn main() -> Result<()> {
             NewsletterAction::FetchSubscribers { interactive } => {
                 commands::newsletter::handle_fetch_subscribers(interactive).await
             }
+            NewsletterAction::Approve => commands::newsletter::handle_approve(),
+            NewsletterAction::List { status } => commands::newsletter::handle_list(status),
+            NewsletterAction::Remove { email, force } => {
+                commands::newsletter::handle_remove(&email, force)
+            }
+            NewsletterAction::Export {
+                format,
+                output,
+                status,
+            } => commands::newsletter::handle_export(&format, output.as_deref(), status),
         },
     }
 }

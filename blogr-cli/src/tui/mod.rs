@@ -75,6 +75,15 @@ impl<B: Backend> Tui<B> {
         Ok(())
     }
 
+    /// Draw the newsletter approval app
+    pub fn draw_approval(
+        &mut self,
+        approval_app: &mut crate::newsletter::ApprovalApp,
+    ) -> AppResult<()> {
+        self.terminal.draw(|frame| approval_app.render(frame))?;
+        Ok(())
+    }
+
     /// Resets the terminal interface.
     ///
     /// This function is also used for the panic hook to revert

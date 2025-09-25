@@ -9,7 +9,8 @@
 pub mod config;
 pub mod database;
 pub mod fetcher;
+pub mod ui;
 
 pub use config::NewsletterManager;
 pub use database::{NewsletterDatabase, Subscriber, SubscriberStatus};
-pub use fetcher::EmailFetcher;
+pub use ui::{ApprovalApp, ApprovalResult};

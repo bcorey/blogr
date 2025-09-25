@@ -60,11 +60,13 @@ impl Subscriber {
         }
     }
 
+    #[allow(dead_code)]
     pub fn approve(&mut self) {
         self.status = SubscriberStatus::Approved;
         self.approved_at = Some(Utc::now());
     }
 
+    #[allow(dead_code)]
     pub fn decline(&mut self) {
         self.status = SubscriberStatus::Declined;
         self.approved_at = Some(Utc::now());
@@ -245,21 +247,32 @@ impl NewsletterDatabase {
         let subscribed_at_str: String = row.get(3)?;
         let approved_at_str: Option<String> = row.get(4)?;
 
-        let subscribed_at = DateTime::parse_from_str(&subscribed_at_str, "%Y-%m-%d %H:%M:%S%.3f")
-            .or_else(|_| DateTime::parse_from_str(&subscribed_at_str, "%Y-%m-%d %H:%M:%S"))
-            .map_err(|_e| {
-                rusqlite::Error::InvalidColumnType(
-                    3,
-                    "subscribed_at".to_string(),
-                    rusqlite::types::Type::Text,
-                )
-            })?
-            .with_timezone(&Utc);
+        let subscribed_at =
+            chrono::NaiveDateTime::parse_from_str(&subscribed_at_str, "%Y-%m-%d %H:%M:%S")
+                .or_else(|_| {
+                    chrono::NaiveDateTime::parse_from_str(
+                        &subscribed_at_str,
+                        "%Y-%m-%d %H:%M:%S%.3f",
+                    )
+                })
+                .map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        3,
+                        "subscribed_at".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .and_utc();
 
         let approved_at = if let Some(approved_str) = approved_at_str {
             Some(
-                DateTime::parse_from_str(&approved_str, "%Y-%m-%d %H:%M:%S%.3f")
-                    .or_else(|_| DateTime::parse_from_str(&approved_str, "%Y-%m-%d %H:%M:%S"))
+                chrono::NaiveDateTime::parse_from_str(&approved_str, "%Y-%m-%d %H:%M:%S")
+                    .or_else(|_| {
+                        chrono::NaiveDateTime::parse_from_str(
+                            &approved_str,
+                            "%Y-%m-%d %H:%M:%S%.3f",
+                        )
+                    })
                     .map_err(|_e| {
                         rusqlite::Error::InvalidColumnType(
                             4,
@@ -267,7 +280,7 @@ impl NewsletterDatabase {
                             rusqlite::types::Type::Text,
                         )
                     })?
-                    .with_timezone(&Utc),
+                    .and_utc(),
             )
         } else {
             None

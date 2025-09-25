@@ -1,9 +1,11 @@
 //! Newsletter command handlers
 
 use anyhow::{Context, Result};
+use std::io::{self, Write};
 
-use crate::newsletter::NewsletterManager;
+use crate::newsletter::{ApprovalApp, NewsletterManager, SubscriberStatus};
 use crate::project::Project;
+use crate::tui::{self, EventHandler};
 
 /// Handle the fetch-subscribers command
 pub async fn handle_fetch_subscribers(interactive: bool) -> Result<()> {
@@ -115,10 +117,334 @@ pub async fn handle_fetch_subscribers(interactive: bool) -> Result<()> {
     Ok(())
 }
 
+/// Handle the approve command - launches the TUI approval interface
+pub fn handle_approve() -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config, &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        println!("To enable it, add the following to your blogr.toml:");
+        println!();
+        println!("[newsletter]");
+        println!("enabled = true");
+        println!("subscribe_email = \"subscribe@yourdomain.com\"");
+        println!("sender_name = \"Your Blog Name\"");
+        return Ok(());
+    }
+
+    // Get database
+    let database = newsletter_manager.take_database();
+
+    // Check if there are any subscribers
+    let total_count = database.get_subscriber_count(None)?;
+    if total_count == 0 {
+        println!("No subscribers found.");
+        println!(
+            "Run 'blogr newsletter fetch-subscribers' first to import subscribers from email."
+        );
+        return Ok(());
+    }
+
+    // Initialize TUI
+    let mut tui = tui::init()?;
+    tui.init()?;
+
+    // Create approval app
+    let mut app = ApprovalApp::new(database)?;
+
+    // Main loop
+    let events = EventHandler::new(250);
+    loop {
+        tui.draw_approval(&mut app)?;
+
+        match events.next()? {
+            crate::tui::Event::Tick => {}
+            crate::tui::Event::Key(key_event) => match app.handle_key_event(key_event)? {
+                crate::newsletter::ApprovalResult::Quit => break,
+                crate::newsletter::ApprovalResult::Continue => {}
+                crate::newsletter::ApprovalResult::Error(err) => {
+                    eprintln!("Error: {}", err);
+                    break;
+                }
+            },
+            crate::tui::Event::Mouse(_) => {}
+            crate::tui::Event::Resize(_, _) => {}
+        }
+
+        if !app.running {
+            break;
+        }
+    }
+
+    tui.exit()?;
+    Ok(())
+}
+
+/// Handle the list command - show all subscribers in a table format
+pub fn handle_list(status_filter: Option<String>) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config, &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    let database = newsletter_manager.database();
+
+    // Parse status filter
+    let status = if let Some(ref filter) = status_filter {
+        Some(filter.parse::<SubscriberStatus>()?)
+    } else {
+        None
+    };
+
+    // Get subscribers
+    let subscribers = database.get_subscribers(status)?;
+
+    if subscribers.is_empty() {
+        println!("No subscribers found.");
+        if status_filter.is_some() {
+            println!("Try running without a status filter to see all subscribers.");
+        } else {
+            println!("Run 'blogr newsletter fetch-subscribers' to import subscribers from email.");
+        }
+        return Ok(());
+    }
+
+    // Print header
+    println!();
+    println!(
+        "{:<5} {:<30} {:<10} {:<20} {:<15}",
+        "ID", "Email", "Status", "Subscribed", "Approved"
+    );
+    println!("{}", "-".repeat(85));
+
+    // Print subscribers
+    for subscriber in &subscribers {
+        let approved_str = subscriber
+            .approved_at
+            .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+            .unwrap_or_else(|| "-".to_string());
+
+        println!(
+            "{:<5} {:<30} {:<10} {:<20} {:<15}",
+            subscriber.id.unwrap_or(0),
+            subscriber.email,
+            subscriber.status,
+            subscriber.subscribed_at.format("%Y-%m-%d %H:%M"),
+            approved_str
+        );
+    }
+
+    println!();
+    println!("Total: {} subscribers", subscribers.len());
+
+    // Show statistics
+    let total = database.get_subscriber_count(None)?;
+    let pending = database.get_subscriber_count(Some(SubscriberStatus::Pending))?;
+    let approved = database.get_subscriber_count(Some(SubscriberStatus::Approved))?;
+    let declined = database.get_subscriber_count(Some(SubscriberStatus::Declined))?;
+
+    println!();
+    println!("Statistics:");
+    println!("  Total: {}", total);
+    println!("  Pending: {}", pending);
+    println!("  Approved: {}", approved);
+    println!("  Declined: {}", declined);
+
+    Ok(())
+}
+
+/// Handle the remove command - remove a subscriber by email
+pub fn handle_remove(email: &str, force: bool) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config, &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    let mut database = newsletter_manager.take_database();
+
+    // Check if subscriber exists
+    let subscriber = database.get_subscriber_by_email(email)?;
+    match subscriber {
+        Some(sub) => {
+            println!("Found subscriber:");
+            println!("  Email: {}", sub.email);
+            println!("  Status: {}", sub.status);
+            println!(
+                "  Subscribed: {}",
+                sub.subscribed_at.format("%Y-%m-%d %H:%M")
+            );
+
+            if !force && !prompt_yes_no(&format!("Remove subscriber '{}'?", email))? {
+                println!("Operation cancelled.");
+                return Ok(());
+            }
+
+            if database.remove_subscriber(email)? {
+                println!("✓ Subscriber '{}' has been removed.", email);
+            } else {
+                println!("Failed to remove subscriber '{}'.", email);
+            }
+        }
+        None => {
+            println!("Subscriber '{}' not found.", email);
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle the export command - export subscribers to CSV or JSON
+pub fn handle_export(
+    format: &str,
+    output_file: Option<&str>,
+    status_filter: Option<String>,
+) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config, &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    let database = newsletter_manager.database();
+
+    // Parse status filter
+    let status = if let Some(ref filter) = status_filter {
+        Some(filter.parse::<SubscriberStatus>()?)
+    } else {
+        None
+    };
+
+    // Get subscribers
+    let subscribers = database.get_subscribers(status)?;
+
+    if subscribers.is_empty() {
+        println!("No subscribers found to export.");
+        return Ok(());
+    }
+
+    // Generate output
+    let output = match format.to_lowercase().as_str() {
+        "csv" => export_csv(&subscribers)?,
+        "json" => export_json(&subscribers)?,
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported format: {}. Use 'csv' or 'json'.",
+                format
+            ))
+        }
+    };
+
+    // Write to file or stdout
+    match output_file {
+        Some(file_path) => {
+            std::fs::write(file_path, output)?;
+            println!(
+                "✓ Exported {} subscribers to '{}'",
+                subscribers.len(),
+                file_path
+            );
+        }
+        None => {
+            println!("{}", output);
+        }
+    }
+
+    Ok(())
+}
+
+/// Export subscribers to CSV format
+fn export_csv(subscribers: &[crate::newsletter::Subscriber]) -> Result<String> {
+    let mut output = String::new();
+
+    // Header
+    output.push_str("id,email,status,subscribed_at,approved_at,source_email_id,notes\n");
+
+    // Data
+    for subscriber in subscribers {
+        let approved_at = subscriber
+            .approved_at
+            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_default();
+
+        let source_email_id = subscriber.source_email_id.as_deref().unwrap_or("");
+        let notes = subscriber.notes.as_deref().unwrap_or("");
+
+        output.push_str(&format!(
+            "{},{},{},{},{},{},{}\n",
+            subscriber.id.unwrap_or(0),
+            subscriber.email,
+            subscriber.status,
+            subscriber.subscribed_at.format("%Y-%m-%d %H:%M:%S"),
+            approved_at,
+            source_email_id,
+            notes
+        ));
+    }
+
+    Ok(output)
+}
+
+/// Export subscribers to JSON format
+fn export_json(subscribers: &[crate::newsletter::Subscriber]) -> Result<String> {
+    let json = serde_json::to_string_pretty(subscribers)?;
+    Ok(json)
+}
+
 /// Prompt user for yes/no input
 fn prompt_yes_no(question: &str) -> Result<bool> {
-    use std::io::{self, Write};
-
     loop {
         print!("{} (y/n): ", question);
         io::stdout().flush()?;

@@ -20,6 +20,7 @@ pub struct FetchedEmail {
     pub from: String,
     pub subject: String,
     pub body: String,
+    #[allow(dead_code)]
     pub date: Option<String>,
 }
 
@@ -138,22 +139,20 @@ impl EmailFetcher {
     fn extract_body_text(parsed: &mailparse::ParsedMail) -> Result<String> {
         if parsed.subparts.is_empty() {
             // Simple text email
-            return Ok(parsed.get_body().context("Failed to get email body")?);
+            return parsed.get_body().context("Failed to get email body");
         }
 
         // Multipart email - find text/plain part
         for part in &parsed.subparts {
             let content_type = part.ctype.mimetype.parse::<String>().unwrap_or_default();
             if content_type == "text/plain" {
-                return Ok(part.get_body().context("Failed to get text part body")?);
+                return part.get_body().context("Failed to get text part body");
             }
         }
 
         // Fallback to first part
         if let Some(first_part) = parsed.subparts.first() {
-            return Ok(first_part
-                .get_body()
-                .context("Failed to get fallback body")?);
+            return first_part.get_body().context("Failed to get fallback body");
         }
 
         Ok("No readable content found".to_string())
