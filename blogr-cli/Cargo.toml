@@ -37,6 +37,7 @@ url = "2.4"
 serde_json = "1.0"
 serde_yaml = "0.9"
 open = "5.0"
+urlencoding = "2.1"
 
 [dev-dependencies]
 tempfile = "3.8"
