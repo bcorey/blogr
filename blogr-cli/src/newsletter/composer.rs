@@ -285,6 +285,7 @@ mod tests {
     use chrono::Utc;
     use std::path::PathBuf;
 
+    #[allow(dead_code)]
     fn create_test_post() -> Post {
         Post {
             metadata: PostMetadata {

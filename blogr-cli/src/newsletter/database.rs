@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SubscriberStatus {
@@ -73,8 +74,9 @@ impl Subscriber {
     }
 }
 
+#[derive(Debug)]
 pub struct NewsletterDatabase {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 impl NewsletterDatabase {
@@ -83,7 +85,9 @@ impl NewsletterDatabase {
         let conn = Connection::open(&path)
             .with_context(|| format!("Failed to open database at {}", path.as_ref().display()))?;
 
-        let mut db = Self { conn };
+        let mut db = Self {
+            conn: Mutex::new(conn),
+        };
         db.initialize()?;
         Ok(db)
     }
@@ -91,6 +95,8 @@ impl NewsletterDatabase {
     /// Initialize the database schema
     fn initialize(&mut self) -> Result<()> {
         self.conn
+            .lock()
+            .unwrap()
             .execute_batch(
                 r#"
             CREATE TABLE IF NOT EXISTS subscribers (
@@ -114,8 +120,9 @@ impl NewsletterDatabase {
     }
 
     /// Add a new subscriber to the database
-    pub fn add_subscriber(&mut self, subscriber: &Subscriber) -> Result<i64> {
-        let mut stmt = self.conn.prepare(
+    pub fn add_subscriber(&self, subscriber: &Subscriber) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "INSERT INTO subscribers (email, status, subscribed_at, source_email_id, notes) 
              VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
@@ -135,7 +142,7 @@ impl NewsletterDatabase {
     }
 
     /// Update subscriber status
-    pub fn update_subscriber_status(&mut self, id: i64, status: SubscriberStatus) -> Result<()> {
+    pub fn update_subscriber_status(&self, id: i64, status: SubscriberStatus) -> Result<()> {
         let approved_at = if matches!(
             status,
             SubscriberStatus::Approved | SubscriberStatus::Declined
@@ -145,7 +152,7 @@ impl NewsletterDatabase {
             None
         };
 
-        self.conn.execute(
+        self.conn.lock().unwrap().execute(
             "UPDATE subscribers SET status = ?1, approved_at = ?2 WHERE id = ?3",
             params![status.to_string(), approved_at, id],
         )?;
@@ -173,7 +180,8 @@ impl NewsletterDatabase {
             ),
         };
 
-        let mut stmt = self.conn.prepare(&query)?;
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(&query)?;
         let subscriber_iter = stmt.query_map(rusqlite::params_from_iter(params.iter()), |row| {
             self.row_to_subscriber(row)
         })?;
@@ -188,7 +196,8 @@ impl NewsletterDatabase {
 
     /// Get subscriber by email
     pub fn get_subscriber_by_email(&self, email: &str) -> Result<Option<Subscriber>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, email, status, subscribed_at, approved_at, source_email_id, notes 
              FROM subscribers WHERE email = ?1",
         )?;
@@ -203,9 +212,11 @@ impl NewsletterDatabase {
     }
 
     /// Remove subscriber by email
-    pub fn remove_subscriber(&mut self, email: &str) -> Result<bool> {
+    pub fn remove_subscriber(&self, email: &str) -> Result<bool> {
         let rows_affected = self
             .conn
+            .lock()
+            .unwrap()
             .execute("DELETE FROM subscribers WHERE email = ?1", params![email])?;
 
         Ok(rows_affected > 0)
@@ -221,7 +232,8 @@ impl NewsletterDatabase {
             None => ("SELECT COUNT(*) FROM subscribers".to_string(), vec![]),
         };
 
-        let mut stmt = self.conn.prepare(&query)?;
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(&query)?;
         let count: i64 =
             stmt.query_row(rusqlite::params_from_iter(params.iter()), |row| row.get(0))?;
 
@@ -230,9 +242,8 @@ impl NewsletterDatabase {
 
     /// Check if email already exists
     pub fn email_exists(&self, email: &str) -> Result<bool> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT 1 FROM subscribers WHERE email = ?1")?;
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT 1 FROM subscribers WHERE email = ?1")?;
         let result = stmt.query_row(params![email], |_| Ok(()));
 
         match result {
@@ -311,7 +322,7 @@ mod tests {
     #[test]
     fn test_database_operations() -> Result<()> {
         let temp_file = NamedTempFile::new()?;
-        let mut db = NewsletterDatabase::open(temp_file.path())?;
+        let db = NewsletterDatabase::open(temp_file.path())?;
 
         // Test adding subscriber
         let subscriber =

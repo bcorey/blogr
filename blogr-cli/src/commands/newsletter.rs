@@ -3,7 +3,10 @@
 use anyhow::{Context, Result};
 use std::io::{self, Write};
 
-use crate::newsletter::{ApprovalApp, NewsletterManager, SubscriberStatus};
+use crate::newsletter::{
+    ApiConfig, ApprovalApp, MigrationConfig, MigrationManager, MigrationSource,
+    NewsletterApiServer, NewsletterManager, PluginManager, SubscriberStatus,
+};
 use crate::project::Project;
 use crate::tui::{self, EventHandler};
 
@@ -300,7 +303,7 @@ pub fn handle_remove(email: &str, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    let mut database = newsletter_manager.take_database();
+    let database = newsletter_manager.take_database();
 
     // Check if subscriber exists
     let subscriber = database.get_subscriber_by_email(email)?;
@@ -664,4 +667,398 @@ fn prompt_yes_no(question: &str) -> Result<bool> {
             _ => println!("Please enter 'y' or 'n'"),
         }
     }
+}
+
+/// Handle the import command
+pub async fn handle_import(
+    source: &str,
+    file: &str,
+    preview: bool,
+    preview_limit: usize,
+    email_column: Option<&str>,
+    name_column: Option<&str>,
+    status_column: Option<&str>,
+) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config, &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        println!("Enable it first with newsletter configuration in blogr.toml");
+        return Ok(());
+    }
+
+    // Parse migration source
+    let migration_source = MigrationSource::from_str(source)
+        .with_context(|| format!("Unsupported migration source: {}", source))?;
+
+    // Create migration configuration
+    let mut migration_config = MigrationConfig::for_source(migration_source, file.to_string());
+
+    // Override column mappings if provided
+    if let Some(email_col) = email_column {
+        migration_config.email_column = Some(email_col.to_string());
+    }
+    if let Some(name_col) = name_column {
+        migration_config.name_column = Some(name_col.to_string());
+    }
+    if let Some(status_col) = status_column {
+        migration_config.status_column = Some(status_col.to_string());
+    }
+
+    // Create migration manager
+    let database = newsletter_manager.take_database();
+    let mut migration_manager = MigrationManager::new(database);
+
+    if preview {
+        // Preview mode
+        println!("Previewing import from {} source...", source);
+        println!("File: {}", file);
+        println!("Preview limit: {}", preview_limit);
+        println!();
+
+        match migration_manager.preview_migration(&migration_config, Some(preview_limit)) {
+            Ok(preview_data) => {
+                println!("Preview of {} subscribers:", preview_data.len());
+                println!("{:-<80}", "");
+
+                for (i, subscriber) in preview_data.iter().enumerate() {
+                    println!("{}. Email: {}", i + 1, subscriber.email);
+                    if let Some(ref name) = subscriber.name {
+                        println!("   Name: {}", name);
+                    }
+                    if let Some(ref status) = subscriber.status {
+                        println!("   Status: {}", status);
+                    }
+                    if let Some(date) = subscriber.subscribed_at {
+                        println!("   Date: {}", date.format("%Y-%m-%d %H:%M:%S"));
+                    }
+                    if !subscriber.tags.is_empty() {
+                        println!("   Tags: {}", subscriber.tags.join(", "));
+                    }
+                    println!();
+                }
+
+                println!("{:-<80}", "");
+                println!("To import these subscribers, run the same command without --preview");
+            }
+            Err(e) => {
+                eprintln!("Failed to preview migration: {}", e);
+                return Err(e);
+            }
+        }
+    } else {
+        // Import mode
+        print!(
+            "Are you sure you want to import subscribers from {}? (y/N): ",
+            file
+        );
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        if !input.trim().to_lowercase().starts_with('y') {
+            println!("Import cancelled.");
+            return Ok(());
+        }
+
+        match migration_manager.import_from_file(&migration_config) {
+            Ok(result) => {
+                println!("\nImport completed successfully!");
+                println!("Total processed: {}", result.total_processed);
+                println!("Successfully imported: {}", result.successfully_imported);
+                println!("Skipped duplicates: {}", result.skipped_duplicates);
+
+                if !result.errors.is_empty() {
+                    println!("Errors encountered: {}", result.errors.len());
+                    for error in &result.errors {
+                        eprintln!("  - {}", error);
+                    }
+                }
+
+                if result.successfully_imported > 0 {
+                    println!("\nNext steps:");
+                    println!(
+                        "1. Run 'blogr newsletter approve' to review and approve new subscribers"
+                    );
+                    println!("2. Use 'blogr newsletter list --status pending' to see pending subscribers");
+                }
+            }
+            Err(e) => {
+                eprintln!("Import failed: {}", e);
+                return Err(e);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle the plugin list command
+pub async fn handle_plugin_list() -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let _config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create plugin manager
+    let plugin_manager = PluginManager::new(project.root.clone());
+
+    let plugins = plugin_manager.list_plugins();
+
+    if plugins.is_empty() {
+        println!("No plugins are currently loaded.");
+        println!("\nTo add plugins, implement the NewsletterPlugin trait and register them in your code.");
+        return Ok(());
+    }
+
+    println!("Loaded Newsletter Plugins:");
+    println!("{:-<80}", "");
+
+    for plugin in plugins {
+        println!("Name: {}", plugin.name);
+        println!("Version: {}", plugin.version);
+        println!("Author: {}", plugin.author);
+        println!("Description: {}", plugin.description);
+
+        if let Some(ref homepage) = plugin.homepage {
+            println!("Homepage: {}", homepage);
+        }
+
+        if !plugin.keywords.is_empty() {
+            println!("Keywords: {}", plugin.keywords.join(", "));
+        }
+
+        println!();
+    }
+
+    Ok(())
+}
+
+/// Handle the plugin info command
+pub async fn handle_plugin_info(name: &str) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Create plugin manager
+    let plugin_manager = PluginManager::new(project.root.clone());
+
+    if let Some(plugin) = plugin_manager.get_plugin(name) {
+        let metadata = plugin.metadata();
+
+        println!("Plugin Information:");
+        println!("{:-<80}", "");
+        println!("Name: {}", metadata.name);
+        println!("Version: {}", metadata.version);
+        println!("Author: {}", metadata.author);
+        println!("Description: {}", metadata.description);
+
+        if let Some(ref homepage) = metadata.homepage {
+            println!("Homepage: {}", homepage);
+        }
+
+        if let Some(ref repository) = metadata.repository {
+            println!("Repository: {}", repository);
+        }
+
+        if let Some(ref license) = metadata.license {
+            println!("License: {}", license);
+        }
+
+        if !metadata.keywords.is_empty() {
+            println!("Keywords: {}", metadata.keywords.join(", "));
+        }
+
+        if !metadata.dependencies.is_empty() {
+            println!("Dependencies: {}", metadata.dependencies.join(", "));
+        }
+
+        if let Some(ref min_version) = metadata.min_blogr_version {
+            println!("Minimum Blogr Version: {}", min_version);
+        }
+
+        let custom_commands = plugin.custom_commands();
+        if !custom_commands.is_empty() {
+            println!("\nCustom Commands:");
+            for command in custom_commands {
+                println!("  - {}", command);
+            }
+        }
+
+        let custom_templates = plugin.custom_templates();
+        if !custom_templates.is_empty() {
+            println!("\nCustom Templates:");
+            for template in custom_templates {
+                println!("  - {}", template);
+            }
+        }
+    } else {
+        println!("Plugin '{}' not found.", name);
+        println!("Use 'blogr newsletter plugin list' to see available plugins.");
+    }
+
+    Ok(())
+}
+
+/// Handle the plugin enable command
+pub async fn handle_plugin_enable(name: &str) -> Result<()> {
+    println!("Plugin enable/disable functionality requires configuration management.");
+    println!(
+        "This feature is not yet implemented - plugins are currently managed through blogr.toml"
+    );
+    println!("\nTo enable a plugin, add it to your blogr.toml:");
+    println!();
+    println!("[newsletter.plugins.{}]", name);
+    println!("enabled = true");
+    println!("# plugin-specific configuration here");
+
+    Ok(())
+}
+
+/// Handle the plugin disable command
+pub async fn handle_plugin_disable(name: &str) -> Result<()> {
+    println!("Plugin enable/disable functionality requires configuration management.");
+    println!(
+        "This feature is not yet implemented - plugins are currently managed through blogr.toml"
+    );
+    println!("\nTo disable a plugin, set enabled = false in your blogr.toml:");
+    println!();
+    println!("[newsletter.plugins.{}]", name);
+    println!("enabled = false");
+
+    Ok(())
+}
+
+/// Handle the plugin run command
+pub async fn handle_plugin_run(command: &str, args: &[String]) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Create plugin manager
+    let plugin_manager = PluginManager::new(project.root.clone());
+
+    // Create plugin context
+    use crate::newsletter::{create_plugin_context, PluginHook};
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    let context = create_plugin_context(
+        Arc::new(config),
+        Arc::new(newsletter_manager.take_database()),
+        project.root.clone(),
+        PluginHook::CustomCommand,
+        HashMap::new(),
+    );
+
+    match plugin_manager.execute_custom_command(command, args, &context) {
+        Ok(result) => {
+            if result.success {
+                if let Some(message) = result.message {
+                    println!("{}", message);
+                }
+                println!("Plugin command '{}' executed successfully.", command);
+            } else {
+                if let Some(message) = result.message {
+                    eprintln!("Error: {}", message);
+                }
+                eprintln!("Plugin command '{}' failed.", command);
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to execute plugin command '{}': {}", command, e);
+            return Err(e);
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle the API server command
+pub async fn handle_api_server(
+    host: &str,
+    port: u16,
+    api_key: Option<&str>,
+    cors_enabled: bool,
+) -> Result<()> {
+    // Find the current project
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    // Load project configuration
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+
+    // Create newsletter manager
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)
+        .context("Failed to initialize newsletter manager")?;
+
+    // Check if newsletter is enabled
+    if !newsletter_manager.is_enabled() {
+        println!("Newsletter functionality is not enabled.");
+        println!("Enable it first with newsletter configuration in blogr.toml");
+        return Ok(());
+    }
+
+    // Create API configuration
+    let api_config = ApiConfig {
+        host: host.to_string(),
+        port,
+        api_key: api_key.map(|s| s.to_string()),
+        cors_enabled,
+        rate_limit: Some(100), // 100 requests per minute
+    };
+
+    // Create and start the API server
+    let api_server = NewsletterApiServer::new(newsletter_manager, config, api_config);
+
+    println!("Newsletter API Documentation:");
+    println!("  GET  /health              - Health check");
+    println!("  GET  /subscribers         - List subscribers");
+    println!("  POST /subscribers         - Create subscriber");
+    println!("  GET  /subscribers/:email  - Get subscriber");
+    println!("  PUT  /subscribers/:email  - Update subscriber");
+    println!("  DEL  /subscribers/:email  - Delete subscriber");
+    println!("  GET  /stats               - Get statistics");
+    println!("  GET  /export              - Export subscribers");
+    println!("  POST /import              - Import subscribers");
+    println!();
+
+    if let Some(key) = api_key {
+        println!("API Key authentication is enabled.");
+        println!(
+            "Include 'Authorization: Bearer {}' header in requests.",
+            key
+        );
+        println!();
+    }
+
+    api_server.start().await
 }

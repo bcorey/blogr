@@ -220,6 +220,9 @@ pub struct NewsletterConfig {
     pub imap: Option<ImapConfig>,
     /// Optional SMTP configuration (can be set via CLI)
     pub smtp: Option<SmtpConfig>,
+    /// Plugin configurations
+    #[serde(default)]
+    pub plugins: Option<std::collections::HashMap<String, crate::newsletter::PluginConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -253,6 +256,7 @@ impl Default for NewsletterConfig {
             confirmation_subject: None,
             imap: None,
             smtp: None,
+            plugins: None,
         }
     }
 }

@@ -308,6 +308,78 @@ enum NewsletterAction {
         #[arg(long)]
         interactive: bool,
     },
+    /// Import subscribers from external services
+    Import {
+        /// Import source (mailchimp, convertkit, substack, beehiiv, generic, json)
+        #[arg(short, long)]
+        source: String,
+        /// Path to import file (CSV or JSON)
+        file: String,
+        /// Preview only, don't import
+        #[arg(long)]
+        preview: bool,
+        /// Number of records to preview (default: 10)
+        #[arg(long, default_value = "10")]
+        preview_limit: usize,
+        /// Email column name (for custom CSV)
+        #[arg(long)]
+        email_column: Option<String>,
+        /// Name column name (for custom CSV)
+        #[arg(long)]
+        name_column: Option<String>,
+        /// Status column name (for custom CSV)
+        #[arg(long)]
+        status_column: Option<String>,
+    },
+    /// Plugin management commands
+    Plugin {
+        #[command(subcommand)]
+        action: PluginAction,
+    },
+    /// Start API server for external integrations
+    ApiServer {
+        /// Port to serve on
+        #[arg(short, long, default_value = "3001")]
+        port: u16,
+        /// Host to bind to
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+        /// API key for authentication (optional)
+        #[arg(long)]
+        api_key: Option<String>,
+        /// Disable CORS
+        #[arg(long)]
+        no_cors: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum PluginAction {
+    /// List all available plugins
+    List,
+    /// Show plugin information
+    Info {
+        /// Plugin name
+        name: String,
+    },
+    /// Enable a plugin
+    Enable {
+        /// Plugin name
+        name: String,
+    },
+    /// Disable a plugin
+    Disable {
+        /// Plugin name
+        name: String,
+    },
+    /// Execute a custom plugin command
+    Run {
+        /// Plugin command name
+        command: String,
+        /// Command arguments
+        #[arg(last = true)]
+        args: Vec<String>,
+    },
 }
 
 #[tokio::main]
@@ -430,6 +502,50 @@ async fn main() -> Result<()> {
             }
             NewsletterAction::Test { email, interactive } => {
                 commands::newsletter::handle_test_email(email, interactive).await
+            }
+            NewsletterAction::Import {
+                source,
+                file,
+                preview,
+                preview_limit,
+                email_column,
+                name_column,
+                status_column,
+            } => {
+                commands::newsletter::handle_import(
+                    &source,
+                    &file,
+                    preview,
+                    preview_limit,
+                    email_column.as_deref(),
+                    name_column.as_deref(),
+                    status_column.as_deref(),
+                )
+                .await
+            }
+            NewsletterAction::Plugin { action } => match action {
+                PluginAction::List => commands::newsletter::handle_plugin_list().await,
+                PluginAction::Info { name } => {
+                    commands::newsletter::handle_plugin_info(&name).await
+                }
+                PluginAction::Enable { name } => {
+                    commands::newsletter::handle_plugin_enable(&name).await
+                }
+                PluginAction::Disable { name } => {
+                    commands::newsletter::handle_plugin_disable(&name).await
+                }
+                PluginAction::Run { command, args } => {
+                    commands::newsletter::handle_plugin_run(&command, &args).await
+                }
+            },
+            NewsletterAction::ApiServer {
+                port,
+                host,
+                api_key,
+                no_cors,
+            } => {
+                commands::newsletter::handle_api_server(&host, port, api_key.as_deref(), !no_cors)
+                    .await
             }
         },
     }

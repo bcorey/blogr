@@ -177,8 +177,8 @@ impl NewsletterManager {
 
     /// Get mutable database reference
     #[allow(dead_code)]
-    pub fn database_mut(&mut self) -> &mut NewsletterDatabase {
-        &mut self.database
+    pub fn database_mut(&mut self) -> &NewsletterDatabase {
+        &self.database
     }
 
     /// Print newsletter configuration status
