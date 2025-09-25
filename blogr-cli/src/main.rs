@@ -6,6 +6,7 @@ mod commands;
 mod config;
 mod content;
 mod generator;
+mod newsletter;
 mod project;
 mod tui;
 mod tui_launcher;
@@ -143,6 +144,11 @@ enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+    /// Newsletter management commands
+    Newsletter {
+        #[command(subcommand)]
+        action: NewsletterAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -230,6 +236,16 @@ enum DomainAction {
     RemoveAlias {
         /// Alias domain name to remove
         alias: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum NewsletterAction {
+    /// Fetch subscribers from email inbox
+    FetchSubscribers {
+        /// Interactive IMAP server configuration
+        #[arg(long)]
+        interactive: bool,
     },
 }
 
@@ -323,6 +339,11 @@ async fn main() -> Result<()> {
                     }
                 };
                 commands::config::handle_domain(domain_action).await
+            }
+        },
+        Commands::Newsletter { action } => match action {
+            NewsletterAction::FetchSubscribers { interactive } => {
+                commands::newsletter::handle_fetch_subscribers(interactive).await
             }
         },
     }

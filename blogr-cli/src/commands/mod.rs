@@ -6,6 +6,7 @@ pub mod edit;
 pub mod init;
 pub mod list;
 pub mod new;
+pub mod newsletter;
 pub mod project;
 pub mod serve;
 pub mod theme;
