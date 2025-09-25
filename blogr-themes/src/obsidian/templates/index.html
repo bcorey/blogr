@@ -108,6 +108,24 @@
         {% endfor %}
     </div>
 
+    <!-- Newsletter subscription callout -->
+    {% if newsletter.enabled and newsletter_form %}
+    <div class="callout" data-callout="newsletter">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+            </div>
+            <div class="callout-title-inner">Newsletter</div>
+        </div>
+        <div class="callout-content">
+            {{ newsletter_form | safe }}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Navigation callout -->
     <div class="callout" data-callout="tip">
         <div class="callout-title">
