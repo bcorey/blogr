@@ -34,6 +34,119 @@ pub struct SiteBuilder {
 }
 
 impl SiteBuilder {
+    /// Generate newsletter subscription form HTML
+    fn generate_newsletter_form(&self) -> String {
+        if !self.config.newsletter.enabled {
+            return String::new();
+        }
+
+        let subscribe_email = match &self.config.newsletter.subscribe_email {
+            Some(email) => email,
+            None => return String::new(),
+        };
+
+        let confirmation_subject = self
+            .config
+            .newsletter
+            .confirmation_subject
+            .as_deref()
+            .unwrap_or("Newsletter Subscription Request");
+
+        // Create the email body with user's email
+        let email_body = "Please add my email address to your newsletter list.";
+        let mailto_url = format!(
+            "mailto:{}?subject={}&body={}",
+            subscribe_email,
+            urlencoding::encode(confirmation_subject),
+            urlencoding::encode(email_body)
+        );
+
+        let form_html = format!(
+            r#"<div class="newsletter-subscription">
+  <div class="newsletter-header">
+    <h3>Stay Updated</h3>
+    <p>Join our newsletter for the latest posts and updates</p>
+  </div>
+  <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event, '{}')" method="get">
+    <div class="newsletter-input-group">
+      <input 
+        type="email" 
+        id="newsletter-email"
+        name="email" 
+        placeholder="Enter your email address" 
+        required 
+        class="newsletter-email-input"
+        aria-label="Email address for newsletter subscription">
+      <button type="submit" class="newsletter-submit-btn">
+        <span class="btn-text">Subscribe</span>
+        <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="newsletter-privacy">
+      <small>We respect your privacy. Unsubscribe at any time.</small>
+    </p>
+  </form>
+  <noscript>
+    <p class="newsletter-fallback">
+      <a href="{}">Subscribe via email</a>
+    </p>
+  </noscript>
+</div>
+
+<script>
+function handleNewsletterSubmit(event, subscribeEmail) {{
+  event.preventDefault();
+  
+  const emailInput = document.getElementById('newsletter-email');
+  const userEmail = emailInput.value;
+  
+  if (!userEmail) {{
+    alert('Please enter your email address');
+    return;
+  }}
+  
+  const subject = encodeURIComponent('{}');
+  const body = encodeURIComponent(`Hello,
+
+I would like to subscribe to your newsletter.
+
+My email address is: ${{userEmail}}
+
+Thank you!`);
+  
+  const mailtoUrl = `mailto:${{subscribeEmail}}?subject=${{subject}}&body=${{body}}`;
+  
+  // Try to open the email client
+  window.location.href = mailtoUrl;
+  
+  // Show confirmation message
+  const form = event.target;
+  const originalContent = form.innerHTML;
+  
+  form.innerHTML = `
+    <div style="text-align: center; padding: 20px;">
+      <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
+      <h4 style="margin: 0 0 10px 0; color: var(--color-primary, #007acc);">Email Client Opened!</h4>
+      <p style="margin: 0; color: var(--color-text-muted, #666);">Please send the email to complete your subscription.</p>
+      <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px; background: var(--color-primary, #007acc); color: white; border: none; border-radius: 6px; cursor: pointer;">Try Again</button>
+    </div>
+  `;
+  
+  // Reset form after 10 seconds
+  setTimeout(() => {{
+    form.innerHTML = originalContent;
+  }}, 10000);
+}}
+</script>"#,
+            subscribe_email, mailto_url, confirmation_subject
+        );
+
+        form_html
+    }
+
     /// Create a new site builder
     pub fn new(
         project: Project,
@@ -197,6 +310,10 @@ impl SiteBuilder {
             // Add site config
             context.insert("site", &self.config);
 
+            // Add newsletter config and generated form
+            context.insert("newsletter", &self.config.newsletter);
+            context.insert("newsletter_form", &self.generate_newsletter_form());
+
             // Add post data
             context.insert("post", post);
 
@@ -231,6 +348,10 @@ impl SiteBuilder {
 
         // Add site config
         context.insert("site", &self.config);
+
+        // Add newsletter config and generated form
+        context.insert("newsletter", &self.config.newsletter);
+        context.insert("newsletter_form", &self.generate_newsletter_form());
 
         // Prepare posts with rendered content for index
         // Load first batch of posts for initial page load
@@ -280,6 +401,10 @@ impl SiteBuilder {
 
         // Add site config
         context.insert("site", &self.config);
+
+        // Add newsletter config and generated form
+        context.insert("newsletter", &self.config.newsletter);
+        context.insert("newsletter_form", &self.generate_newsletter_form());
 
         // Prepare posts with rendered content
         let mut posts_with_content = Vec::new();
@@ -352,6 +477,10 @@ impl SiteBuilder {
             // Add site config
             context.insert("site", &self.config);
 
+            // Add newsletter config and generated form
+            context.insert("newsletter", &self.config.newsletter);
+            context.insert("newsletter_form", &self.generate_newsletter_form());
+
             // Add tag info
             context.insert("tag", tag);
 
@@ -391,6 +520,10 @@ impl SiteBuilder {
         // Generate tags index
         let mut context = Context::new();
         context.insert("site", &self.config);
+
+        // Add newsletter config and generated form
+        context.insert("newsletter", &self.config.newsletter);
+        context.insert("newsletter_form", &self.generate_newsletter_form());
 
         // Create tag info with post counts
         let tag_info: Vec<(String, usize)> = posts_by_tag
