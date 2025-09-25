@@ -6,9 +6,11 @@
 //! - Managing subscriber database
 //! - Email composition and sending
 
+pub mod composer;
 pub mod config;
 pub mod database;
 pub mod fetcher;
+pub mod sender;
 pub mod ui;
 
 pub use config::NewsletterManager;

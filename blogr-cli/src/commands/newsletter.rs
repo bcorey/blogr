@@ -443,6 +443,211 @@ fn export_json(subscribers: &[crate::newsletter::Subscriber]) -> Result<String> 
     Ok(json)
 }
 
+/// Handle the send latest post command
+pub async fn handle_send_latest(interactive: bool) -> Result<()> {
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)?;
+
+    if !newsletter_manager.is_enabled() {
+        println!("❌ Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    // Load posts
+    let post_manager = crate::content::PostManager::new(project.posts_dir());
+    let mut posts = post_manager.load_all_posts()?;
+    posts.retain(|p| p.metadata.status == crate::content::PostStatus::Published);
+    posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+
+    if posts.is_empty() {
+        println!("❌ No published posts found");
+        return Ok(());
+    }
+
+    // Load theme
+    let theme = blogr_themes::get_theme(&config.theme.name)
+        .ok_or_else(|| anyhow::anyhow!("Theme '{}' not found", config.theme.name))?;
+
+    // Compose newsletter from latest post
+    println!(
+        "📝 Composing newsletter from latest post: '{}'",
+        posts[0].metadata.title
+    );
+    let newsletter = newsletter_manager.compose_from_latest_post(theme, &posts)?;
+
+    // Preview
+    let composer =
+        newsletter_manager.create_composer(blogr_themes::get_theme(&config.theme.name).unwrap())?;
+    composer.preview_in_terminal(&newsletter)?;
+
+    // Confirm sending
+    if interactive && !prompt_yes_no("Send this newsletter to all approved subscribers?")? {
+        println!("Newsletter sending cancelled.");
+        return Ok(());
+    }
+
+    // Send newsletter
+    println!("📤 Sending newsletter...");
+    let report = newsletter_manager.send_newsletter(&newsletter, interactive)?;
+
+    println!("✅ Newsletter sending completed!");
+    println!("📊 Success rate: {:.1}%", report.success_rate() * 100.0);
+
+    Ok(())
+}
+
+/// Handle the send custom newsletter command
+pub async fn handle_send_custom(subject: String, content: String, interactive: bool) -> Result<()> {
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)?;
+
+    if !newsletter_manager.is_enabled() {
+        println!("❌ Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    // Load theme and create composer
+    let theme = blogr_themes::get_theme(&config.theme.name)
+        .ok_or_else(|| anyhow::anyhow!("Theme '{}' not found", config.theme.name))?;
+    let composer = newsletter_manager.create_composer(theme)?;
+
+    // Compose custom newsletter
+    println!("📝 Composing custom newsletter: '{}'", subject);
+    let newsletter = composer.compose_custom(subject, content)?;
+
+    // Preview
+    composer.preview_in_terminal(&newsletter)?;
+
+    // Confirm sending
+    if interactive && !prompt_yes_no("Send this newsletter to all approved subscribers?")? {
+        println!("Newsletter sending cancelled.");
+        return Ok(());
+    }
+
+    // Send newsletter
+    println!("📤 Sending newsletter...");
+    let report = newsletter_manager.send_newsletter(&newsletter, interactive)?;
+
+    println!("✅ Newsletter sending completed!");
+    println!("📊 Success rate: {:.1}%", report.success_rate() * 100.0);
+
+    Ok(())
+}
+
+/// Handle the draft newsletter command (preview only)
+pub async fn handle_draft_latest() -> Result<()> {
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)?;
+
+    if !newsletter_manager.is_enabled() {
+        println!("❌ Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    // Load posts
+    let post_manager = crate::content::PostManager::new(project.posts_dir());
+    let mut posts = post_manager.load_all_posts()?;
+    posts.retain(|p| p.metadata.status == crate::content::PostStatus::Published);
+    posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+
+    if posts.is_empty() {
+        println!("❌ No published posts found");
+        return Ok(());
+    }
+
+    // Load theme
+    let theme = blogr_themes::get_theme(&config.theme.name)
+        .ok_or_else(|| anyhow::anyhow!("Theme '{}' not found", config.theme.name))?;
+
+    // Compose and preview newsletter
+    let newsletter = newsletter_manager.compose_from_latest_post(theme, &posts)?;
+    let composer =
+        newsletter_manager.create_composer(blogr_themes::get_theme(&config.theme.name).unwrap())?;
+    composer.preview_in_terminal(&newsletter)?;
+
+    Ok(())
+}
+
+/// Handle the draft custom newsletter command
+pub async fn handle_draft_custom(subject: String, content: String) -> Result<()> {
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)?;
+
+    if !newsletter_manager.is_enabled() {
+        println!("❌ Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    // Load theme and create composer
+    let theme = blogr_themes::get_theme(&config.theme.name)
+        .ok_or_else(|| anyhow::anyhow!("Theme '{}' not found", config.theme.name))?;
+    let composer = newsletter_manager.create_composer(theme)?;
+
+    // Compose and preview custom newsletter
+    let newsletter = composer.compose_custom(subject, content)?;
+    composer.preview_in_terminal(&newsletter)?;
+
+    Ok(())
+}
+
+/// Handle the test email command
+pub async fn handle_test_email(test_email: String, interactive: bool) -> Result<()> {
+    let project = Project::find_project()?
+        .ok_or_else(|| anyhow::anyhow!("Not in a blogr project. Run 'blogr init' first."))?;
+
+    let config = project
+        .load_config()
+        .context("Failed to load project configuration")?;
+    let newsletter_manager = NewsletterManager::new(config.clone(), &project.root)?;
+
+    if !newsletter_manager.is_enabled() {
+        println!("❌ Newsletter functionality is not enabled.");
+        return Ok(());
+    }
+
+    // Load posts for test content
+    let post_manager = crate::content::PostManager::new(project.posts_dir());
+    let mut posts = post_manager.load_all_posts()?;
+    posts.retain(|p| p.metadata.status == crate::content::PostStatus::Published);
+    posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+
+    if posts.is_empty() {
+        println!("❌ No published posts found for test email");
+        return Ok(());
+    }
+
+    // Load theme and compose test newsletter
+    let theme = blogr_themes::get_theme(&config.theme.name)
+        .ok_or_else(|| anyhow::anyhow!("Theme '{}' not found", config.theme.name))?;
+
+    let newsletter = newsletter_manager.compose_from_latest_post(theme, &posts)?;
+
+    // Send test email
+    newsletter_manager.send_test_newsletter(&newsletter, &test_email, interactive)?;
+
+    Ok(())
+}
+
 /// Prompt user for yes/no input
 fn prompt_yes_no(question: &str) -> Result<bool> {
     loop {

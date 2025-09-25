@@ -275,6 +275,39 @@ enum NewsletterAction {
         #[arg(long)]
         status: Option<String>,
     },
+    /// Send newsletter with latest blog post
+    SendLatest {
+        /// Interactive confirmation before sending
+        #[arg(long)]
+        interactive: bool,
+    },
+    /// Send custom newsletter
+    SendCustom {
+        /// Newsletter subject
+        subject: String,
+        /// Newsletter content (markdown)
+        content: String,
+        /// Interactive confirmation before sending
+        #[arg(long)]
+        interactive: bool,
+    },
+    /// Preview newsletter without sending (latest post)
+    DraftLatest,
+    /// Preview custom newsletter without sending
+    DraftCustom {
+        /// Newsletter subject
+        subject: String,
+        /// Newsletter content (markdown)
+        content: String,
+    },
+    /// Send test email to specific address
+    Test {
+        /// Test email address
+        email: String,
+        /// Interactive SMTP configuration
+        #[arg(long)]
+        interactive: bool,
+    },
 }
 
 #[tokio::main]
@@ -383,6 +416,21 @@ async fn main() -> Result<()> {
                 output,
                 status,
             } => commands::newsletter::handle_export(&format, output.as_deref(), status),
+            NewsletterAction::SendLatest { interactive } => {
+                commands::newsletter::handle_send_latest(interactive).await
+            }
+            NewsletterAction::SendCustom {
+                subject,
+                content,
+                interactive,
+            } => commands::newsletter::handle_send_custom(subject, content, interactive).await,
+            NewsletterAction::DraftLatest => commands::newsletter::handle_draft_latest().await,
+            NewsletterAction::DraftCustom { subject, content } => {
+                commands::newsletter::handle_draft_custom(subject, content).await
+            }
+            NewsletterAction::Test { email, interactive } => {
+                commands::newsletter::handle_test_email(email, interactive).await
+            }
         },
     }
 }

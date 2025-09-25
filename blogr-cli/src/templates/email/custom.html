@@ -1,0 +1,22 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<div class="post-meta">
+    <h1 class="post-title">{{ subject }}</h1>
+    <div class="post-date">
+        {{ "now" | date(format="%B %d, %Y") }}
+    </div>
+</div>
+
+<div class="newsletter-content">
+    {{ content | safe }}
+</div>
+
+<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1;">
+    <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 0;">
+        💬 <strong>Questions or feedback?</strong> 
+        <a href="mailto:{{ site.email }}?subject=Re: {{ subject }}">Reply to this email</a> 
+        and let us know what you think!
+    </p>
+</div>
+{% endblock %}

@@ -4,9 +4,12 @@ use anyhow::{Context, Result};
 use std::env;
 use std::path::Path;
 
+use super::composer::{Newsletter, NewsletterComposer};
 use super::database::NewsletterDatabase;
 use super::fetcher::EmailFetcher;
+use super::sender::NewsletterSender;
 use crate::config::{Config, ImapConfig, SmtpConfig};
+use crate::content::Post;
 
 pub struct NewsletterManager {
     config: Config,
@@ -331,4 +334,79 @@ pub fn setup_smtp_config() -> Result<SmtpConfig> {
         username,
         use_tls: Some(true),
     })
+}
+
+impl NewsletterManager {
+    /// Create a newsletter composer
+    pub fn create_composer(
+        &self,
+        theme: Box<dyn blogr_themes::Theme>,
+    ) -> Result<NewsletterComposer> {
+        NewsletterComposer::new(theme, self.config.clone())
+    }
+
+    /// Create a newsletter sender
+    pub fn create_sender(&self, emails_per_minute: Option<u32>) -> Result<NewsletterSender> {
+        let smtp_config = self.get_smtp_config()?
+            .ok_or_else(|| anyhow::anyhow!(
+                "SMTP configuration not found. Set up SMTP config in blogr.toml or environment variables"
+            ))?;
+
+        let sender_name = self.config.newsletter.sender_name.clone();
+        let rate_limit = emails_per_minute.unwrap_or(10); // Default to 10 emails per minute
+
+        NewsletterSender::new(smtp_config, sender_name, rate_limit)
+    }
+
+    /// Compose newsletter from latest blog post
+    pub fn compose_from_latest_post(
+        &self,
+        theme: Box<dyn blogr_themes::Theme>,
+        posts: &[Post],
+    ) -> Result<Newsletter> {
+        let composer = self.create_composer(theme)?;
+
+        let latest_post = posts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No posts found"))?;
+
+        composer.compose_from_post(latest_post)
+    }
+
+    /// Send newsletter to all approved subscribers
+    pub fn send_newsletter(
+        &self,
+        newsletter: &Newsletter,
+        interactive: bool,
+    ) -> Result<super::sender::SendReport> {
+        let mut sender = self.create_sender(None)?;
+
+        let password = if interactive {
+            self.prompt_for_password("SMTP")?
+        } else {
+            self.get_smtp_password()?
+        };
+
+        let subscribers = self.database.get_subscribers(None)?;
+
+        sender.send_to_subscribers(newsletter, &subscribers, &password, None)
+    }
+
+    /// Send test newsletter
+    pub fn send_test_newsletter(
+        &self,
+        newsletter: &Newsletter,
+        test_email: &str,
+        interactive: bool,
+    ) -> Result<()> {
+        let mut sender = self.create_sender(None)?;
+
+        let password = if interactive {
+            self.prompt_for_password("SMTP")?
+        } else {
+            self.get_smtp_password()?
+        };
+
+        sender.send_test_email(newsletter, test_email, &password)
+    }
 }

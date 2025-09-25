@@ -1,0 +1,32 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<div class="post-meta">
+    <h1 class="post-title">{{ post.metadata.title }}</h1>
+    <div class="post-date">
+        {{ post.metadata.date | date(format="%B %d, %Y") }} • {{ post.metadata.author }}
+    </div>
+    <div class="reading-time">
+        📖 {{ reading_time }} min read
+    </div>
+    {% if post.metadata.tags %}
+    <div class="tags" style="margin-top: 15px;">
+        {% for tag in post.metadata.tags %}
+        <span style="background-color: #3498db; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 8px; display: inline-block;">{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="post-content">
+    {{ content | safe }}
+</div>
+
+<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1;">
+    <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 0;">
+        💬 <strong>What did you think of this post?</strong> 
+        <a href="mailto:{{ site.email }}?subject=Re: {{ post.metadata.title }}">Reply to this email</a> 
+        and let us know your thoughts!
+    </p>
+</div>
+{% endblock %}
