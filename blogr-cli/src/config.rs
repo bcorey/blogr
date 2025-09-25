@@ -227,7 +227,8 @@ pub struct ImapConfig {
     pub server: String,
     pub port: u16,
     pub username: String,
-    // Note: password should be set via environment variable NEWSLETTER_IMAP_PASSWORD
+    /// Password is not stored in config - set via environment variable NEWSLETTER_IMAP_PASSWORD
+    pub use_tls: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -235,7 +236,8 @@ pub struct SmtpConfig {
     pub server: String,
     pub port: u16,
     pub username: String,
-    // Note: password should be set via environment variable NEWSLETTER_SMTP_PASSWORD
+    /// Password is not stored in config - set via environment variable NEWSLETTER_SMTP_PASSWORD
+    pub use_tls: Option<bool>,
 }
 
 fn default_newsletter_enabled() -> bool {
