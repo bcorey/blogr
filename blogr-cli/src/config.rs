@@ -27,6 +27,8 @@ pub struct Config {
     pub dev: DevConfig,
     #[serde(default)]
     pub search: SearchConfig,
+    #[serde(default)]
+    pub newsletter: NewsletterConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -203,6 +205,56 @@ impl Default for SearchConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewsletterConfig {
+    /// Whether newsletter functionality is enabled
+    #[serde(default = "default_newsletter_enabled")]
+    pub enabled: bool,
+    /// Email address for newsletter subscriptions
+    pub subscribe_email: Option<String>,
+    /// Name to display in newsletter emails
+    pub sender_name: Option<String>,
+    /// Subject line for confirmation emails
+    pub confirmation_subject: Option<String>,
+    /// Optional IMAP configuration (can be set via CLI)
+    pub imap: Option<ImapConfig>,
+    /// Optional SMTP configuration (can be set via CLI)
+    pub smtp: Option<SmtpConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImapConfig {
+    pub server: String,
+    pub port: u16,
+    pub username: String,
+    // Note: password should be set via environment variable NEWSLETTER_IMAP_PASSWORD
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SmtpConfig {
+    pub server: String,
+    pub port: u16,
+    pub username: String,
+    // Note: password should be set via environment variable NEWSLETTER_SMTP_PASSWORD
+}
+
+fn default_newsletter_enabled() -> bool {
+    false
+}
+
+impl Default for NewsletterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_newsletter_enabled(),
+            subscribe_email: None,
+            sender_name: None,
+            confirmation_subject: None,
+            imap: None,
+            smtp: None,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -227,6 +279,7 @@ impl Default for Config {
             },
             dev: DevConfig::default(),
             search: SearchConfig::default(),
+            newsletter: NewsletterConfig::default(),
         }
     }
 }
@@ -355,6 +408,19 @@ impl Config {
 
         if self.dev.port == 0 {
             anyhow::bail!("Development server port must be greater than 0");
+        }
+
+        // Validate newsletter configuration
+        if self.newsletter.enabled {
+            if self.newsletter.subscribe_email.is_none() {
+                anyhow::bail!("Newsletter is enabled but subscribe_email is not configured");
+            }
+
+            if let Some(email) = &self.newsletter.subscribe_email {
+                if email.trim().is_empty() || !email.contains('@') {
+                    anyhow::bail!("Invalid newsletter subscribe_email format");
+                }
+            }
         }
 
         Ok(())
@@ -611,7 +677,7 @@ mod tests {
 
     #[test]
     fn test_backward_compatibility() {
-        // Test that old config files without [search] and [dev] sections can still be parsed
+        // Test that old config files without [search], [dev], and [newsletter] sections can still be parsed
         let old_config_toml = r#"
 [blog]
 title = "My Blog"
@@ -638,5 +704,30 @@ output_dir = "dist"
         // Should use default dev config
         assert_eq!(config.dev.port, 3000);
         assert!(config.dev.auto_reload);
+
+        // Should use default newsletter config
+        assert!(!config.newsletter.enabled);
+        assert!(config.newsletter.subscribe_email.is_none());
+        assert!(config.newsletter.sender_name.is_none());
+    }
+
+    #[test]
+    fn test_newsletter_validation() {
+        let mut config = Config::default();
+
+        // Default newsletter config should be valid
+        assert!(config.validate().is_ok());
+
+        // Enabled newsletter without subscribe_email should fail
+        config.newsletter.enabled = true;
+        assert!(config.validate().is_err());
+
+        // Invalid email format should fail
+        config.newsletter.subscribe_email = Some("invalid-email".to_string());
+        assert!(config.validate().is_err());
+
+        // Valid email should pass
+        config.newsletter.subscribe_email = Some("newsletter@example.com".to_string());
+        assert!(config.validate().is_ok());
     }
 }
