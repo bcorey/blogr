@@ -1,3 +1,3 @@
 pub mod approval;
 
-pub use approval::{ApprovalApp, ApprovalResult};
+pub use approval::{ApprovalResult, ModernApprovalApp};

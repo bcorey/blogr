@@ -55,6 +55,7 @@ pub async fn launch_editor(post: Post, project: &Project) -> Result<Post> {
             }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
+            Event::Redraw => {}
         }
 
         // Check if we should quit
@@ -117,6 +118,7 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
             }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
+            Event::Redraw => {}
         }
 
         // Check if we should quit

@@ -23,4 +23,4 @@ pub use config::NewsletterManager;
 pub use database::{NewsletterDatabase, Subscriber, SubscriberStatus};
 pub use migration::{MigrationConfig, MigrationManager, MigrationSource};
 pub use plugin::{create_plugin_context, PluginConfig, PluginHook, PluginManager};
-pub use ui::{ApprovalApp, ApprovalResult};
+pub use ui::{ApprovalResult, ModernApprovalApp};

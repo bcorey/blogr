@@ -35,6 +35,15 @@ A fast, lightweight static site generator built in Rust for creating and managin
 - Automatic git branch management
 - Deployment status checking
 
+**Newsletter System** (optional)
+- Email subscription collection via IMAP
+- Interactive subscriber approval interface
+- Newsletter creation from blog posts or custom content
+- SMTP integration for reliable email delivery
+- Import/export from popular services (Mailchimp, ConvertKit, etc.)
+- REST API for external integrations
+- Extensible plugin system
+
 ## Installation
 
 **Requirements**
@@ -142,6 +151,28 @@ blogr config domain set example.com     # Set custom domain
 blogr config domain list                # List domains
 ```
 
+**Newsletter** (optional)
+```bash
+# Subscriber management
+blogr newsletter fetch-subscribers      # Fetch from email inbox
+blogr newsletter approve                 # Launch approval UI
+blogr newsletter list                    # List all subscribers
+blogr newsletter export --format csv    # Export subscribers
+
+# Newsletter sending
+blogr newsletter send-latest             # Send with latest post
+blogr newsletter send-custom "Subject" "Content"  # Send custom
+blogr newsletter draft-latest            # Preview latest post
+blogr newsletter test user@example.com   # Send test email
+
+# Import from services
+blogr newsletter import --source mailchimp subscribers.csv
+blogr newsletter import --source convertkit subscribers.json
+
+# API server for integrations
+blogr newsletter api-server --port 3001 --api-key secret
+```
+
 ## Terminal Editor
 
 Blogr includes a built-in terminal editor for writing posts:
@@ -219,6 +250,36 @@ remove_stopwords = false
 title = 5.0
 tags = 3.0
 content = 1.0
+
+# Newsletter configuration (optional)
+[newsletter]
+enabled = false
+subscribe_email = "subscribe@yourdomain.com"
+sender_name = "Your Blog Name"
+confirmation_subject = "Welcome to Your Blog Newsletter"
+
+# IMAP settings for fetching subscribers
+[newsletter.imap]
+server = "imap.gmail.com"
+port = 993
+username = "subscribe@yourdomain.com"
+use_tls = true
+
+# SMTP settings for sending emails
+[newsletter.smtp]
+server = "smtp.gmail.com"
+port = 587
+username = "subscribe@yourdomain.com"
+use_tls = true
+
+# Plugin configurations
+[newsletter.plugins.analytics]
+enabled = false
+api_key = "your-analytics-key"
+
+[newsletter.plugins.webhook]
+enabled = false
+url = "https://yoursite.com/webhook"
 ```
 
 **Custom domains:** Use `blogr config domain set yourdomain.com` to configure.
@@ -415,6 +476,334 @@ The Obsidian theme allows you to use any Obsidian community theme CSS with your 
 
 **Custom Themes**
 Themes are Rust modules in `blogr-themes/src/`. Each theme provides templates, CSS, and configuration options.
+
+## Newsletter
+
+Blogr includes a comprehensive email newsletter system that allows you to collect subscribers, manage them through an approval interface, and send newsletters based on your blog posts or custom content.
+
+### Features
+
+**Subscriber Management**
+- Email subscription collection via IMAP
+- Interactive approval interface for subscriber requests
+- Export subscribers to CSV/JSON formats
+- Import from popular services (Mailchimp, ConvertKit, Substack, Beehiiv)
+- REST API for external integrations
+
+**Newsletter Composition**
+- Automatic newsletters from latest blog posts
+- Custom newsletter creation with Markdown content
+- Template-based email rendering
+- HTML and text versions generated automatically
+- Preview newsletters before sending
+
+**Sending & Delivery**
+- SMTP integration for reliable email delivery
+- Rate limiting to prevent spam issues
+- Test email functionality
+- Batch sending with progress tracking
+
+**Plugin System**
+- Extensible plugin architecture
+- Custom templates and workflows
+- Third-party service integrations
+- Hook-based event system
+
+### Setup
+
+**1. Enable Newsletter in Configuration**
+
+Add to your `blogr.toml`:
+```toml
+[newsletter]
+enabled = true
+subscribe_email = "subscribe@yourdomain.com"
+sender_name = "Your Blog Name"
+confirmation_subject = "Welcome to Your Blog Newsletter"
+
+# IMAP Configuration for fetching subscribers
+[newsletter.imap]
+server = "imap.gmail.com"
+port = 993
+username = "subscribe@yourdomain.com"
+use_tls = true
+
+# SMTP Configuration for sending emails
+[newsletter.smtp]
+server = "smtp.gmail.com"
+port = 587
+username = "subscribe@yourdomain.com"
+use_tls = true
+```
+
+**2. Set Environment Variables**
+
+```bash
+# IMAP password for fetching subscription emails
+export NEWSLETTER_IMAP_PASSWORD="your-imap-password"
+
+# SMTP password for sending emails
+export NEWSLETTER_SMTP_PASSWORD="your-smtp-password"
+```
+
+**3. Create Email Account**
+
+Set up a dedicated email address for newsletter subscriptions:
+- Gmail: Create app-specific password for IMAP/SMTP access
+- Other providers: Ensure IMAP/SMTP access is enabled
+
+### Commands
+
+**Subscriber Management**
+```bash
+# Fetch new subscribers from email inbox
+blogr newsletter fetch-subscribers
+blogr newsletter fetch-subscribers --interactive  # Configure IMAP interactively
+
+# Launch approval UI to manage subscriber requests
+blogr newsletter approve
+
+# List all subscribers
+blogr newsletter list
+blogr newsletter list --status approved    # Filter by status
+blogr newsletter list --status pending
+
+# Remove a subscriber
+blogr newsletter remove user@example.com
+blogr newsletter remove user@example.com --force  # Skip confirmation
+
+# Export subscribers
+blogr newsletter export --format csv --output subscribers.csv
+blogr newsletter export --format json --status approved
+```
+
+**Newsletter Creation & Sending**
+```bash
+# Send newsletter with latest blog post
+blogr newsletter send-latest
+blogr newsletter send-latest --interactive  # Interactive confirmation
+
+# Send custom newsletter
+blogr newsletter send-custom "Weekly Update" "# This Week\n\nHere's what's new..."
+blogr newsletter send-custom "Weekly Update" "content" --interactive
+
+# Preview newsletters without sending
+blogr newsletter draft-latest                    # Preview latest post
+blogr newsletter draft-custom "Subject" "Content"  # Preview custom content
+
+# Send test email
+blogr newsletter test user@example.com
+blogr newsletter test user@example.com --interactive
+```
+
+**Import & Export**
+```bash
+# Import from popular services
+blogr newsletter import --source mailchimp subscribers.csv
+blogr newsletter import --source convertkit subscribers.json
+blogr newsletter import --source substack subscribers.csv
+blogr newsletter import --source beehiiv subscribers.csv
+blogr newsletter import --source generic subscribers.csv
+
+# Preview imports before applying
+blogr newsletter import --source mailchimp --preview subscribers.csv
+blogr newsletter import --source generic --preview --email-column "email" --name-column "name" subscribers.csv
+
+# Custom column mapping for generic CSV
+blogr newsletter import --source generic \
+  --email-column "email_address" \
+  --name-column "full_name" \
+  --status-column "subscription_status" \
+  subscribers.csv
+```
+
+**Plugin System**
+```bash
+# List available plugins
+blogr newsletter plugin list
+
+# Get plugin information
+blogr newsletter plugin info analytics-plugin
+
+# Enable/disable plugins
+blogr newsletter plugin enable webhook-plugin
+blogr newsletter plugin disable analytics-plugin
+
+# Run custom plugin commands
+blogr newsletter plugin run sync-external
+blogr newsletter plugin run generate-report pdf
+```
+
+**API Server**
+```bash
+# Start API server for external integrations
+blogr newsletter api-server
+
+# Custom configuration
+blogr newsletter api-server --port 8080 --host 0.0.0.0
+blogr newsletter api-server --api-key your-secret-key
+blogr newsletter api-server --port 3001 --no-cors
+```
+
+### Configuration Options
+
+**Basic Newsletter Settings**
+```toml
+[newsletter]
+# Enable/disable newsletter functionality
+enabled = true
+
+# Email address for newsletter subscriptions
+subscribe_email = "subscribe@yourdomain.com"
+
+# Name displayed in newsletter emails
+sender_name = "Your Blog Name"
+
+# Subject line for confirmation emails
+confirmation_subject = "Welcome to Your Blog Newsletter"
+```
+
+**IMAP Configuration**
+```toml
+[newsletter.imap]
+server = "imap.gmail.com"     # IMAP server address
+port = 993                    # IMAP port (993 for SSL, 143 for non-SSL)
+username = "your-email@domain.com"  # IMAP username
+use_tls = true               # Enable TLS/SSL encryption
+```
+
+**SMTP Configuration**
+```toml
+[newsletter.smtp]
+server = "smtp.gmail.com"     # SMTP server address
+port = 587                    # SMTP port (587 for TLS, 465 for SSL, 25 for non-encrypted)
+username = "your-email@domain.com"  # SMTP username
+use_tls = true               # Enable TLS/SSL encryption
+```
+
+**Plugin Configuration**
+```toml
+[newsletter.plugins.analytics]
+enabled = true
+api_key = "your-analytics-api-key"
+endpoint = "https://api.analytics.com"
+
+[newsletter.plugins.webhook]
+enabled = true
+url = "https://yoursite.com/webhook"
+events = ["subscriber_approved", "newsletter_sent"]
+```
+
+### Email Provider Setup
+
+**Gmail**
+1. Enable 2-factor authentication on your Google account
+2. Generate an app-specific password:
+   - Go to Google Account settings → Security → App passwords
+   - Generate password for "Mail" application
+3. Use app-specific password for both IMAP and SMTP
+
+**Outlook/Hotmail**
+1. Enable 2-factor authentication
+2. Generate app password in security settings
+3. Use app password for authentication
+
+**Other Providers**
+- Ensure IMAP and SMTP access is enabled
+- Use provider-specific server settings
+- Some providers may require app-specific passwords
+
+### API Integration
+
+The newsletter system includes a REST API for external integrations:
+
+**Start API Server:**
+```bash
+blogr newsletter api-server --port 3001 --api-key your-secret-key
+```
+
+**Available Endpoints:**
+- `GET /health` - Health check
+- `GET /subscribers` - List subscribers
+- `POST /subscribers` - Create subscriber
+- `GET /subscribers/:email` - Get specific subscriber
+- `PUT /subscribers/:email` - Update subscriber
+- `DELETE /subscribers/:email` - Remove subscriber
+- `GET /stats` - Get newsletter statistics
+- `GET /export` - Export subscribers
+
+**Example Usage:**
+```bash
+# List approved subscribers
+curl -H "Authorization: Bearer your-secret-key" \
+     "http://localhost:3001/subscribers?status=approved"
+
+# Add new subscriber
+curl -X POST -H "Authorization: Bearer your-secret-key" \
+     -H "Content-Type: application/json" \
+     -d '{"email":"user@example.com","status":"pending"}' \
+     http://localhost:3001/subscribers
+```
+
+### Plugin Development
+
+Create custom plugins to extend newsletter functionality:
+
+```rust
+use blogr_cli::newsletter::{NewsletterPlugin, PluginMetadata, PluginHook};
+
+pub struct MyPlugin {
+    metadata: PluginMetadata,
+}
+
+impl NewsletterPlugin for MyPlugin {
+    fn handles_hook(&self, hook: &PluginHook) -> bool {
+        matches!(hook, PluginHook::PreSend | PluginHook::PostSend)
+    }
+
+    fn execute_hook(&self, context: &PluginContext) -> Result<PluginResult> {
+        // Custom plugin logic
+        Ok(PluginResult::success("Plugin executed"))
+    }
+}
+```
+
+**Available Hooks:**
+- `PreFetch` - Before fetching subscribers
+- `PostFetch` - After fetching subscribers
+- `PreApprove` - Before approving subscribers
+- `PostApprove` - After approving subscribers
+- `PreCompose` - Before composing newsletter
+- `PostCompose` - After composing newsletter
+- `PreSend` - Before sending newsletter
+- `PostSend` - After sending newsletter
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **IMAP Connection Failed**
+   - Verify server settings and credentials
+   - Enable "Less secure app access" or use app-specific passwords
+   - Check firewall/network connectivity
+
+2. **SMTP Sending Failed**
+   - Verify SMTP server settings
+   - Check authentication credentials
+   - Ensure port is not blocked by firewall
+
+3. **No Subscribers Found**
+   - Run `blogr newsletter fetch-subscribers` first
+   - Check that subscription emails are being received
+   - Verify IMAP folder contains emails
+
+4. **Newsletter Not Rendering**
+   - Check that blog posts exist and are published
+   - Verify theme templates are working
+   - Test with `blogr newsletter draft-latest`
+
+For detailed API documentation, see [NEWSLETTER_API.md](NEWSLETTER_API.md).
+For plugin development guide, see [NEWSLETTER_PLUGINS.md](NEWSLETTER_PLUGINS.md).
 
 ## Deployment
 

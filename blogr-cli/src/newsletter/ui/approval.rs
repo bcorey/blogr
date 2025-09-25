@@ -1,15 +1,21 @@
-//! Newsletter subscriber approval UI using Ratatui
+//! Modern, high-performance newsletter subscriber approval TUI
+//!
+//! This module provides a buttery-smooth, responsive TUI interface for managing
+//! newsletter subscribers with modern design elements and optimized performance.
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, Paragraph, Row, Table, TableState, Wrap},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, Clear, Gauge, Paragraph, Row, Table, TableState, Wrap},
     Frame,
 };
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    time::{Duration, Instant},
+};
 
 use crate::newsletter::{NewsletterDatabase, Subscriber, SubscriberStatus};
 
@@ -24,10 +30,12 @@ pub enum ApprovalResult {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ApprovalMode {
+pub enum AppMode {
     List,
     Help,
     Confirm,
+    Loading,
+    Search,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,91 +64,266 @@ impl std::fmt::Display for SubscriberFilter {
     }
 }
 
-impl SubscriberFilter {
+/// Modern theme colors and styles
+pub struct ModernTheme {
+    pub primary: Color,
+    pub secondary: Color,
+    pub accent: Color,
+    pub success: Color,
+    pub warning: Color,
+    pub danger: Color,
     #[allow(dead_code)]
-    fn to_status(&self) -> Option<SubscriberStatus> {
-        match self {
-            SubscriberFilter::All => None,
-            SubscriberFilter::Pending => Some(SubscriberStatus::Pending),
-            SubscriberFilter::Approved => Some(SubscriberStatus::Approved),
-            SubscriberFilter::Declined => Some(SubscriberStatus::Declined),
+    pub background: Color,
+    pub surface: Color,
+    pub text: Color,
+    pub text_secondary: Color,
+    pub border: Color,
+    pub border_focused: Color,
+}
+
+impl Default for ModernTheme {
+    fn default() -> Self {
+        Self {
+            primary: Color::Rgb(99, 102, 241),         // Indigo
+            secondary: Color::Rgb(107, 114, 142),      // Slate
+            accent: Color::Rgb(16, 185, 129),          // Emerald
+            success: Color::Rgb(34, 197, 94),          // Green
+            warning: Color::Rgb(251, 191, 36),         // Amber
+            danger: Color::Rgb(239, 68, 68),           // Red
+            background: Color::Rgb(15, 23, 42),        // Dark slate
+            surface: Color::Rgb(30, 41, 59),           // Slate 800
+            text: Color::Rgb(248, 250, 252),           // Slate 50
+            text_secondary: Color::Rgb(148, 163, 184), // Slate 400
+            border: Color::Rgb(71, 85, 105),           // Slate 600
+            border_focused: Color::Rgb(99, 102, 241),  // Indigo
         }
     }
 }
 
-pub struct ApprovalApp {
+/// Animation state for smooth transitions
+#[derive(Debug)]
+pub struct AnimationState {
+    pub progress: f32,
+    pub start_time: Instant,
+    pub duration: Duration,
+    pub active: bool,
+}
+
+impl AnimationState {
+    pub fn new(duration: Duration) -> Self {
+        Self {
+            progress: 0.0,
+            start_time: Instant::now(),
+            duration,
+            active: true,
+        }
+    }
+
+    pub fn update(&mut self) -> bool {
+        if !self.active {
+            return false;
+        }
+
+        let elapsed = self.start_time.elapsed();
+        self.progress = (elapsed.as_secs_f32() / self.duration.as_secs_f32()).min(1.0);
+
+        if self.progress >= 1.0 {
+            self.active = false;
+        }
+
+        true
+    }
+
+    pub fn eased_progress(&self) -> f32 {
+        // Ease out cubic
+        1.0 - (1.0 - self.progress).powi(3)
+    }
+}
+
+/// High-performance approval app with modern design
+pub struct ModernApprovalApp {
     /// Whether the app should continue running
     pub running: bool,
     /// Current mode
-    pub mode: ApprovalMode,
+    pub mode: AppMode,
     /// Current filter
     pub filter: SubscriberFilter,
-    /// All subscribers
+    /// All subscribers (cached)
     pub subscribers: Vec<Subscriber>,
     /// Filtered subscribers based on current filter
-    pub filtered_subscribers: Vec<usize>, // indices into subscribers
+    pub filtered_subscribers: Vec<usize>,
     /// Current table state
     pub table_state: TableState,
     /// Selected subscriber indices (for bulk operations)
     pub selected: HashSet<usize>,
     /// Search query
     pub search_query: String,
-    /// Status message
-    pub status_message: Option<String>,
+    /// Status message with timestamp
+    pub status_message: Option<(String, Instant)>,
     /// Confirmation action
     pub confirm_action: Option<ConfirmAction>,
     /// Database reference
     database: NewsletterDatabase,
+    /// Modern theme
+    pub theme: ModernTheme,
+    /// Last redraw time for performance tracking
+    last_redraw: Instant,
+    /// Dirty flag to minimize redraws
+    needs_redraw: bool,
+    /// Loading animation
+    loading_animation: AnimationState,
+    /// Page size for pagination
+    page_size: usize,
+    /// Current page
+    current_page: usize,
+    /// Statistics cache
+    stats_cache: Option<(usize, usize, usize, Instant)>, // (total, pending, approved, timestamp)
+    /// Performance metrics
+    frame_times: Vec<Duration>,
 }
 
-impl ApprovalApp {
+impl ModernApprovalApp {
     pub fn new(database: NewsletterDatabase) -> Result<Self> {
         let subscribers = database.get_subscribers(None)?;
         let filtered_subscribers: Vec<usize> = (0..subscribers.len()).collect();
 
         let mut app = Self {
             running: true,
-            mode: ApprovalMode::List,
-            filter: SubscriberFilter::Pending, // Start with pending by default
+            mode: AppMode::Loading,
+            filter: SubscriberFilter::Pending,
             subscribers,
             filtered_subscribers,
             table_state: TableState::default(),
             selected: HashSet::new(),
             search_query: String::new(),
-            status_message: None,
+            status_message: Some(("Welcome to Newsletter Manager".to_string(), Instant::now())),
             confirm_action: None,
             database,
+            theme: ModernTheme::default(),
+            last_redraw: Instant::now(),
+            needs_redraw: true,
+            loading_animation: AnimationState::new(Duration::from_millis(500)),
+            page_size: 20,
+            current_page: 0,
+            stats_cache: None,
+            frame_times: Vec::with_capacity(60),
         };
 
+        // Initialize with smooth loading transition
         app.apply_filter()?;
         app.select_first();
+
+        // Transition to list mode after loading
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(300));
+        });
 
         Ok(app)
     }
 
-    /// Handle key events
+    /// Update the app state - call this every frame for animations
+    pub fn update(&mut self) -> bool {
+        let mut updated = false;
+
+        // Update animations
+        if self.loading_animation.update() {
+            updated = true;
+        }
+
+        // Transition from loading to list mode
+        if matches!(self.mode, AppMode::Loading) && !self.loading_animation.active {
+            self.mode = AppMode::List;
+            updated = true;
+        }
+
+        // Clear old status messages
+        if let Some((_, timestamp)) = &self.status_message {
+            if timestamp.elapsed() > Duration::from_secs(5) {
+                self.status_message = None;
+                updated = true;
+            }
+        }
+
+        // Invalidate stats cache
+        if let Some((_, _, _, timestamp)) = &self.stats_cache {
+            if timestamp.elapsed() > Duration::from_secs(1) {
+                self.stats_cache = None;
+                updated = true;
+            }
+        }
+
+        if updated {
+            self.needs_redraw = true;
+        }
+
+        updated
+    }
+
+    /// Check if redraw is needed
+    pub fn needs_redraw(&self) -> bool {
+        self.needs_redraw
+    }
+
+    /// Mark as redrawn
+    pub fn mark_redrawn(&mut self) {
+        self.needs_redraw = false;
+
+        // Track frame time for performance monitoring
+        let frame_time = self.last_redraw.elapsed();
+        self.frame_times.push(frame_time);
+        if self.frame_times.len() > 60 {
+            self.frame_times.remove(0);
+        }
+        self.last_redraw = Instant::now();
+    }
+
+    /// Get average frame time for performance display
+    pub fn average_frame_time(&self) -> Duration {
+        if self.frame_times.is_empty() {
+            return Duration::from_millis(16);
+        }
+        let total: Duration = self.frame_times.iter().sum();
+        total / self.frame_times.len() as u32
+    }
+
+    /// Handle key events with improved responsiveness
     pub fn handle_key_event(&mut self, key: KeyEvent) -> AppResult<ApprovalResult> {
+        self.needs_redraw = true;
+
         match self.mode {
-            ApprovalMode::List => self.handle_list_key_event(key),
-            ApprovalMode::Help => self.handle_help_key_event(key),
-            ApprovalMode::Confirm => self.handle_confirm_key_event(key),
+            AppMode::List => self.handle_list_key_event(key),
+            AppMode::Help => self.handle_help_key_event(key),
+            AppMode::Confirm => self.handle_confirm_key_event(key),
+            AppMode::Search => self.handle_search_key_event(key),
+            AppMode::Loading => Ok(ApprovalResult::Continue), // Ignore input during loading
         }
     }
 
     fn handle_list_key_event(&mut self, key: KeyEvent) -> AppResult<ApprovalResult> {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => {
-                self.running = false;
-                Ok(ApprovalResult::Quit)
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    // Force quit with Ctrl+Q
+                    self.running = false;
+                    Ok(ApprovalResult::Quit)
+                } else {
+                    self.running = false;
+                    Ok(ApprovalResult::Quit)
+                }
             }
             KeyCode::Char('h') | KeyCode::F(1) => {
-                self.mode = ApprovalMode::Help;
+                self.mode = AppMode::Help;
                 Ok(ApprovalResult::Continue)
             }
-            KeyCode::Char('r') => {
-                self.refresh_data()?;
+            KeyCode::Char('r') | KeyCode::F(5) => {
+                self.refresh_data_async()?;
                 Ok(ApprovalResult::Continue)
             }
+            KeyCode::Char('/') => {
+                self.mode = AppMode::Search;
+                Ok(ApprovalResult::Continue)
+            }
+            // Navigation with vim-like keys and arrows
             KeyCode::Up | KeyCode::Char('k') => {
                 self.previous_subscriber();
                 Ok(ApprovalResult::Continue)
@@ -149,69 +332,67 @@ impl ApprovalApp {
                 self.next_subscriber();
                 Ok(ApprovalResult::Continue)
             }
+            KeyCode::PageUp | KeyCode::Char('K') => {
+                self.previous_page();
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::PageDown | KeyCode::Char('J') => {
+                self.next_page();
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::Home | KeyCode::Char('g') => {
+                self.first_subscriber();
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::End | KeyCode::Char('G') => {
+                self.last_subscriber();
+                Ok(ApprovalResult::Continue)
+            }
+            // Selection
             KeyCode::Char(' ') => {
                 self.toggle_selection();
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('a') => {
-                self.select_all();
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.select_all();
+                } else {
+                    self.select_all_visible();
+                }
                 Ok(ApprovalResult::Continue)
             }
-            KeyCode::Char('n') => {
+            KeyCode::Char('n') | KeyCode::Char('N') => {
                 self.clear_selection();
                 Ok(ApprovalResult::Continue)
             }
-            KeyCode::Char('A') => {
-                if !self.selected.is_empty() {
-                    self.confirm_action = Some(ConfirmAction::Approve);
-                    self.mode = ApprovalMode::Confirm;
-                } else if let Some(current) = self.current_subscriber_index() {
-                    self.selected.insert(current);
-                    self.confirm_action = Some(ConfirmAction::Approve);
-                    self.mode = ApprovalMode::Confirm;
-                }
+            // Actions
+            KeyCode::Char('A') | KeyCode::Enter => {
+                self.initiate_action(ConfirmAction::Approve)?;
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('D') => {
-                if !self.selected.is_empty() {
-                    self.confirm_action = Some(ConfirmAction::Decline);
-                    self.mode = ApprovalMode::Confirm;
-                } else if let Some(current) = self.current_subscriber_index() {
-                    self.selected.insert(current);
-                    self.confirm_action = Some(ConfirmAction::Decline);
-                    self.mode = ApprovalMode::Confirm;
-                }
+                self.initiate_action(ConfirmAction::Decline)?;
                 Ok(ApprovalResult::Continue)
             }
-            KeyCode::Char('X') => {
-                if !self.selected.is_empty() {
-                    self.confirm_action = Some(ConfirmAction::Delete);
-                    self.mode = ApprovalMode::Confirm;
-                } else if let Some(current) = self.current_subscriber_index() {
-                    self.selected.insert(current);
-                    self.confirm_action = Some(ConfirmAction::Delete);
-                    self.mode = ApprovalMode::Confirm;
-                }
+            KeyCode::Char('X') | KeyCode::Delete => {
+                self.initiate_action(ConfirmAction::Delete)?;
                 Ok(ApprovalResult::Continue)
             }
+            // Filters
             KeyCode::Char('1') => {
-                self.filter = SubscriberFilter::All;
-                self.apply_filter()?;
+                self.set_filter(SubscriberFilter::All)?;
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('2') => {
-                self.filter = SubscriberFilter::Pending;
-                self.apply_filter()?;
+                self.set_filter(SubscriberFilter::Pending)?;
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('3') => {
-                self.filter = SubscriberFilter::Approved;
-                self.apply_filter()?;
+                self.set_filter(SubscriberFilter::Approved)?;
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('4') => {
-                self.filter = SubscriberFilter::Declined;
-                self.apply_filter()?;
+                self.set_filter(SubscriberFilter::Declined)?;
                 Ok(ApprovalResult::Continue)
             }
             _ => Ok(ApprovalResult::Continue),
@@ -221,7 +402,7 @@ impl ApprovalApp {
     fn handle_help_key_event(&mut self, key: KeyEvent) -> AppResult<ApprovalResult> {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('h') | KeyCode::F(1) => {
-                self.mode = ApprovalMode::List;
+                self.mode = AppMode::List;
                 Ok(ApprovalResult::Continue)
             }
             _ => Ok(ApprovalResult::Continue),
@@ -232,18 +413,172 @@ impl ApprovalApp {
         match key.code {
             KeyCode::Char('y') | KeyCode::Enter => {
                 self.execute_confirm_action()?;
-                self.mode = ApprovalMode::List;
+                self.mode = AppMode::List;
                 Ok(ApprovalResult::Continue)
             }
             KeyCode::Char('n') | KeyCode::Esc => {
                 self.confirm_action = None;
-                self.mode = ApprovalMode::List;
+                self.mode = AppMode::List;
                 Ok(ApprovalResult::Continue)
             }
             _ => Ok(ApprovalResult::Continue),
         }
     }
 
+    fn handle_search_key_event(&mut self, key: KeyEvent) -> AppResult<ApprovalResult> {
+        match key.code {
+            KeyCode::Esc => {
+                self.mode = AppMode::List;
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::Enter => {
+                self.apply_filter()?;
+                self.mode = AppMode::List;
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::Char(c) => {
+                self.search_query.push(c);
+                self.apply_filter()?; // Real-time search
+                Ok(ApprovalResult::Continue)
+            }
+            KeyCode::Backspace => {
+                self.search_query.pop();
+                self.apply_filter()?; // Real-time search
+                Ok(ApprovalResult::Continue)
+            }
+            _ => Ok(ApprovalResult::Continue),
+        }
+    }
+
+    // Optimized helper methods
+    fn initiate_action(&mut self, action: ConfirmAction) -> Result<()> {
+        if self.selected.is_empty() {
+            if let Some(current) = self.current_subscriber_index() {
+                self.selected.insert(current);
+            }
+        }
+
+        if !self.selected.is_empty() {
+            self.confirm_action = Some(action);
+            self.mode = AppMode::Confirm;
+        } else {
+            self.set_status_message("No subscribers selected");
+        }
+
+        Ok(())
+    }
+
+    fn set_filter(&mut self, filter: SubscriberFilter) -> Result<()> {
+        if self.filter != filter {
+            self.filter = filter;
+            self.apply_filter()?;
+            self.current_page = 0;
+            self.set_status_message(&format!("Filter changed to: {}", self.filter));
+        }
+        Ok(())
+    }
+
+    fn refresh_data_async(&mut self) -> Result<()> {
+        self.mode = AppMode::Loading;
+        self.loading_animation = AnimationState::new(Duration::from_millis(300));
+
+        // In a real implementation, this would be async
+        self.refresh_data()?;
+
+        Ok(())
+    }
+
+    fn set_status_message(&mut self, message: &str) {
+        self.status_message = Some((message.to_string(), Instant::now()));
+    }
+
+    // Navigation methods with pagination
+    fn previous_subscriber(&mut self) {
+        if self.filtered_subscribers.is_empty() {
+            return;
+        }
+
+        let current = self.table_state.selected().unwrap_or(0);
+        let new_index = if current == 0 {
+            self.filtered_subscribers.len() - 1
+        } else {
+            current - 1
+        };
+
+        self.table_state.select(Some(new_index));
+        self.update_page_for_selection();
+    }
+
+    fn next_subscriber(&mut self) {
+        if self.filtered_subscribers.is_empty() {
+            return;
+        }
+
+        let current = self.table_state.selected().unwrap_or(0);
+        let new_index = if current >= self.filtered_subscribers.len() - 1 {
+            0
+        } else {
+            current + 1
+        };
+
+        self.table_state.select(Some(new_index));
+        self.update_page_for_selection();
+    }
+
+    fn previous_page(&mut self) {
+        if self.current_page > 0 {
+            self.current_page -= 1;
+            let new_selection = self.current_page * self.page_size;
+            if new_selection < self.filtered_subscribers.len() {
+                self.table_state.select(Some(new_selection));
+            }
+        }
+    }
+
+    fn next_page(&mut self) {
+        let max_page = (self.filtered_subscribers.len().saturating_sub(1)) / self.page_size;
+        if self.current_page < max_page {
+            self.current_page += 1;
+            let new_selection = self.current_page * self.page_size;
+            if new_selection < self.filtered_subscribers.len() {
+                self.table_state.select(Some(new_selection));
+            }
+        }
+    }
+
+    fn first_subscriber(&mut self) {
+        if !self.filtered_subscribers.is_empty() {
+            self.table_state.select(Some(0));
+            self.current_page = 0;
+        }
+    }
+
+    fn last_subscriber(&mut self) {
+        if !self.filtered_subscribers.is_empty() {
+            let last_index = self.filtered_subscribers.len() - 1;
+            self.table_state.select(Some(last_index));
+            self.current_page = last_index / self.page_size;
+        }
+    }
+
+    fn update_page_for_selection(&mut self) {
+        if let Some(selected) = self.table_state.selected() {
+            self.current_page = selected / self.page_size;
+        }
+    }
+
+    fn select_all_visible(&mut self) {
+        let start = self.current_page * self.page_size;
+        let end = ((self.current_page + 1) * self.page_size).min(self.filtered_subscribers.len());
+
+        for i in start..end {
+            if let Some(&subscriber_index) = self.filtered_subscribers.get(i) {
+                self.selected.insert(subscriber_index);
+            }
+        }
+    }
+
+    // Rest of the implementation methods (same logic as before but optimized)
     fn execute_confirm_action(&mut self) -> Result<()> {
         if let Some(action) = &self.confirm_action {
             let selected_indices: Vec<usize> = self.selected.iter().cloned().collect();
@@ -259,7 +594,7 @@ impl ApprovalApp {
                             }
                         }
                     }
-                    self.status_message = Some(format!("Approved {} subscriber(s)", count));
+                    self.set_status_message(&format!("✅ Approved {} subscriber(s)", count));
                 }
                 ConfirmAction::Decline => {
                     for &index in &selected_indices {
@@ -270,7 +605,7 @@ impl ApprovalApp {
                             }
                         }
                     }
-                    self.status_message = Some(format!("Declined {} subscriber(s)", count));
+                    self.set_status_message(&format!("⚠️ Declined {} subscriber(s)", count));
                 }
                 ConfirmAction::Delete => {
                     for &index in &selected_indices {
@@ -278,7 +613,7 @@ impl ApprovalApp {
                             self.database.remove_subscriber(&subscriber.email)?;
                         }
                     }
-                    self.status_message = Some(format!("Deleted {} subscriber(s)", count));
+                    self.set_status_message(&format!("🗑️ Deleted {} subscriber(s)", count));
                 }
             }
 
@@ -292,6 +627,7 @@ impl ApprovalApp {
 
     fn refresh_data(&mut self) -> Result<()> {
         self.subscribers = self.database.get_subscribers(None)?;
+        self.stats_cache = None; // Invalidate cache
         self.apply_filter()?;
         Ok(())
     }
@@ -327,6 +663,7 @@ impl ApprovalApp {
         } else if let Some(selected) = self.table_state.selected() {
             if selected >= self.filtered_subscribers.len() {
                 self.table_state.select(Some(0));
+                self.current_page = 0;
             }
         }
 
@@ -336,38 +673,7 @@ impl ApprovalApp {
     fn select_first(&mut self) {
         if !self.filtered_subscribers.is_empty() {
             self.table_state.select(Some(0));
-        }
-    }
-
-    fn previous_subscriber(&mut self) {
-        let i = match self.table_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.filtered_subscribers.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        if !self.filtered_subscribers.is_empty() {
-            self.table_state.select(Some(i));
-        }
-    }
-
-    fn next_subscriber(&mut self) {
-        let i = match self.table_state.selected() {
-            Some(i) => {
-                if i >= self.filtered_subscribers.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        if !self.filtered_subscribers.is_empty() {
-            self.table_state.select(Some(i));
+            self.current_page = 0;
         }
     }
 
@@ -397,273 +703,15 @@ impl ApprovalApp {
         self.selected.clear();
     }
 
-    /// Render the approval interface
-    pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.size();
-        match self.mode {
-            ApprovalMode::List => self.render_list(frame),
-            ApprovalMode::Help => self.render_help(frame, area),
-            ApprovalMode::Confirm => self.render_confirm(frame, area),
+    fn get_statistics(&mut self) -> (usize, usize, usize) {
+        // Use cache if available and fresh
+        if let Some((total, pending, approved, timestamp)) = &self.stats_cache {
+            if timestamp.elapsed() < Duration::from_secs(1) {
+                return (*total, *pending, *approved);
+            }
         }
-    }
 
-    fn render_list(&mut self, frame: &mut Frame) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Header
-                Constraint::Min(1),    // Table
-                Constraint::Length(3), // Status bar
-            ])
-            .split(frame.size());
-
-        // Header
-        self.render_header(frame, chunks[0]);
-
-        // Table
-        self.render_table(frame, chunks[1]);
-
-        // Status bar
-        self.render_status_bar(frame, chunks[2]);
-    }
-
-    fn render_header(&self, frame: &mut Frame, area: Rect) {
-        let header_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(area);
-
-        // Title and filter
-        let title_text = format!("Newsletter Subscribers - Filter: {}", self.filter);
-        let title = Paragraph::new(title_text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Blogr Newsletter Manager"),
-            )
-            .style(Style::default().fg(Color::Cyan));
-
-        frame.render_widget(title, header_chunks[0]);
-
-        // Statistics
-        let stats = self.get_statistics_text();
-        let stats_widget = Paragraph::new(stats)
-            .block(Block::default().borders(Borders::ALL).title("Statistics"))
-            .style(Style::default().fg(Color::Green));
-
-        frame.render_widget(stats_widget, header_chunks[1]);
-    }
-
-    fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-        let header_cells = ["", "Email", "Status", "Subscribed", "Notes"]
-            .iter()
-            .map(|h| ratatui::widgets::Cell::from(*h).style(Style::default().fg(Color::Yellow)));
-        let header = Row::new(header_cells)
-            .style(Style::default().bg(Color::DarkGray))
-            .height(1);
-
-        let rows: Vec<Row> = self
-            .filtered_subscribers
-            .iter()
-            .map(|&subscriber_index| {
-                let subscriber = &self.subscribers[subscriber_index];
-                let is_selected = self.selected.contains(&subscriber_index);
-                let selection_indicator = if is_selected { "●" } else { " " };
-
-                let status_style = match subscriber.status {
-                    SubscriberStatus::Pending => Style::default().fg(Color::Yellow),
-                    SubscriberStatus::Approved => Style::default().fg(Color::Green),
-                    SubscriberStatus::Declined => Style::default().fg(Color::Red),
-                };
-
-                let subscribed_date = subscriber
-                    .subscribed_at
-                    .format("%Y-%m-%d %H:%M")
-                    .to_string();
-
-                let notes = subscriber.notes.as_deref().unwrap_or("-");
-
-                Row::new(vec![
-                    ratatui::widgets::Cell::from(selection_indicator)
-                        .style(Style::default().fg(Color::Cyan)),
-                    ratatui::widgets::Cell::from(subscriber.email.clone()),
-                    ratatui::widgets::Cell::from(subscriber.status.to_string()).style(status_style),
-                    ratatui::widgets::Cell::from(subscribed_date),
-                    ratatui::widgets::Cell::from(notes),
-                ])
-                .height(1)
-            })
-            .collect();
-
-        let table = Table::new(rows)
-            .header(header)
-            .block(Block::default().borders(Borders::ALL).title(format!(
-                "Subscribers ({}/{})",
-                self.filtered_subscribers.len(),
-                self.subscribers.len()
-            )))
-            .widths(&[
-                Constraint::Length(2),  // Selection indicator
-                Constraint::Min(25),    // Email
-                Constraint::Length(10), // Status
-                Constraint::Length(16), // Subscribed date
-                Constraint::Min(10),    // Notes
-            ])
-            .highlight_style(
-                Style::default()
-                    .add_modifier(Modifier::REVERSED)
-                    .fg(Color::White),
-            )
-            .highlight_symbol("► ");
-
-        frame.render_stateful_widget(table, area, &mut self.table_state);
-    }
-
-    fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
-        let status_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-            .split(area);
-
-        // Status message or help
-        let status_text = if let Some(ref message) = self.status_message {
-            message.clone()
-        } else {
-            "Press 'h' for help, 'q' to quit".to_string()
-        };
-
-        let status = Paragraph::new(status_text)
-            .block(Block::default().borders(Borders::ALL).title("Status"))
-            .style(Style::default().fg(Color::White));
-
-        frame.render_widget(status, status_chunks[0]);
-
-        // Selection info
-        let selection_info = if self.selected.is_empty() {
-            "No items selected".to_string()
-        } else {
-            format!("{} item(s) selected", self.selected.len())
-        };
-
-        let selection = Paragraph::new(selection_info)
-            .block(Block::default().borders(Borders::ALL).title("Selection"))
-            .style(Style::default().fg(Color::Magenta));
-
-        frame.render_widget(selection, status_chunks[1]);
-    }
-
-    fn render_help(&self, frame: &mut Frame, area: Rect) {
-        let help_text = vec![
-            Line::from("Newsletter Subscriber Management Help"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Navigation:",
-                Style::default().fg(Color::Yellow).bold(),
-            )]),
-            Line::from("  ↑/k        - Move up"),
-            Line::from("  ↓/j        - Move down"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Selection:",
-                Style::default().fg(Color::Yellow).bold(),
-            )]),
-            Line::from("  Space      - Toggle selection of current item"),
-            Line::from("  a          - Select all visible items"),
-            Line::from("  n          - Clear all selections"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Actions:",
-                Style::default().fg(Color::Yellow).bold(),
-            )]),
-            Line::from("  A          - Approve selected/current subscriber(s)"),
-            Line::from("  D          - Decline selected/current subscriber(s)"),
-            Line::from("  X          - Delete selected/current subscriber(s)"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Filters:",
-                Style::default().fg(Color::Yellow).bold(),
-            )]),
-            Line::from("  1          - Show all subscribers"),
-            Line::from("  2          - Show pending subscribers"),
-            Line::from("  3          - Show approved subscribers"),
-            Line::from("  4          - Show declined subscribers"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Other:",
-                Style::default().fg(Color::Yellow).bold(),
-            )]),
-            Line::from("  r          - Refresh data"),
-            Line::from("  h/F1       - Show this help"),
-            Line::from("  q/Esc      - Quit"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Press any key to return",
-                Style::default().fg(Color::Green).italic(),
-            )]),
-        ];
-
-        let help = Paragraph::new(help_text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Help")
-                    .title_alignment(Alignment::Center),
-            )
-            .wrap(Wrap { trim: true })
-            .alignment(Alignment::Left);
-
-        // Center the help dialog
-        let popup_area = centered_rect(80, 80, area);
-        frame.render_widget(Clear, popup_area);
-        frame.render_widget(help, popup_area);
-    }
-
-    fn render_confirm(&self, frame: &mut Frame, area: Rect) {
-        if let Some(ref action) = self.confirm_action {
-            let (action_text, color) = match action {
-                ConfirmAction::Approve => ("approve", Color::Green),
-                ConfirmAction::Decline => ("decline", Color::Yellow),
-                ConfirmAction::Delete => ("delete", Color::Red),
-            };
-
-            let count = self.selected.len();
-            let confirm_text = vec![
-                Line::from(""),
-                Line::from(vec![Span::styled(
-                    "Confirm Action",
-                    Style::default().fg(Color::White).bold(),
-                )]),
-                Line::from(""),
-                Line::from(vec![
-                    Span::raw("Are you sure you want to "),
-                    Span::styled(action_text, Style::default().fg(color).bold()),
-                    Span::raw(format!(" {} subscriber(s)?", count)),
-                ]),
-                Line::from(""),
-                Line::from(vec![Span::styled(
-                    "Press 'y' to confirm, 'n' to cancel",
-                    Style::default().fg(Color::Gray).italic(),
-                )]),
-                Line::from(""),
-            ];
-
-            let confirm = Paragraph::new(confirm_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Confirmation")
-                        .title_alignment(Alignment::Center)
-                        .border_style(Style::default().fg(color)),
-                )
-                .alignment(Alignment::Center);
-
-            let popup_area = centered_rect(50, 25, area);
-            frame.render_widget(Clear, popup_area);
-            frame.render_widget(confirm, popup_area);
-        }
-    }
-
-    fn get_statistics_text(&self) -> Text<'_> {
+        // Calculate fresh statistics
         let total = self.subscribers.len();
         let pending = self
             .subscribers
@@ -676,20 +724,600 @@ impl ApprovalApp {
             .filter(|s| s.status == SubscriberStatus::Approved)
             .count();
 
-        Text::from(vec![
-            Line::from(format!("Total: {}", total)),
+        // Update cache
+        self.stats_cache = Some((total, pending, approved, Instant::now()));
+
+        (total, pending, approved)
+    }
+
+    /// Render the modern approval interface
+    pub fn render(&mut self, frame: &mut Frame) {
+        let area = frame.size();
+        match self.mode {
+            AppMode::Loading => self.render_loading(frame),
+            AppMode::List => self.render_list(frame),
+            AppMode::Help => self.render_help(frame, area),
+            AppMode::Confirm => self.render_confirm(frame, area),
+            AppMode::Search => self.render_search(frame, area),
+        }
+
+        self.mark_redrawn();
+    }
+
+    fn render_loading(&mut self, frame: &mut Frame) {
+        let area = frame.size();
+
+        // Center the loading indicator
+        let loading_area = centered_rect(40, 20, area);
+        frame.render_widget(Clear, loading_area);
+
+        let progress = self.loading_animation.eased_progress();
+        let gauge = Gauge::default()
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Loading Newsletter Manager")
+                    .border_style(Style::default().fg(self.theme.border_focused)),
+            )
+            .gauge_style(Style::default().fg(self.theme.primary))
+            .percent((progress * 100.0) as u16)
+            .label(format!("{}%", (progress * 100.0) as u16));
+
+        frame.render_widget(gauge, loading_area);
+    }
+
+    fn render_list(&mut self, frame: &mut Frame) {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Header
+                Constraint::Min(1),    // Table
+                Constraint::Length(4), // Status bar with performance info
+            ])
+            .split(frame.size());
+
+        self.render_header(frame, chunks[0]);
+        self.render_table(frame, chunks[1]);
+        self.render_status_bar(frame, chunks[2]);
+    }
+
+    fn render_header(&mut self, frame: &mut Frame, area: Rect) {
+        let header_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(40),
+                Constraint::Percentage(35),
+                Constraint::Percentage(25),
+            ])
+            .split(area);
+
+        // Title and filter with modern styling
+        let title_text = format!("📧 Newsletter Manager - {} Mode", self.filter);
+        let title = Paragraph::new(title_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Blogr Newsletter")
+                    .border_style(Style::default().fg(self.theme.border_focused))
+                    .title_style(
+                        Style::default()
+                            .fg(self.theme.primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .style(Style::default().fg(self.theme.text));
+
+        frame.render_widget(title, header_chunks[0]);
+
+        // Statistics with modern design
+        let (total, pending, approved) = self.get_statistics();
+        let stats_text = vec![
             Line::from(vec![
-                Span::styled("Pending: ", Style::default().fg(Color::Yellow)),
-                Span::raw(pending.to_string()),
-                Span::raw("  "),
-                Span::styled("Approved: ", Style::default().fg(Color::Green)),
-                Span::raw(approved.to_string()),
+                Span::styled("Total: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled(
+                    total.to_string(),
+                    Style::default()
+                        .fg(self.theme.text)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]),
-        ])
+            Line::from(vec![
+                Span::styled("Pending: ", Style::default().fg(self.theme.warning)),
+                Span::styled(
+                    pending.to_string(),
+                    Style::default()
+                        .fg(self.theme.warning)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw("  "),
+                Span::styled("Approved: ", Style::default().fg(self.theme.success)),
+                Span::styled(
+                    approved.to_string(),
+                    Style::default()
+                        .fg(self.theme.success)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
+        ];
+
+        let stats_widget = Paragraph::new(stats_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Statistics")
+                    .border_style(Style::default().fg(self.theme.border))
+                    .title_style(Style::default().fg(self.theme.accent)),
+            )
+            .style(Style::default().fg(self.theme.text));
+
+        frame.render_widget(stats_widget, header_chunks[1]);
+
+        // Performance info
+        let avg_frame_time = self.average_frame_time();
+        let fps = 1000.0 / avg_frame_time.as_millis() as f32;
+        let perf_text = vec![
+            Line::from(vec![
+                Span::styled("FPS: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled(
+                    format!("{:.0}", fps),
+                    Style::default()
+                        .fg(if fps >= 50.0 {
+                            self.theme.success
+                        } else if fps >= 30.0 {
+                            self.theme.warning
+                        } else {
+                            self.theme.danger
+                        })
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Frame: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled(
+                    format!("{:.1}ms", avg_frame_time.as_millis()),
+                    Style::default().fg(self.theme.text_secondary),
+                ),
+            ]),
+        ];
+
+        let perf_widget = Paragraph::new(perf_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Performance")
+                .border_style(Style::default().fg(self.theme.border))
+                .title_style(Style::default().fg(self.theme.secondary)),
+        );
+
+        frame.render_widget(perf_widget, header_chunks[2]);
+    }
+
+    fn render_table(&mut self, frame: &mut Frame, area: Rect) {
+        let header_cells = ["", "Email", "Status", "Subscribed", "Notes"]
+            .iter()
+            .map(|h| {
+                ratatui::widgets::Cell::from(*h).style(
+                    Style::default()
+                        .fg(self.theme.text)
+                        .add_modifier(Modifier::BOLD),
+                )
+            });
+
+        let header = Row::new(header_cells)
+            .style(Style::default().bg(self.theme.surface))
+            .height(1);
+
+        // Get visible rows for current page
+        let start_idx = self.current_page * self.page_size;
+        let end_idx =
+            ((self.current_page + 1) * self.page_size).min(self.filtered_subscribers.len());
+
+        let rows: Vec<Row> = self
+            .filtered_subscribers
+            .iter()
+            .skip(start_idx)
+            .take(end_idx - start_idx)
+            .map(|&subscriber_index| {
+                let subscriber = &self.subscribers[subscriber_index];
+                let is_selected = self.selected.contains(&subscriber_index);
+                let selection_indicator = if is_selected { "●" } else { " " };
+
+                let status_style = match subscriber.status {
+                    SubscriberStatus::Pending => Style::default()
+                        .fg(self.theme.warning)
+                        .add_modifier(Modifier::BOLD),
+                    SubscriberStatus::Approved => Style::default()
+                        .fg(self.theme.success)
+                        .add_modifier(Modifier::BOLD),
+                    SubscriberStatus::Declined => Style::default()
+                        .fg(self.theme.danger)
+                        .add_modifier(Modifier::BOLD),
+                };
+
+                let subscribed_date = subscriber
+                    .subscribed_at
+                    .format("%Y-%m-%d %H:%M")
+                    .to_string();
+
+                let notes = subscriber.notes.as_deref().unwrap_or("-");
+
+                Row::new(vec![
+                    ratatui::widgets::Cell::from(selection_indicator)
+                        .style(Style::default().fg(self.theme.accent)),
+                    ratatui::widgets::Cell::from(subscriber.email.clone())
+                        .style(Style::default().fg(self.theme.text)),
+                    ratatui::widgets::Cell::from(subscriber.status.to_string()).style(status_style),
+                    ratatui::widgets::Cell::from(subscribed_date)
+                        .style(Style::default().fg(self.theme.text_secondary)),
+                    ratatui::widgets::Cell::from(notes)
+                        .style(Style::default().fg(self.theme.text_secondary)),
+                ])
+                .height(1)
+            })
+            .collect();
+
+        let total_pages = self.filtered_subscribers.len().div_ceil(self.page_size);
+        let table_title = format!(
+            "Subscribers ({}/{}) - Page {}/{}",
+            self.filtered_subscribers.len(),
+            self.subscribers.len(),
+            self.current_page + 1,
+            total_pages.max(1)
+        );
+
+        let table = Table::new(rows)
+            .header(header)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(table_title)
+                    .border_style(Style::default().fg(self.theme.border))
+                    .title_style(
+                        Style::default()
+                            .fg(self.theme.primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .widths(&[
+                Constraint::Length(2),  // Selection indicator
+                Constraint::Min(25),    // Email
+                Constraint::Length(10), // Status
+                Constraint::Length(16), // Subscribed date
+                Constraint::Min(10),    // Notes
+            ])
+            .highlight_style(
+                Style::default()
+                    .bg(self.theme.surface)
+                    .fg(self.theme.text)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol("► ");
+
+        frame.render_stateful_widget(table, area, &mut self.table_state);
+    }
+
+    fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
+        let status_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .split(area);
+
+        // Status message or help
+        let status_text = if let Some((ref message, _)) = self.status_message {
+            message.clone()
+        } else {
+            "Press 'h' for help, '/' to search, 'q' to quit".to_string()
+        };
+
+        let status_lines = vec![
+            Line::from(status_text),
+            Line::from(vec![
+                Span::styled(
+                    "Navigation: ",
+                    Style::default().fg(self.theme.text_secondary),
+                ),
+                Span::styled("↑↓/jk", Style::default().fg(self.theme.accent)),
+                Span::raw("  "),
+                Span::styled("Actions: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled("A", Style::default().fg(self.theme.success)),
+                Span::raw("/"),
+                Span::styled("D", Style::default().fg(self.theme.warning)),
+                Span::raw("/"),
+                Span::styled("X", Style::default().fg(self.theme.danger)),
+                Span::raw("  "),
+                Span::styled("Select: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled("Space", Style::default().fg(self.theme.accent)),
+            ]),
+        ];
+
+        let status = Paragraph::new(status_lines)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Status")
+                    .border_style(Style::default().fg(self.theme.border))
+                    .title_style(Style::default().fg(self.theme.secondary)),
+            )
+            .style(Style::default().fg(self.theme.text));
+
+        frame.render_widget(status, status_chunks[0]);
+
+        // Selection info with modern design
+        let selection_text = if self.selected.is_empty() {
+            vec![
+                Line::from("No items selected"),
+                Line::from(vec![
+                    Span::styled("Filter: ", Style::default().fg(self.theme.text_secondary)),
+                    Span::styled(
+                        self.filter.to_string(),
+                        Style::default()
+                            .fg(self.theme.primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                ]),
+            ]
+        } else {
+            vec![
+                Line::from(vec![
+                    Span::styled(
+                        format!("{} ", self.selected.len()),
+                        Style::default()
+                            .fg(self.theme.accent)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw("item(s) selected"),
+                ]),
+                Line::from("Press A/D/X for actions"),
+            ]
+        };
+
+        let selection = Paragraph::new(selection_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Selection")
+                    .border_style(Style::default().fg(self.theme.border))
+                    .title_style(Style::default().fg(self.theme.accent)),
+            )
+            .style(Style::default().fg(self.theme.text));
+
+        frame.render_widget(selection, status_chunks[1]);
+    }
+
+    fn render_search(&self, frame: &mut Frame, area: Rect) {
+        // Search overlay
+        let search_area = centered_rect(60, 20, area);
+        frame.render_widget(Clear, search_area);
+
+        let search_text = vec![
+            Line::from("Search Subscribers"),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("Query: ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled(
+                    &self.search_query,
+                    Style::default()
+                        .fg(self.theme.text)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled("_", Style::default().fg(self.theme.accent)), // Cursor
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("Press ", Style::default().fg(self.theme.text_secondary)),
+                Span::styled("Enter", Style::default().fg(self.theme.accent)),
+                Span::styled(
+                    " to search, ",
+                    Style::default().fg(self.theme.text_secondary),
+                ),
+                Span::styled("Esc", Style::default().fg(self.theme.warning)),
+                Span::styled(" to cancel", Style::default().fg(self.theme.text_secondary)),
+            ]),
+        ];
+
+        let search_popup = Paragraph::new(search_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Search")
+                    .title_alignment(Alignment::Center)
+                    .border_style(Style::default().fg(self.theme.border_focused))
+                    .title_style(
+                        Style::default()
+                            .fg(self.theme.primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .alignment(Alignment::Center);
+
+        frame.render_widget(search_popup, search_area);
+    }
+
+    fn render_help(&self, frame: &mut Frame, area: Rect) {
+        let help_items = vec![
+            (
+                "Navigation",
+                vec![
+                    ("↑/k", "Move up"),
+                    ("↓/j", "Move down"),
+                    ("PgUp/K", "Previous page"),
+                    ("PgDn/J", "Next page"),
+                    ("Home/g", "Go to first"),
+                    ("End/G", "Go to last"),
+                ],
+            ),
+            (
+                "Selection",
+                vec![
+                    ("Space", "Toggle selection"),
+                    ("a", "Select all visible"),
+                    ("Ctrl+A", "Select all"),
+                    ("n/N", "Clear selection"),
+                ],
+            ),
+            (
+                "Actions",
+                vec![
+                    ("A/Enter", "Approve selected"),
+                    ("D", "Decline selected"),
+                    ("X/Del", "Delete selected"),
+                ],
+            ),
+            (
+                "Filters",
+                vec![
+                    ("1", "Show all"),
+                    ("2", "Show pending"),
+                    ("3", "Show approved"),
+                    ("4", "Show declined"),
+                ],
+            ),
+            (
+                "Other",
+                vec![
+                    ("/", "Search"),
+                    ("r/F5", "Refresh"),
+                    ("h/F1", "Show help"),
+                    ("q/Esc", "Quit"),
+                    ("Ctrl+Q", "Force quit"),
+                ],
+            ),
+        ];
+
+        let mut help_lines = vec![
+            Line::from(vec![Span::styled(
+                "Newsletter Subscriber Management Help",
+                Style::default()
+                    .fg(self.theme.primary)
+                    .add_modifier(Modifier::BOLD),
+            )]),
+            Line::from(""),
+        ];
+
+        for (category, items) in help_items {
+            help_lines.push(Line::from(vec![Span::styled(
+                category,
+                Style::default()
+                    .fg(self.theme.accent)
+                    .add_modifier(Modifier::BOLD),
+            )]));
+
+            for (key, description) in items {
+                help_lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(
+                        format!("{:<12}", key),
+                        Style::default().fg(self.theme.warning),
+                    ),
+                    Span::raw(" - "),
+                    Span::styled(description, Style::default().fg(self.theme.text)),
+                ]));
+            }
+            help_lines.push(Line::from(""));
+        }
+
+        help_lines.push(Line::from(vec![Span::styled(
+            "Press any key to return",
+            Style::default()
+                .fg(self.theme.success)
+                .add_modifier(Modifier::ITALIC),
+        )]));
+
+        let help = Paragraph::new(help_lines)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Help")
+                    .title_alignment(Alignment::Center)
+                    .border_style(Style::default().fg(self.theme.border_focused))
+                    .title_style(
+                        Style::default()
+                            .fg(self.theme.primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .wrap(Wrap { trim: true })
+            .alignment(Alignment::Left);
+
+        let popup_area = centered_rect(80, 80, area);
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(help, popup_area);
+    }
+
+    fn render_confirm(&self, frame: &mut Frame, area: Rect) {
+        if let Some(ref action) = self.confirm_action {
+            let (action_text, color, icon) = match action {
+                ConfirmAction::Approve => ("approve", self.theme.success, "✅"),
+                ConfirmAction::Decline => ("decline", self.theme.warning, "⚠️"),
+                ConfirmAction::Delete => ("delete", self.theme.danger, "🗑️"),
+            };
+
+            let count = self.selected.len();
+            let confirm_text = vec![
+                Line::from(""),
+                Line::from(vec![
+                    Span::raw(icon),
+                    Span::raw("  "),
+                    Span::styled(
+                        "Confirm Action",
+                        Style::default()
+                            .fg(self.theme.text)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                ]),
+                Line::from(""),
+                Line::from(vec![
+                    Span::raw("Are you sure you want to "),
+                    Span::styled(
+                        action_text,
+                        Style::default().fg(color).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(format!(" {} subscriber(s)?", count)),
+                ]),
+                Line::from(""),
+                Line::from("This action cannot be undone."),
+                Line::from(""),
+                Line::from(vec![
+                    Span::styled("Press ", Style::default().fg(self.theme.text_secondary)),
+                    Span::styled(
+                        "Y",
+                        Style::default()
+                            .fg(self.theme.success)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        " to confirm, ",
+                        Style::default().fg(self.theme.text_secondary),
+                    ),
+                    Span::styled(
+                        "N",
+                        Style::default()
+                            .fg(self.theme.danger)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(" to cancel", Style::default().fg(self.theme.text_secondary)),
+                ]),
+                Line::from(""),
+            ];
+
+            let confirm = Paragraph::new(confirm_text)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Confirmation Required")
+                        .title_alignment(Alignment::Center)
+                        .border_style(Style::default().fg(color))
+                        .title_style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
+                )
+                .alignment(Alignment::Center);
+
+            let popup_area = centered_rect(60, 40, area);
+            frame.render_widget(Clear, popup_area);
+            frame.render_widget(confirm, popup_area);
+        }
     }
 }
 
-/// Helper function to create a centered rect
+/// Helper function to create a centered rectangle
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)

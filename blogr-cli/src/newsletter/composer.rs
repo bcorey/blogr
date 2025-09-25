@@ -14,6 +14,19 @@ use crate::config::Config;
 use crate::content::Post;
 use crate::generator::markdown;
 
+/// Site context for email templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteContext {
+    pub title: String,
+    pub author: String,
+    pub description: String,
+    pub base_url: String,
+    pub url: String, // Alias for base_url for template compatibility
+    pub email: String,
+    pub language: Option<String>,
+    pub timezone: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Newsletter {
     pub subject: String,
@@ -70,12 +83,35 @@ impl NewsletterComposer {
         })
     }
 
+    /// Create site context for email templates
+    fn create_site_context(&self) -> SiteContext {
+        let email = self
+            .config
+            .newsletter
+            .subscribe_email
+            .as_deref()
+            .unwrap_or(&self.config.blog.author) // Fallback to author name if no email set
+            .to_string();
+
+        SiteContext {
+            title: self.config.blog.title.clone(),
+            author: self.config.blog.author.clone(),
+            description: self.config.blog.description.clone(),
+            base_url: self.config.blog.base_url.clone(),
+            url: self.config.blog.base_url.clone(), // Alias for template compatibility
+            email,
+            language: self.config.blog.language.clone(),
+            timezone: self.config.blog.timezone.clone(),
+        }
+    }
+
     /// Compose newsletter from a blog post
     pub fn compose_from_post(&self, post: &Post) -> Result<Newsletter> {
         let mut context = TeraContext::new();
 
-        // Add site config
-        context.insert("site", &self.config.blog);
+        // Add site config with email support
+        let site_context = self.create_site_context();
+        context.insert("site", &site_context);
 
         // Add post data
         context.insert("post", post);
@@ -119,8 +155,9 @@ impl NewsletterComposer {
     pub fn compose_custom(&self, subject: String, content: String) -> Result<Newsletter> {
         let mut context = TeraContext::new();
 
-        // Add site config
-        context.insert("site", &self.config.blog);
+        // Add site config with email support
+        let site_context = self.create_site_context();
+        context.insert("site", &site_context);
 
         // Convert markdown content to HTML
         let html_content = markdown::render_markdown(&content)?;

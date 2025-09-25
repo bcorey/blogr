@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use std::io::{self, Write};
 
 use crate::newsletter::{
-    ApiConfig, ApprovalApp, MigrationConfig, MigrationManager, MigrationSource,
+    ApiConfig, MigrationConfig, MigrationManager, MigrationSource, ModernApprovalApp,
     NewsletterApiServer, NewsletterManager, PluginManager, SubscriberStatus,
 };
 use crate::project::Project;
@@ -120,7 +120,7 @@ pub async fn handle_fetch_subscribers(interactive: bool) -> Result<()> {
     Ok(())
 }
 
-/// Handle the approve command - launches the TUI approval interface
+/// Handle the approve command - launches the modern TUI approval interface
 pub fn handle_approve() -> Result<()> {
     // Find the current project
     let project = Project::find_project()?
@@ -160,30 +160,60 @@ pub fn handle_approve() -> Result<()> {
         return Ok(());
     }
 
-    // Initialize TUI
+    // Initialize TUI with optimized settings
     let mut tui = tui::init()?;
     tui.init()?;
 
-    // Create approval app
-    let mut app = ApprovalApp::new(database)?;
+    // Create modern approval app
+    let mut app = ModernApprovalApp::new(database)?;
 
-    // Main loop
-    let events = EventHandler::new(250);
+    // Optimized main loop with high refresh rate for smooth animations
+    let events = EventHandler::new(16); // 60fps for buttery smooth experience
+    let mut last_update = std::time::Instant::now();
+
     loop {
-        tui.draw_approval(&mut app)?;
+        // Update animations and state
+        let needs_update = app.update();
 
+        // Only redraw if needed (performance optimization)
+        if app.needs_redraw()
+            || needs_update
+            || last_update.elapsed() > std::time::Duration::from_millis(100)
+        {
+            tui.draw_approval(&mut app)?;
+            last_update = std::time::Instant::now();
+        }
+
+        // Handle events with timeout for responsiveness
         match events.next()? {
-            crate::tui::Event::Tick => {}
-            crate::tui::Event::Key(key_event) => match app.handle_key_event(key_event)? {
-                crate::newsletter::ApprovalResult::Quit => break,
-                crate::newsletter::ApprovalResult::Continue => {}
-                crate::newsletter::ApprovalResult::Error(err) => {
-                    eprintln!("Error: {}", err);
-                    break;
+            crate::tui::Event::Tick => {
+                // Tick events are used for animations
+            }
+            crate::tui::Event::Key(key_event) => {
+                use crate::newsletter::ApprovalResult;
+                match app.handle_key_event(key_event)? {
+                    ApprovalResult::Quit => break,
+                    ApprovalResult::Continue => {}
+                    ApprovalResult::Error(err) => {
+                        eprintln!("Error: {}", err);
+                        break;
+                    }
                 }
-            },
-            crate::tui::Event::Mouse(_) => {}
-            crate::tui::Event::Resize(_, _) => {}
+            }
+            crate::tui::Event::Mouse(_) => {
+                // Mouse events could be handled for future enhancements
+            }
+            crate::tui::Event::Resize(width, height) => {
+                // Handle terminal resize gracefully
+                if width > 0 && height > 0 {
+                    // Force redraw on resize
+                    tui.draw_approval(&mut app)?;
+                }
+            }
+            crate::tui::Event::Redraw => {
+                // Force redraw
+                tui.draw_approval(&mut app)?;
+            }
         }
 
         if !app.running {
@@ -192,6 +222,7 @@ pub fn handle_approve() -> Result<()> {
     }
 
     tui.exit()?;
+    println!("✨ Newsletter approval session completed!");
     Ok(())
 }
 

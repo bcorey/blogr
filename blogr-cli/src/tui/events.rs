@@ -16,7 +16,10 @@ pub enum Event {
     /// Mouse click/scroll.
     Mouse(()),
     /// Terminal resize.
-    Resize((), ()),
+    Resize(u16, u16),
+    /// Force redraw.
+    #[allow(dead_code)]
+    Redraw,
 }
 
 /// Terminal event handler.
@@ -33,9 +36,9 @@ pub struct EventHandler {
 }
 
 impl EventHandler {
-    /// Constructs a new instance of [`EventHandler`].
+    /// Constructs a new instance of [`EventHandler`] with optimized settings.
     pub fn new(tick_rate: u64) -> Self {
-        let tick_rate = Duration::from_millis(tick_rate);
+        let tick_rate = Duration::from_millis(tick_rate.max(16)); // Minimum 60fps
         let (sender, receiver) = mpsc::channel();
         let handler = {
             let sender = sender.clone();
@@ -58,8 +61,8 @@ impl EventHandler {
                                     return;
                                 }
                             }
-                            CrosstermEvent::Resize(_w, _h) => {
-                                if sender.send(Event::Resize((), ())).is_err() {
+                            CrosstermEvent::Resize(w, h) => {
+                                if sender.send(Event::Resize(w, h)).is_err() {
                                     return;
                                 }
                             }

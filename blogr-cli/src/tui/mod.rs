@@ -78,7 +78,7 @@ impl<B: Backend> Tui<B> {
     /// Draw the newsletter approval app
     pub fn draw_approval(
         &mut self,
-        approval_app: &mut crate::newsletter::ApprovalApp,
+        approval_app: &mut crate::newsletter::ModernApprovalApp,
     ) -> AppResult<()> {
         self.terminal.draw(|frame| approval_app.render(frame))?;
         Ok(())
