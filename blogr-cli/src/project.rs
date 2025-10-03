@@ -55,6 +55,47 @@ impl Project {
         github_username: Option<String>,
         github_repo: Option<String>,
     ) -> Result<Self> {
+        Self::init_with_type(
+            path,
+            name,
+            author,
+            description,
+            github_username,
+            github_repo,
+            false,
+        )
+    }
+
+    /// Initialize a new personal website in the given directory
+    pub fn init_personal<P: AsRef<Path>>(
+        path: P,
+        name: String,
+        author: String,
+        description: String,
+        github_username: Option<String>,
+        github_repo: Option<String>,
+    ) -> Result<Self> {
+        Self::init_with_type(
+            path,
+            name,
+            author,
+            description,
+            github_username,
+            github_repo,
+            true,
+        )
+    }
+
+    /// Internal initialization function
+    fn init_with_type<P: AsRef<Path>>(
+        path: P,
+        name: String,
+        author: String,
+        description: String,
+        github_username: Option<String>,
+        github_repo: Option<String>,
+        is_personal: bool,
+    ) -> Result<Self> {
         let project_path = path.as_ref().to_path_buf().join(&name);
 
         // Create project directory if it doesn't exist
@@ -78,11 +119,14 @@ impl Project {
         }
 
         // Create project structure
-        Self::create_directory_structure(&project_path)?;
+        Self::create_directory_structure(&project_path, is_personal)?;
 
         // Create configuration
-        let config =
-            Config::new_with_defaults(name, author, description, github_username, github_repo);
+        let config = if is_personal {
+            Config::new_personal(name, author, description, github_username, github_repo)
+        } else {
+            Config::new_with_defaults(name, author, description, github_username, github_repo)
+        };
 
         // Validate configuration
         config.validate()?;
@@ -92,7 +136,11 @@ impl Project {
         config.save_to_file(&config_path)?;
 
         // Create sample files
-        Self::create_sample_files(&project_path, &config)?;
+        if is_personal {
+            Self::create_personal_files(&project_path, &config)?;
+        } else {
+            Self::create_sample_files(&project_path, &config)?;
+        }
 
         // Create GitHub Actions workflow if GitHub integration is enabled
         if config.github.is_some() {
@@ -103,9 +151,8 @@ impl Project {
     }
 
     /// Create the basic directory structure for a new project
-    fn create_directory_structure(project_path: &Path) -> Result<()> {
-        let dirs = [
-            "posts",
+    fn create_directory_structure(project_path: &Path, is_personal: bool) -> Result<()> {
+        let base_dirs = [
             "themes",
             "static",
             "static/images",
@@ -114,10 +161,17 @@ impl Project {
             ".blogr",
         ];
 
-        for dir in dirs {
+        for dir in base_dirs {
             let dir_path = project_path.join(dir);
             fs::create_dir_all(&dir_path)
                 .with_context(|| format!("Failed to create directory: {}", dir_path.display()))?;
+        }
+
+        // Only create posts directory for blog mode
+        if !is_personal {
+            let posts_dir = project_path.join("posts");
+            fs::create_dir_all(&posts_dir)
+                .with_context(|| format!("Failed to create directory: {}", posts_dir.display()))?;
         }
 
         Ok(())
@@ -157,6 +211,55 @@ impl Project {
             .replace("{date}", &chrono::Utc::now().format("%Y-%m-%d").to_string());
         fs::write(project_path.join("posts/about.md"), about_content)
             .with_context(|| "Failed to create about page")?;
+
+        Ok(())
+    }
+
+    /// Create sample files for a personal website
+    fn create_personal_files(project_path: &Path, config: &Config) -> Result<()> {
+        // Create .gitignore
+        let gitignore_content = include_str!("../templates/gitignore.template");
+        fs::write(project_path.join(".gitignore"), gitignore_content)
+            .with_context(|| "Failed to create .gitignore file")?;
+
+        // Create README.md
+        let readme_template = include_str!("../templates/readme.template");
+        let readme_content = readme_template
+            .replace("{title}", &config.blog.title)
+            .replace("{description}", &config.blog.description)
+            .replace("{author}", &config.blog.author);
+        fs::write(project_path.join("README.md"), readme_content)
+            .with_context(|| "Failed to create README.md file")?;
+
+        // Create content.md for personal info
+        let content_md = format!(
+            r#"# {}
+
+Welcome to my personal website!
+
+## About Me
+
+I'm {}, {}
+
+## What I Do
+
+- 💻 Developer
+- 🎨 Designer
+- 🚀 Creator
+
+## Get In Touch
+
+Feel free to reach out if you'd like to collaborate or just say hello!
+
+- Email: hello@example.com
+- GitHub: https://github.com/username
+- Twitter: @username
+"#,
+            config.blog.title, config.blog.author, config.blog.description
+        );
+
+        fs::write(project_path.join("content.md"), content_md)
+            .with_context(|| "Failed to create content.md file")?;
 
         Ok(())
     }
@@ -213,15 +316,25 @@ impl Project {
     pub fn validate(&self) -> Result<Vec<String>> {
         let mut issues = Vec::new();
 
-        // Check required directories
-        let required_dirs = [("posts", self.posts_dir()), ("static", self.static_dir())];
+        // Check required directories based on site type
+        let is_personal = self.config.site.site_type == "personal";
 
-        for (name, path) in required_dirs {
-            if !path.exists() {
-                issues.push(format!("Missing required directory: {}", name));
-            } else if !path.is_dir() {
-                issues.push(format!("{} exists but is not a directory", name));
+        if !is_personal {
+            // For blogs, require posts directory
+            let posts_dir = self.posts_dir();
+            if !posts_dir.exists() {
+                issues.push("Missing required directory: posts".to_string());
+            } else if !posts_dir.is_dir() {
+                issues.push("posts exists but is not a directory".to_string());
             }
+        }
+
+        // Static directory is required for all site types
+        let static_dir = self.static_dir();
+        if !static_dir.exists() {
+            issues.push("Missing required directory: static".to_string());
+        } else if !static_dir.is_dir() {
+            issues.push("static exists but is not a directory".to_string());
         }
 
         // Check config file

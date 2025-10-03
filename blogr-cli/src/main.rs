@@ -41,6 +41,9 @@ enum Commands {
         /// Skip GitHub repository creation
         #[arg(long)]
         no_github: bool,
+        /// Initialize as a personal website (no blog posts)
+        #[arg(long)]
+        personal: bool,
     },
     /// Create a new blog post
     New {
@@ -395,7 +398,18 @@ async fn main() -> Result<()> {
             github_username,
             github_repo,
             no_github,
-        } => init::handle_init(name, path, github_username, github_repo, no_github).await,
+            personal,
+        } => {
+            init::handle_init(
+                name,
+                path,
+                github_username,
+                github_repo,
+                no_github,
+                personal,
+            )
+            .await
+        }
         Commands::New {
             title,
             template,

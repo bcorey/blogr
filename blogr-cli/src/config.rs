@@ -29,6 +29,27 @@ pub struct Config {
     pub search: SearchConfig,
     #[serde(default)]
     pub newsletter: NewsletterConfig,
+    #[serde(default)]
+    pub site: SiteConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteConfig {
+    /// Type of site: "blog" or "personal"
+    #[serde(default = "default_site_type")]
+    pub site_type: String,
+}
+
+fn default_site_type() -> String {
+    "blog".to_string()
+}
+
+impl Default for SiteConfig {
+    fn default() -> Self {
+        Self {
+            site_type: default_site_type(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -286,6 +307,7 @@ impl Default for Config {
             dev: DevConfig::default(),
             search: SearchConfig::default(),
             newsletter: NewsletterConfig::default(),
+            site: SiteConfig::default(),
         }
     }
 }
@@ -337,6 +359,21 @@ impl Config {
             });
         }
 
+        config
+    }
+
+    /// Create personal website configuration
+    pub fn new_personal(
+        title: String,
+        author: String,
+        description: String,
+        github_username: Option<String>,
+        github_repo: Option<String>,
+    ) -> Self {
+        let mut config =
+            Self::new_with_defaults(title, author, description, github_username, github_repo);
+        config.site.site_type = "personal".to_string();
+        config.theme.name = "dark-minimal".to_string();
         config
     }
 

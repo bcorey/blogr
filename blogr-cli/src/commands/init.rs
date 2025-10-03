@@ -12,8 +12,13 @@ pub async fn handle_init(
     github_username: Option<String>,
     github_repo: Option<String>,
     no_github: bool,
+    personal: bool,
 ) -> Result<()> {
-    Console::info("Initializing new Blogr project...");
+    if personal {
+        Console::info("Initializing new personal website...");
+    } else {
+        Console::info("Initializing new Blogr project...");
+    }
     println!();
 
     // Determine project path
@@ -56,13 +61,21 @@ pub async fn handle_init(
 
     // Get description
     let description = {
-        print!("Blog description: ");
+        if personal {
+            print!("Website description: ");
+        } else {
+            print!("Blog description: ");
+        }
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
         if input.is_empty() {
-            format!("A blog by {author}")
+            if personal {
+                format!("Personal website of {author}")
+            } else {
+                format!("A blog by {author}")
+            }
         } else {
             input.to_string()
         }
@@ -143,15 +156,27 @@ pub async fn handle_init(
     Console::step(1, 5, "Creating project structure...");
 
     // Initialize the project
-    let project = Project::init(
-        &project_path,
-        project_name.clone(),
-        author.clone(),
-        description.clone(),
-        final_github_username.clone(),
-        final_github_repo.clone(),
-    )
-    .with_context(|| "Failed to initialize project")?;
+    let project = if personal {
+        Project::init_personal(
+            &project_path,
+            project_name.clone(),
+            author.clone(),
+            description.clone(),
+            final_github_username.clone(),
+            final_github_repo.clone(),
+        )
+        .with_context(|| "Failed to initialize personal website")?
+    } else {
+        Project::init(
+            &project_path,
+            project_name.clone(),
+            author.clone(),
+            description.clone(),
+            final_github_username.clone(),
+            final_github_repo.clone(),
+        )
+        .with_context(|| "Failed to initialize project")?
+    };
 
     Console::step(2, 5, "Initializing Git repository...");
 
@@ -175,8 +200,12 @@ pub async fn handle_init(
 
     Console::step(3, 5, "Setting up theme...");
 
-    // Theme is already set up in project initialization (minimal-retro by default)
-    Console::success("Minimal Retro theme configured");
+    // Theme is already set up in project initialization
+    if personal {
+        Console::success("Dark Minimal theme configured");
+    } else {
+        Console::success("Minimal Retro theme configured");
+    }
 
     // GitHub repository creation
     if let (Some(username), Some(repo)) = (&final_github_username, &final_github_repo) {
@@ -226,7 +255,13 @@ pub async fn handle_init(
     }
 
     println!();
-    Console::success(&format!("🎉 Successfully initialized '{project_name}'!"));
+    if personal {
+        Console::success(&format!(
+            "🎉 Successfully initialized personal website '{project_name}'!"
+        ));
+    } else {
+        Console::success(&format!("🎉 Successfully initialized '{project_name}'!"));
+    }
     println!();
 
     // Show next steps
@@ -235,8 +270,13 @@ pub async fn handle_init(
     println!("🚀 Next steps:");
     println!("  1. cd {}", project.root.display());
     println!("  2. blogr serve          # Start development server");
-    println!("  3. blogr new \"My Post\" # Create your first post");
-    println!("  4. blogr build          # Build the static site");
+    if !personal {
+        println!("  3. blogr new \"My Post\" # Create your first post");
+        println!("  4. blogr build          # Build the static site");
+    } else {
+        println!("  3. Edit blogr.toml      # Customize your website");
+        println!("  4. blogr build          # Build the static site");
+    }
     println!();
 
     if let (Some(username), Some(repo)) = (&final_github_username, &final_github_repo) {

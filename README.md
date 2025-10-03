@@ -8,6 +8,12 @@ A fast, lightweight static site generator built in Rust for creating and managin
 
 ## Features
 
+**Two Site Types**
+- **Blog Mode**: Traditional blog with posts, archives, tags, and RSS feeds
+- **Personal Mode**: Portfolio/personal website without blog functionality
+- Single command initialization for either type
+- Theme-specific optimizations for each mode
+
 **Content Creation**
 - Write posts in Markdown with YAML frontmatter
 - Built-in terminal editor with live preview
@@ -17,10 +23,10 @@ A fast, lightweight static site generator built in Rust for creating and managin
 
 **Site Generation**
 - Fast static site builds
-- Multiple themes: Minimal Retro and Obsidian (supports community themes)
+- Multiple themes: Minimal Retro, Obsidian, Terminal Candy, and Dark Minimal
 - Full-text search with MiniSearch integration
 - Syntax highlighting for code blocks
-- RSS/Atom feeds
+- RSS/Atom feeds (blog mode)
 - SEO-friendly output
 
 **Development**
@@ -65,10 +71,15 @@ cargo install blogr-cli
 
 ## Quick Start
 
-**1. Create a new blog**
+**1. Create a new blog or personal website**
 ```bash
+# For a traditional blog
 blogr init my-blog
 cd my-blog
+
+# For a personal website (no blog posts)
+blogr init --personal my-portfolio
+cd my-portfolio
 ```
 
 **2. Set up GitHub token** (for deployment)
@@ -105,7 +116,12 @@ blogr deploy
 **Project Management**
 ```bash
 blogr init [NAME]           # Create new blog
-blogr project info          # Show project details  
+blogr init --personal [NAME] # Create personal website (no blog)
+  --github-username USER    # Set GitHub username
+  --github-repo REPO        # Set repository name
+  --no-github               # Skip GitHub setup
+
+blogr project info          # Show project details
 blogr project check         # Validate project
 blogr project clean         # Clean build files
 ```
@@ -216,7 +232,7 @@ my-blog/
 
 ## Configuration
 
-Edit `blogr.toml` to configure your blog:
+Edit `blogr.toml` to configure your site:
 
 ```toml
 [blog]
@@ -226,7 +242,15 @@ description = "My thoughts and ideas"
 base_url = "https://yourusername.github.io/blog"
 
 [theme]
-name = "minimal-retro"
+name = "minimal-retro"  # or "dark-minimal" for personal sites
+
+[theme.config]
+# Dark Minimal theme options (for personal sites)
+show_status_bar = true
+status_text = "Available for opportunities"
+status_color = "#00ff88"
+enable_animations = true
+show_social_icons = true
 
 [github]
 username = "yourusername"
@@ -234,6 +258,9 @@ repository = "blog"
 
 [build]
 output_dir = "dist"
+
+[site]
+site_type = "blog"  # or "personal" for portfolio sites
 
 [search]
 enabled = true
@@ -399,7 +426,11 @@ Search UI can be customized by modifying theme templates:
 
 ## Themes
 
-**Minimal Retro** (default)
+Blogr comes with multiple built-in themes, each designed for different purposes:
+
+### Available Themes
+
+**Minimal Retro** (default for blogs)
 - Clean, artistic design
 - Retro color scheme
 - Expandable post previews
@@ -413,18 +444,91 @@ Search UI can be customized by modifying theme templates:
 - Callouts, backlinks, and embedded content
 - Dark/light mode with system detection
 
-**Theme Commands**
+**Terminal Candy** (quirky personal sites)
+- Terminal-inspired design with pastel colors
+- Glitch effects and playful animations
+- ASCII art decorations
+- Typewriter animations
+- Perfect for creative personal websites
+
+**Dark Minimal** (default for personal sites)
+- Dark minimalist-maximalist aesthetic
+- Cyberpunk/brutalist design
+- Neon accent colors (green, magenta, cyan)
+- Animated grid background
+- Auto-glitching gradient text
+- Geometric shapes and clip-paths
+- Dramatic shadows and hover effects
+- Customizable status bar
+- Perfect for portfolios and personal brands
+
+### Theme Commands
 ```bash
 blogr theme list              # Show available themes
 blogr theme set minimal-retro # Switch to Minimal Retro theme
 blogr theme set obsidian      # Switch to Obsidian theme
-blogr theme info obsidian     # Show theme configuration options
+blogr theme set terminal-candy # Switch to Terminal Candy theme
+blogr theme set dark-minimal  # Switch to Dark Minimal theme
+blogr theme info dark-minimal # Show theme configuration options
 ```
 
-**Available Themes:**
+### Dark Minimal Theme Configuration
 
-- **Minimal Retro** - Clean, artistic design with retro aesthetics
-- **Obsidian** - Adopts Obsidian community themes for familiar note-taking styling
+The Dark Minimal theme includes extensive customization options:
+
+```toml
+[theme]
+name = "dark-minimal"
+
+[theme.config]
+# Colors
+primary_color = "#00ff88"           # Neon green accent
+secondary_color = "#ff00ff"         # Magenta accent
+accent_color = "#00d4ff"            # Cyan accent
+background_color = "#0a0a0a"        # Pure dark background
+text_color = "#e0e0e0"              # Soft white text
+
+# Typography
+font_family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+
+# Features
+enable_animations = true            # Smooth animations
+show_social_icons = true            # Display social media links
+
+# Status Bar (customizable availability indicator)
+show_status_bar = true              # Show/hide status bar
+status_text = "Available for opportunities"  # Custom text
+status_color = "#00ff88"            # Dot color (any hex code)
+```
+
+**Status Bar Examples:**
+```toml
+# Available for work
+status_text = "Available for hire"
+status_color = "#00ff88"  # Green
+
+# Currently busy
+status_text = "Currently working on exciting projects"
+status_color = "#00d4ff"  # Cyan
+
+# Not available
+status_text = "Not accepting new projects"
+status_color = "#ff4444"  # Red
+
+# Custom message
+status_text = "Building cool stuff"
+status_color = "#ff00ff"  # Magenta
+
+# Hide status bar
+show_status_bar = false
+```
+
+### Available Themes:
+
+- **Minimal Retro** - Clean, artistic design with retro aesthetics (for blogs)
+- **Obsidian** - Adopts Obsidian community themes for familiar note-taking styling (for blogs)
+- **Terminal Candy** - Quirky terminal-inspired theme with pastel colors (for personal sites)
+- **Dark Minimal** - Dark minimalist-maximalist with cyberpunk aesthetics (for personal sites)
 
 **Obsidian Theme Setup**
 

@@ -221,47 +221,55 @@ Thank you!`);
         // Clean output directory
         self.clean_output_dir()?;
 
-        // Load all posts
-        let post_manager = PostManager::new(self.project.posts_dir());
-        let mut all_posts = post_manager.load_all_posts()?;
+        let is_personal = self.config.site.site_type == "personal";
 
-        // Filter posts based on build options
-        all_posts.retain(|post| self.should_include_post(post));
+        if is_personal {
+            // Personal website - just generate the index page
+            self.generate_personal_index()?;
+        } else {
+            // Blog mode - generate all blog pages
+            // Load all posts
+            let post_manager = PostManager::new(self.project.posts_dir());
+            let mut all_posts = post_manager.load_all_posts()?;
 
-        // Sort posts by date (newest first)
-        all_posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+            // Filter posts based on build options
+            all_posts.retain(|post| self.should_include_post(post));
 
-        println!("📝 Processing {} posts", all_posts.len());
+            // Sort posts by date (newest first)
+            all_posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
 
-        // Generate individual post pages
-        self.generate_post_pages(&all_posts)?;
+            println!("📝 Processing {} posts", all_posts.len());
 
-        // Generate index page
-        self.generate_index_page(&all_posts)?;
+            // Generate individual post pages
+            self.generate_post_pages(&all_posts)?;
 
-        // Generate archive pages
-        self.generate_archive_pages(&all_posts)?;
+            // Generate index page
+            self.generate_index_page(&all_posts)?;
 
-        // Generate tag pages
-        self.generate_tag_pages(&all_posts)?;
+            // Generate archive pages
+            self.generate_archive_pages(&all_posts)?;
 
-        // Generate RSS feed
-        self.generate_rss_feed(&all_posts)?;
+            // Generate tag pages
+            self.generate_tag_pages(&all_posts)?;
 
-        // Generate static JSON files for pagination
-        self.generate_posts_json(&all_posts)?;
+            // Generate RSS feed
+            self.generate_rss_feed(&all_posts)?;
 
-        // Generate search index
-        self.generate_search_index(&all_posts)?;
+            // Generate static JSON files for pagination
+            self.generate_posts_json(&all_posts)?;
 
-        // Copy theme assets
+            // Generate search index
+            self.generate_search_index(&all_posts)?;
+
+            // Copy built-in search assets
+            self.copy_search_assets()?;
+        }
+
+        // Copy theme assets (both blog and personal)
         self.copy_theme_assets()?;
 
-        // Copy project static assets
+        // Copy project static assets (both blog and personal)
         self.copy_static_assets()?;
-
-        // Copy built-in search assets
-        self.copy_search_assets()?;
 
         // Generate CNAME file if domain configuration exists
         self.generate_cname_file()?;
@@ -339,6 +347,38 @@ Thank you!`);
             let post_file = post_dir.join(format!("{}.html", post.metadata.slug));
             fs::write(&post_file, html).map_err(|e| anyhow!("Failed to write post file: {}", e))?;
         }
+        Ok(())
+    }
+
+    /// Generate personal website index page
+    fn generate_personal_index(&self) -> Result<()> {
+        let mut context = Context::new();
+
+        // Add site config with all necessary fields
+        context.insert("blog_title", &self.config.blog.title);
+        context.insert("blog_description", &self.config.blog.description);
+        context.insert("author", &self.config.blog.author);
+        context.insert("base_url", &self.config.get_effective_base_url());
+        context.insert(
+            "language",
+            &self.config.blog.language.as_deref().unwrap_or("en"),
+        );
+        context.insert("site", &self.config);
+        context.insert("theme_config", &self.config.theme.config);
+
+        // Add current year
+        context.insert("current_year", &Utc::now().year());
+
+        // Render template
+        let html = self
+            .tera
+            .render("index.html", &context)
+            .map_err(|e| anyhow!("Failed to render personal index template: {}", e))?;
+
+        // Write to file
+        let index_file = self.output_dir.join("index.html");
+        fs::write(&index_file, html).map_err(|e| anyhow!("Failed to write index file: {}", e))?;
+
         Ok(())
     }
 
