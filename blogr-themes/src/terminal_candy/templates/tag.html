@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tag }} - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Posts tagged with {{ tag }} on {{ site.blog.title }}">
+{% endblock %}
+
+{% block content %}
+<div class="tag-page">
+    <header style="margin-bottom: var(--spacing-xl);">
+        <h1 style="font-size: 2rem; color: var(--color-pink); margin-bottom: var(--spacing-xs);">
+            <span style="color: var(--color-mint);">#</span>{{ tag }}
+        </h1>
+        <p style="color: var(--color-text-dim);">
+            {{ posts | length }} {% if posts | length == 1 %}post{% else %}posts{% endif %} tagged
+        </p>
+    </header>
+
+    {% if posts %}
+    <div class="post-list">
+        {% for post in posts %}
+        <article class="post-item">
+            <h2 class="post-title">
+                <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title }}</a>
+            </h2>
+
+            <div class="post-meta">
+                {{ post.metadata.date | date(format="%Y-%m-%d") }}
+                {% if post.metadata.author %}
+                | by {{ post.metadata.author }}
+                {% endif %}
+            </div>
+
+            {% if post.metadata.description %}
+            <p class="post-excerpt">{{ post.metadata.description }}</p>
+            {% endif %}
+
+            {% if post.metadata.tags and post.metadata.tags | length > 1 %}
+            <div class="post-tags">
+                <span style="color: var(--color-text-dim); font-size: 0.85rem;">other tags:</span>
+                {% for post_tag in post.metadata.tags %}
+                    {% if post_tag != tag %}
+                    <a href="{{ url(path='tags/' ~ post_tag ~ '.html') | safe }}" class="tag">{{ post_tag }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <pre class="ascii-art">
+ _   _       _____
+| \ | | ___ |_   _|_ _  __ _ ___
+|  \| |/ _ \  | |/ _` |/ _` / __|
+| |\  | (_) | | | (_| | (_| \__ \
+|_| \_|\___/  |_|\__,_|\__, |___/
+                       |___/
+        </pre>
+        <p style="text-align: center; color: var(--color-text-dim); margin-top: var(--spacing-md);">
+            No posts found with this tag yet.
+        </p>
+    </div>
+    {% endif %}
+
+    <nav style="margin-top: var(--spacing-xl); padding-top: var(--spacing-lg); border-top: var(--border-width) solid var(--color-mint);">
+        <a href="{{ url(path='') | safe }}"
+           style="color: var(--color-mint); text-decoration: none; border: var(--border-width) solid var(--color-mint); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); display: inline-block;">
+            ← all posts
+        </a>
+        <a href="{{ url(path='tags') | safe }}"
+           style="color: var(--color-lavender); text-decoration: none; border: var(--border-width) solid var(--color-lavender); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); display: inline-block; margin-left: var(--spacing-sm);">
+            all tags
+        </a>
+    </nav>
+</div>
+{% endblock %}

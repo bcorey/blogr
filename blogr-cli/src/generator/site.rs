@@ -327,10 +327,10 @@ Thank you!`);
             context.insert("reading_time", &reading_time);
 
             // Render template
-            let html = self
-                .tera
-                .render("post.html", &context)
-                .map_err(|e| anyhow!("Failed to render post template: {}", e))?;
+            let html = self.tera.render("post.html", &context).map_err(|e| {
+                eprintln!("Full Tera error: {:?}", e);
+                anyhow!("Failed to render post template: {}", e)
+            })?;
 
             // Write to file
             let post_dir = self.output_dir.join("posts");

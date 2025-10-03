@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.metadata.title }} - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ post.metadata.description }}">
+<meta name="author" content="{{ post.metadata.author }}">
+{% endblock %}
+
+{% block content %}
+<article>
+    <header>
+        <h1>{{ post.metadata.title }}</h1>
+
+        <div class="post-meta">
+            {{ post.metadata.date | date(format="%Y-%m-%d") }}
+            {% if post.metadata.author %}
+            | by {{ post.metadata.author }}
+            {% endif %}
+            {% if reading_time %}
+            | {{ reading_time }} min read
+            {% endif %}
+        </div>
+
+        {% if post.metadata.description %}
+        <p style="color: var(--color-text-dim); margin: var(--spacing-md) 0; font-style: italic;">
+            {{ post.metadata.description }}
+        </p>
+        {% endif %}
+
+        {% if post.metadata.tags %}
+        <div class="post-tags">
+            {% for tag in post.metadata.tags %}
+            <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- ASCII Art Divider -->
+    <div class="ascii-art">
+┌────────────────────────────────────────────────────────────────┐
+    </div>
+
+    <div class="post-content">
+        {{ content | safe }}
+    </div>
+
+    <!-- ASCII Art Divider -->
+    <div class="ascii-art">
+└────────────────────────────────────────────────────────────────┘
+    </div>
+
+    <footer>
+        <nav style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--spacing-md); margin-top: var(--spacing-lg);">
+            <a href="{{ url(path='') | safe }}" style="color: var(--color-mint); text-decoration: none; border: var(--border-width) solid var(--color-mint); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); display: inline-block;">
+                ← back to home
+            </a>
+
+            {% if post.metadata.tags %}
+            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; flex: 1; min-width: 200px;">
+                <span style="color: var(--color-text-dim); white-space: nowrap;">explore:</span>
+                <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                    {% for tag in post.metadata.tags %}
+                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">{{ tag }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </nav>
+    </footer>
+</article>
+{% endblock %}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#0D1117">
+    <title>{% block title %}{{ site.blog.title }}{% endblock %}</title>
+
+    {% block meta %}
+    <meta name="description" content="{{ site.blog.description }}">
+    <meta name="author" content="{{ site.blog.author }}">
+    {% endblock %}
+
+    <!-- Monospace Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ asset_url(path='css/style.css') | safe }}">
+
+    <meta name="blogr-base" content="{{ url(path='') | safe }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- Terminal-style header -->
+        <header>
+            <h1 class="site-title">
+                <a href="{{ url(path='') | safe }}">{{ site.blog.title }}</a>
+            </h1>
+            {% if site.blog.description %}
+            <p class="site-description">{{ site.blog.description }}</p>
+            {% endif %}
+
+            <!-- Navigation -->
+            <nav>
+                <ul>
+                    <li><a href="{{ url(path='') | safe }}">home</a></li>
+                    <li><a href="{{ url(path='archive') | safe }}">archive</a></li>
+                    <li><a href="{{ url(path='tags') | safe }}">tags</a></li>
+                </ul>
+            </nav>
+
+            <!-- Search form -->
+            <div class="search-container">
+                <form id="search-form" role="search">
+                    <input
+                        id="search-input"
+                        class="search-input"
+                        name="q"
+                        type="search"
+                        placeholder="$ search --posts"
+                        autocomplete="off"
+                        aria-label="Search posts"
+                    />
+                    <div id="search-results" class="search-results" hidden></div>
+                </form>
+            </div>
+        </header>
+
+        <!-- ASCII Art Divider -->
+        <div class="ascii-art">
+╔════════════════════════════════════════════════════════════════╗
+        </div>
+
+        <!-- Main content area -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- ASCII Art Divider -->
+        <div class="ascii-art">
+╚════════════════════════════════════════════════════════════════╝
+        </div>
+
+        <!-- Terminal-style footer -->
+        <footer>
+            <p>{{ site.blog.author }} © 2025</p>
+            <p>
+                {% if site.github %}
+                <a href="https://github.com/{{ site.github.username }}/{{ site.github.repository }}"
+                   target="_blank" rel="noopener">github</a>
+                <span> · </span>
+                {% endif %}
+                powered by <a href="https://github.com/bahdotsh/blogr" target="_blank" rel="noopener">blogr</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Search functionality -->
+    <script src="{{ url(path='js/vendor/minisearch.min.js') | safe }}"></script>
+    <script src="{{ url(path='js/search.js') | safe }}"></script>
+
+    <!-- Terminal Candy Animations -->
+    <script>
+        // Typewriter effect for site description
+        document.addEventListener('DOMContentLoaded', function() {
+            const description = document.querySelector('.site-description');
+            if (description && description.textContent) {
+                const text = description.textContent;
+                description.textContent = '';
+                description.classList.add('typewriter');
+
+                let i = 0;
+                function typeWriter() {
+                    if (i < text.length) {
+                        description.textContent += text.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 50);
+                    } else {
+                        description.style.borderRight = 'none';
+                    }
+                }
+                setTimeout(typeWriter, 500);
+            }
+
+            // Add glitch effect to post titles on hover
+            const postLinks = document.querySelectorAll('.post-title a');
+            postLinks.forEach(link => {
+                link.addEventListener('mouseenter', function() {
+                    this.style.animation = 'glitch 0.3s ease';
+                });
+                link.addEventListener('animationend', function() {
+                    this.style.animation = '';
+                });
+            });
+
+            // Keyboard shortcut for search (/)
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    document.getElementById('search-input').focus();
+                }
+            });
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

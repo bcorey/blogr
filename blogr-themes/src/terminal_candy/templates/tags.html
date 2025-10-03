@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Tags - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Browse all tags on {{ site.blog.title }}">
+{% endblock %}
+
+{% block content %}
+<div class="tags-page">
+    <header style="margin-bottom: var(--spacing-xl);">
+        <h1 style="font-size: 2rem; color: var(--color-pink); margin-bottom: var(--spacing-xs);">
+            <span style="color: var(--color-mint);">$ grep</span> --tags
+        </h1>
+        <p style="color: var(--color-text-dim);">Browse posts by tag</p>
+    </header>
+
+    {% if tags %}
+        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
+            {% for tag_info in tags %}
+            <a href="{{ url(path='tags/' ~ tag_info.0 ~ '.html') | safe }}"
+               style="background-color: transparent; border: var(--border-width) solid var(--color-cyan); color: var(--color-cyan); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--border-radius); text-decoration: none; font-size: 1rem; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem;"
+               onmouseover="this.style.backgroundColor='var(--color-cyan)'; this.style.color='var(--color-bg)'; this.style.transform='translateY(-2px)';"
+               onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--color-cyan)'; this.style.transform='translateY(0)';">
+                <span style="color: inherit;">#{{ tag_info.0 }}</span>
+                <span style="font-size: 0.85rem; opacity: 0.7;">({{ tag_info.1 }})</span>
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <pre class="ascii-art">
+ _   _       _____
+| \ | | ___ |_   _|_ _  __ _ ___
+|  \| |/ _ \  | |/ _` |/ _` / __|
+| |\  | (_) | | | (_| | (_| \__ \
+|_| \_|\___/  |_|\__,_|\__, |___/
+                       |___/
+            </pre>
+            <p style="text-align: center; color: var(--color-text-dim); margin-top: var(--spacing-md);">
+                No tags found. Start tagging your posts!
+            </p>
+        </div>
+    {% endif %}
+
+    <nav style="margin-top: var(--spacing-xl); padding-top: var(--spacing-lg); border-top: var(--border-width) solid var(--color-mint);">
+        <a href="{{ url(path='') | safe }}"
+           style="color: var(--color-mint); text-decoration: none; border: var(--border-width) solid var(--color-mint); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); display: inline-block;">
+            ← home
+        </a>
+        <a href="{{ url(path='archive') | safe }}"
+           style="color: var(--color-lavender); text-decoration: none; border: var(--border-width) solid var(--color-lavender); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); display: inline-block; margin-left: var(--spacing-sm);">
+            archive →
+        </a>
+    </nav>
+</div>
+{% endblock %}

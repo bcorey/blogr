@@ -3,9 +3,11 @@ use std::collections::HashMap;
 
 pub mod minimal_retro;
 pub mod obsidian;
+pub mod terminal_candy;
 
 pub use minimal_retro::MinimalRetroTheme;
 pub use obsidian::ObsidianTheme;
+pub use terminal_candy::TerminalCandyTheme;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeInfo {
@@ -40,6 +42,9 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
     let obsidian = ObsidianTheme::new();
     themes.insert("obsidian".to_string(), Box::new(obsidian));
 
+    let terminal_candy = TerminalCandyTheme::new();
+    themes.insert("terminal-candy".to_string(), Box::new(terminal_candy));
+
     themes
 }
 
@@ -48,6 +53,7 @@ pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
     match name {
         "minimal-retro" => Some(Box::new(MinimalRetroTheme::new()) as Box<dyn Theme>),
         "obsidian" => Some(Box::new(ObsidianTheme::new()) as Box<dyn Theme>),
+        "terminal-candy" => Some(Box::new(TerminalCandyTheme::new()) as Box<dyn Theme>),
         _ => None,
     }
 }

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Archive - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Archive of all posts from {{ site.blog.title }}">
+{% endblock %}
+
+{% block content %}
+<div class="archive-page">
+    <header style="margin-bottom: var(--spacing-xl);">
+        <h1 style="font-size: 2rem; color: var(--color-pink); margin-bottom: var(--spacing-xs);">
+            <span style="color: var(--color-mint);">$ ls</span> --all-posts
+        </h1>
+        <p style="color: var(--color-text-dim);">Complete archive of {{ site.blog.title }}</p>
+    </header>
+
+    {% if posts %}
+        {% if posts_by_year %}
+            {% for year, year_posts in posts_by_year %}
+            <section style="margin-bottom: var(--spacing-xl);">
+                <h2 style="font-size: 1.5rem; color: var(--color-lavender); margin-bottom: var(--spacing-md); border-bottom: var(--border-width) solid var(--color-lavender); padding-bottom: var(--spacing-xs);">
+                    <span style="color: var(--color-mint);">//</span> {{ year }}
+                </h2>
+
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                    {% for post in year_posts %}
+                    <article style="display: flex; gap: var(--spacing-md); padding: var(--spacing-sm); border-left: 2px solid var(--color-cyan); padding-left: var(--spacing-md); transition: all 0.2s ease;"
+                             onmouseover="this.style.borderColor='var(--color-pink)'; this.style.transform='translateX(8px)';"
+                             onmouseout="this.style.borderColor='var(--color-cyan)'; this.style.transform='translateX(0)';">
+                        <time datetime="{{ post.metadata.date }}" style="color: var(--color-mint); font-weight: 500; min-width: 80px;">
+                            {{ post.metadata.date | date(format="%b %d") }}
+                        </time>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0; font-size: 1.1rem;">
+                                <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}"
+                                   style="color: var(--color-pink); text-decoration: none;">
+                                    {{ post.metadata.title }}
+                                </a>
+                            </h3>
+                            {% if post.metadata.description %}
+                            <p style="color: var(--color-text-dim); margin: var(--spacing-xs) 0 0 0; font-size: 0.9rem;">
+                                {{ post.metadata.description }}
+                            </p>
+                            {% endif %}
+                            {% if post.metadata.tags %}
+                            <div class="post-tags" style="margin-top: var(--spacing-xs);">
+                                {% for tag in post.metadata.tags %}
+                                <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">{{ tag }}</a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        {% else %}
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                {% for post in posts %}
+                <article style="display: flex; gap: var(--spacing-md); padding: var(--spacing-sm); border-left: 2px solid var(--color-cyan); padding-left: var(--spacing-md); transition: all 0.2s ease;"
+                         onmouseover="this.style.borderColor='var(--color-pink)'; this.style.transform='translateX(8px)';"
+                         onmouseout="this.style.borderColor='var(--color-cyan)'; this.style.transform='translateX(0)';">
+                    <time datetime="{{ post.metadata.date }}" style="color: var(--color-mint); font-weight: 500; min-width: 120px;">
+                        {{ post.metadata.date | date(format="%Y-%m-%d") }}
+                    </time>
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0; font-size: 1.1rem;">
+                            <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}"
+                               style="color: var(--color-pink); text-decoration: none;">
+                                {{ post.metadata.title }}
+                            </a>
+                        </h3>
+                        {% if post.metadata.description %}
+                        <p style="color: var(--color-text-dim); margin: var(--spacing-xs) 0 0 0; font-size: 0.9rem;">
+                            {{ post.metadata.description }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <pre class="ascii-art">
+ _____                 _
+| ____|_ __ ___  _ __ | |_ _   _
+|  _| | '_ ` _ \| '_ \| __| | | |
+| |___| | | | | | |_) | |_| |_| |
+|_____|_| |_| |_| .__/ \__|\__, |
+                |_|        |___/
+            </pre>
+            <p style="text-align: center; color: var(--color-text-dim); margin-top: var(--spacing-md);">
+                No posts in archive yet.
+            </p>
+        </div>
+    {% endif %}
+
+    <nav style="display: flex; justify-content: space-between; margin-top: var(--spacing-xl); padding-top: var(--spacing-lg); border-top: var(--border-width) solid var(--color-mint);">
+        <a href="{{ url(path='') | safe }}"
+           style="color: var(--color-mint); text-decoration: none; border: var(--border-width) solid var(--color-mint); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius);">
+            ← home
+        </a>
+        <a href="{{ url(path='tags') | safe }}"
+           style="color: var(--color-lavender); text-decoration: none; border: var(--border-width) solid var(--color-lavender); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius);">
+            tags →
+        </a>
+    </nav>
+</div>
+{% endblock %}
