@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "blogr-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -313,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "blogr-themes"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "include_dir",

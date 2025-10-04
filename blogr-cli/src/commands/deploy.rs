@@ -36,6 +36,21 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     let github_config = config.github.as_ref()
         .ok_or_else(|| anyhow!("GitHub configuration not found. Initialize with GitHub integration or configure manually."))?;
 
+    // For personal mode, read content.md BEFORE stashing to preserve uncommitted changes
+    let content_md = if config.site.site_type == "personal" {
+        let content_md_path = project.root.join("content.md");
+        if content_md_path.exists() {
+            Some(
+                fs::read_to_string(&content_md_path)
+                    .with_context(|| "Failed to read content.md")?,
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     Console::step(2, 7, "Preparing git repository...");
 
     // Open the git repository
@@ -78,10 +93,11 @@ pub async fn handle_deploy(branch: String, message: Option<String>) -> Result<()
     // Build the site AFTER handling git state to ensure build directory exists
     // Use a temporary directory outside the project to avoid conflicts
     let temp_output = std::env::temp_dir().join(format!("blogr-deploy-{}", Uuid::new_v4()));
-    // Use the pre-loaded config to avoid issues with git stashing
-    let site_builder = SiteBuilder::new_with_config(
+    // Use the pre-loaded config and content.md to avoid issues with git stashing
+    let site_builder = SiteBuilder::new_with_config_and_content(
         project.clone(),
         config.clone(),
+        content_md,
         Some(temp_output.clone()),
         false,
         false,

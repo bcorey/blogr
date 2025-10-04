@@ -31,6 +31,8 @@ pub struct SiteBuilder {
     include_drafts: bool,
     /// Include future posts in build
     include_future: bool,
+    /// Pre-loaded content.md (used during deploy to preserve uncommitted changes)
+    content_md: Option<String>,
 }
 
 impl SiteBuilder {
@@ -211,7 +213,24 @@ Thank you!`);
             output_dir,
             include_drafts,
             include_future,
+            content_md: None,
         })
+    }
+
+    /// Create a new site builder with pre-loaded config and content.md
+    /// Used during deployment to preserve uncommitted changes
+    pub fn new_with_config_and_content(
+        project: Project,
+        config: Config,
+        content_md: Option<String>,
+        output_dir: Option<PathBuf>,
+        include_drafts: bool,
+        include_future: bool,
+    ) -> Result<Self> {
+        let mut builder =
+            Self::new_with_config(project, config, output_dir, include_drafts, include_future)?;
+        builder.content_md = content_md;
+        Ok(builder)
     }
 
     /// Build the entire site
@@ -370,11 +389,23 @@ Thank you!`);
         context.insert("current_year", &Utc::now().year());
 
         // Read and parse content.md for sections data
-        let content_md_path = self.project.root.join("content.md");
-        if content_md_path.exists() {
-            let content_md = fs::read_to_string(&content_md_path)
-                .map_err(|e| anyhow!("Failed to read content.md: {}", e))?;
+        // Use pre-loaded content if available (for deployment with uncommitted changes),
+        // otherwise read from disk
+        let content_md = if let Some(preloaded) = &self.content_md {
+            Some(preloaded.clone())
+        } else {
+            let content_md_path = self.project.root.join("content.md");
+            if content_md_path.exists() {
+                Some(
+                    fs::read_to_string(&content_md_path)
+                        .map_err(|e| anyhow!("Failed to read content.md: {}", e))?,
+                )
+            } else {
+                None
+            }
+        };
 
+        if let Some(content_md) = content_md {
             // Parse frontmatter to get sections
             if let Ok((frontmatter, _)) = self.parse_frontmatter(&content_md) {
                 if let Ok(frontmatter_data) =
