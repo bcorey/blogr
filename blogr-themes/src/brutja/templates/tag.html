@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ tag }} - {{ site.blog.title }}{% endblock %}
+{% block meta %}
+<meta name="description" content="Posts exploring {{ tag }} on {{ site.blog.title }}" />
+{% endblock %}
+{% block content %}
+<div class="markdown-preview-sizer markdown-preview-section">
+    <div class="inline-title" contenteditable="false" spellcheck="false" tabindex="-1" enterkeyhint="done">
+        #{{ tag }}
+    </div>
+
+    <div class="callout" data-callout="note">
+        <div class="callout-title">
+            <div class="callout-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+            </div>
+            <div class="callout-title-inner">Tagged Posts</div>
+        </div>
+        <div class="callout-content">
+            <p>All posts tagged with <span class="tag">#{{ tag }}</span></p>
+        </div>
+    </div>
+
+    <!-- Backlinks section in Obsidian style -->
+    <div class="backlink-pane">
+        <div class="tree-item-self nav-folder-title">
+            <div class="tree-item-inner nav-folder-title-content">
+                Linked Mentions
+                <span class="tree-item-flair">{{ posts | length }}</span>
+            </div>
+        </div>
+
+        <div class="search-result-container">
+            {% for post in posts %}
+            <div class="search-result-file-matches">
+                <div class="search-result-file-title">
+                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}" class="internal-link">
+                        {{ post.metadata.title }}
+                    </a>
+                </div>
+
+                <div class="search-result-file-match">
+                    <!-- Post metadata -->
+                    <div class="search-result-file-match-content">
+                        <div class="frontmatter-section-simple">
+                            <span class="frontmatter-alias">
+                                <span class="frontmatter-alias-icon">📅</span>
+                                <time datetime="{{ post.metadata.date }}">{{ post.metadata.date }}</time>
+                            </span>
+                            {% if post.metadata.author %}
+                            <span class="frontmatter-alias">
+                                <span class="frontmatter-alias-icon">👤</span>
+                                <span>{{ post.metadata.author }}</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Post description if available -->
+                        {% if post.metadata.description %}
+                        <blockquote class="search-excerpt">
+                            {{ post.metadata.description }}
+                        </blockquote>
+                        {% endif %}
+
+                        <!-- Other tags from this post -->
+                        {% if post.metadata.tags %}
+                        <div class="post-tags">
+                            {% for post_tag in post.metadata.tags %} {% if
+                            post_tag != tag %}
+                            <a href="{{ url(path='tags/' ~ post_tag ~ '.html') }}" class="tag">
+                                <span class="tag-name">#{{ post_tag }}</span>
+                            </a>
+                            {% endif %} {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if posts | length == 0 %}
+    <!-- No posts with this tag -->
+    <div class="callout" data-callout="warning">
+        <div class="callout-content">
+            <p>
+                No posts found with the tag <span class="tag">#{{ tag }}</span>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation callout -->
+    <div class="callout" data-callout="tip">
+        <div class="callout-content">
+            <p>
+                Browse all
+                <a href="{{ url(path='tags/') }}" class="internal-link">tags</a>, view the
+                <a href="{{ url(path='archive.html') }}" class="internal-link">archive</a>, or return to
+                <a href="{{ url(path='') }}" class="internal-link">home</a>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

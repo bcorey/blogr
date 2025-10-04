@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.metadata.title }} - {{ site.blog.title }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ post.metadata.description }}">
+<meta name="author" content="{{ post.metadata.author }}">
+{% endblock %}
+
+{% block content %}
+<article class="post-article">
+    <header class="post-header">
+        <h2 class="post-title">{{ post.metadata.title }}</h2>
+
+        <div class="post-meta">
+            <time class="post-date" datetime="{{ post.metadata.date }}">
+                {{ post.metadata.date | date(format="%B %d, %Y") }}
+            </time>
+
+            {% if post.metadata.author %}
+            <span class="post-author">by {{ post.metadata.author }}</span>
+            {% endif %}
+
+            {% if reading_time %}
+            <span class="reading-time">{{ reading_time }} min read</span>
+            {% endif %}
+
+            {% if post.metadata.status == "draft" %}
+            <span class="draft-badge">Draft</span>
+            {% endif %}
+        </div>
+
+        {% if post.metadata.tags %}
+        <div class="post-tags">
+            {% for tag in post.metadata.tags %}
+            <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">#{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+
+    <div class="post-content">
+        {{ content | safe }}
+    </div>
+
+    <footer class="post-footer">
+        <div class="post-navigation">
+            <a href="{{ url(path='') | safe }}" class="back-home">← Home</a>
+            <a href="{{ url(path='archive.html') | safe }}" class="view-archive">Archive →</a>
+        </div>
+    </footer>
+</article>
+{% endblock %}
