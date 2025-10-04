@@ -231,9 +231,14 @@ impl Project {
         fs::write(project_path.join("README.md"), readme_content)
             .with_context(|| "Failed to create README.md file")?;
 
-        // Create content.md for personal info
-        let content_md = format!(
-            r#"# {}
+        // Create content.md for personal info - theme-specific
+        let content_md = match config.theme.name.as_str() {
+            "musashi" => blogr_themes::MusashiTheme::example_content(&config.blog.author),
+            "dark-minimal" => blogr_themes::DarkMinimalTheme::example_content(&config.blog.author),
+            _ => {
+                // Generic fallback for other themes
+                format!(
+                    r#"# {}
 
 Welcome to my personal website!
 
@@ -255,8 +260,10 @@ Feel free to reach out if you'd like to collaborate or just say hello!
 - GitHub: https://github.com/username
 - Twitter: @username
 "#,
-            config.blog.title, config.blog.author, config.blog.description
-        );
+                    config.blog.title, config.blog.author, config.blog.description
+                )
+            }
+        };
 
         fs::write(project_path.join("content.md"), content_md)
             .with_context(|| "Failed to create content.md file")?;

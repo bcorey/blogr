@@ -369,6 +369,25 @@ Thank you!`);
         // Add current year
         context.insert("current_year", &Utc::now().year());
 
+        // Read and parse content.md for sections data
+        let content_md_path = self.project.root.join("content.md");
+        if content_md_path.exists() {
+            let content_md = fs::read_to_string(&content_md_path)
+                .map_err(|e| anyhow!("Failed to read content.md: {}", e))?;
+
+            // Parse frontmatter to get sections
+            if let Ok((frontmatter, _)) = self.parse_frontmatter(&content_md) {
+                if let Ok(frontmatter_data) =
+                    serde_yaml::from_str::<serde_yaml::Value>(&frontmatter)
+                {
+                    // Extract sections if they exist
+                    if let Some(sections) = frontmatter_data.get("sections") {
+                        context.insert("sections", sections);
+                    }
+                }
+            }
+        }
+
         // Render template
         let html = self
             .tera
@@ -380,6 +399,33 @@ Thank you!`);
         fs::write(&index_file, html).map_err(|e| anyhow!("Failed to write index file: {}", e))?;
 
         Ok(())
+    }
+
+    /// Parse frontmatter from markdown content
+    fn parse_frontmatter(&self, content: &str) -> Result<(String, String)> {
+        if !content.starts_with("---\n") && !content.starts_with("---\r\n") {
+            return Err(anyhow!("Content must start with YAML frontmatter"));
+        }
+
+        let content = content
+            .strip_prefix("---\r\n")
+            .or_else(|| content.strip_prefix("---\n"))
+            .ok_or_else(|| anyhow!("Content must start with YAML frontmatter"))?;
+
+        // Find the closing ---
+        if let Some(end_pos) = content
+            .find("\n---\n")
+            .or_else(|| content.find("\r\n---\r\n"))
+        {
+            let frontmatter = &content[..end_pos];
+            let body = content[end_pos..]
+                .strip_prefix("\r\n---\r\n")
+                .or_else(|| content[end_pos..].strip_prefix("\n---\n"))
+                .ok_or_else(|| anyhow!("Could not find closing --- for frontmatter"))?;
+            Ok((frontmatter.to_string(), body.to_string()))
+        } else {
+            Err(anyhow!("Could not find closing --- for frontmatter"))
+        }
     }
 
     /// Generate index page
