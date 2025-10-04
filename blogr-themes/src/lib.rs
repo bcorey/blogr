@@ -7,6 +7,7 @@ pub mod musashi;
 pub mod obsidian;
 pub mod slate_portfolio;
 pub mod terminal_candy;
+pub mod typewriter;
 
 pub use dark_minimal::DarkMinimalTheme;
 pub use minimal_retro::MinimalRetroTheme;
@@ -14,6 +15,7 @@ pub use musashi::MusashiTheme;
 pub use obsidian::ObsidianTheme;
 pub use slate_portfolio::SlatePortfolioTheme;
 pub use terminal_candy::TerminalCandyTheme;
+pub use typewriter::TypewriterTheme;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeInfo {
@@ -60,6 +62,9 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
     let slate_portfolio = SlatePortfolioTheme::new();
     themes.insert("slate-portfolio".to_string(), Box::new(slate_portfolio));
 
+    let typewriter = TypewriterTheme::new();
+    themes.insert("typewriter".to_string(), Box::new(typewriter));
+
     themes
 }
 
@@ -72,6 +77,7 @@ pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
         "dark-minimal" => Some(Box::new(DarkMinimalTheme::new()) as Box<dyn Theme>),
         "musashi" => Some(Box::new(MusashiTheme::new()) as Box<dyn Theme>),
         "slate-portfolio" => Some(Box::new(SlatePortfolioTheme::new()) as Box<dyn Theme>),
+        "typewriter" => Some(Box::new(TypewriterTheme::new()) as Box<dyn Theme>),
         _ => None,
     }
 }

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="typewriter-site">
+    <!-- Header with date stamp -->
+    <header class="header">
+        {% if theme_config.show_date_stamp %}
+        <div class="date-stamp">
+            <span class="date-stamp-text">{{ current_year }}</span>
+        </div>
+        {% endif %}
+
+        <div class="header-content">
+            <h1 class="title{% if theme_config.typing_animation %} typewriter-text{% endif %}" data-text="{{ blog_title }}">
+                {{ blog_title }}{% if theme_config.cursor_blink %}<span class="cursor">|</span>{% endif %}
+            </h1>
+            <p class="subtitle">{{ blog_description }}</p>
+            {% if sections.about and sections.about.tagline %}
+            <p class="tagline">— {{ sections.about.tagline }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Contact info bar -->
+        {% if sections.contact %}
+        <div class="contact-bar">
+            {% if sections.contact.email %}
+            <span>✉ {{ sections.contact.email }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </header>
+
+    {% if sections.about or sections.writing or sections.skills or sections.projects or sections.contact %}
+    <div class="typewriter-line"></div>
+    {% endif %}
+
+    <!-- About Section -->
+    {% if sections.about %}
+    <section class="section about">
+        <h2 class="section-title">{{ sections.about.title | default(value="About Me") }}</h2>
+        <div class="section-content">
+            {% if sections.about.content %}
+            {{ sections.about.content | safe }}
+            {% endif %}
+        </div>
+    </section>
+    {% if sections.writing or sections.skills or sections.projects or sections.contact %}
+    <div class="typewriter-line"></div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Writing/Work Section -->
+    {% if sections.writing %}
+    <section class="section writing">
+        <h2 class="section-title">{{ sections.writing.title | default(value="Writing & Work") }}</h2>
+        {% if sections.writing.items %}
+        <div class="writing-list">
+            {% for item in sections.writing.items %}
+            <div class="writing-item">
+                <h3 class="item-title">{{ item.title }}</h3>
+                {% if item.description %}
+                <p class="item-description">{{ item.description }}</p>
+                {% endif %}
+                {% if item.note %}
+                <p class="item-note">{{ item.note }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+    {% if sections.skills or sections.projects or sections.contact %}
+    <div class="typewriter-line"></div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Skills Section -->
+    {% if sections.skills %}
+    <section class="section skills">
+        <h2 class="section-title">{{ sections.skills.title | default(value="Tools & Techniques") }}</h2>
+        {% if sections.skills.items %}
+        <div class="skills-list">
+            {% for skill in sections.skills.items %}
+            <span class="skill-item">{{ skill }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+    {% if sections.projects or sections.contact %}
+    <div class="typewriter-line"></div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Projects Section -->
+    {% if sections.projects %}
+    <section class="section projects">
+        <h2 class="section-title">{{ sections.projects.title | default(value="Selected Works") }}</h2>
+        {% if sections.projects.items %}
+        <div class="project-list">
+            {% for project in sections.projects.items %}
+            <div class="project-item">
+                <div class="project-header">
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    {% if project.year %}
+                    <span class="project-year">[{{ project.year }}]</span>
+                    {% endif %}
+                </div>
+                {% if project.description %}
+                <p class="project-description">{{ project.description }}</p>
+                {% endif %}
+                {% if project.link %}
+                <a href="{{ project.link }}" class="project-link" target="_blank" rel="noopener">→ View Project</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+    {% if sections.contact %}
+    <div class="typewriter-line"></div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Contact Section -->
+    {% if sections.contact %}
+    <section class="section contact">
+        <h2 class="section-title">{{ sections.contact.title | default(value="Get In Touch") }}</h2>
+        <div class="contact-content">
+            {% if sections.contact.text %}
+            <p>{{ sections.contact.text }}</p>
+            {% endif %}
+
+            {% if sections.contact.social %}
+            <div class="social-links">
+                {% if sections.contact.social.github %}
+                <a href="{{ sections.contact.social.github }}" class="social-link" target="_blank" rel="noopener">GitHub</a>
+                {% endif %}
+                {% if sections.contact.social.twitter %}
+                <a href="{{ sections.contact.social.twitter }}" class="social-link" target="_blank" rel="noopener">Twitter</a>
+                {% endif %}
+                {% if sections.contact.social.linkedin %}
+                <a href="{{ sections.contact.social.linkedin }}" class="social-link" target="_blank" rel="noopener">LinkedIn</a>
+                {% endif %}
+                {% if sections.contact.social.blog %}
+                <a href="{{ sections.contact.social.blog }}" class="social-link" target="_blank" rel="noopener">Blog</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="typewriter-line"></div>
+        <p class="footer-text">
+            Powered by <a href="https://github.com/bahdotsh/blogr" target="_blank" rel="noopener">Blogr</a>
+        </p>
+        <p class="copyright">© {{ current_year }} {{ author }}</p>
+    </footer>
+</main>
+
+{% if theme_config.typing_animation %}
+<script>
+// Typewriter effect for title
+const titleElement = document.querySelector('.typewriter-text');
+if (titleElement) {
+    const text = titleElement.getAttribute('data-text');
+    const cursor = titleElement.querySelector('.cursor');
+    titleElement.textContent = '';
+    if (cursor) titleElement.appendChild(cursor);
+
+    let i = 0;
+    function typeWriter() {
+        if (i < text.length) {
+            const textNode = document.createTextNode(text.charAt(i));
+            if (cursor) {
+                titleElement.insertBefore(textNode, cursor);
+            } else {
+                titleElement.appendChild(textNode);
+            }
+            i++;
+            // Vary typing speed for more natural feel
+            const speed = Math.random() * 100 + 50;
+            setTimeout(typeWriter, speed);
+        }
+    }
+
+    // Start typing after a brief delay
+    setTimeout(typeWriter, 500);
+}
+</script>
+{% endif %}
+
+<script>
+// Smooth reveal for sections
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.section').forEach(section => {
+    observer.observe(section);
+});
+</script>
+{% endblock %}

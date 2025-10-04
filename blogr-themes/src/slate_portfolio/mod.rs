@@ -192,6 +192,7 @@ sections:
       github: "https://github.com/yourusername"
       twitter: "https://twitter.com/yourusername"
       linkedin: "https://linkedin.com/in/yourusername"
+      blog: "https://yourblog.com"
 ---
 "##,
             author,

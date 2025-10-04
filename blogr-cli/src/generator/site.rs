@@ -380,6 +380,20 @@ Thank you!`);
                 if let Ok(frontmatter_data) =
                     serde_yaml::from_str::<serde_yaml::Value>(&frontmatter)
                 {
+                    // Override description with content.md description if it exists
+                    if let Some(description) = frontmatter_data.get("description") {
+                        if let Some(desc_str) = description.as_str() {
+                            context.insert("blog_description", desc_str);
+                        }
+                    }
+
+                    // Override title with content.md title if it exists
+                    if let Some(title) = frontmatter_data.get("title") {
+                        if let Some(title_str) = title.as_str() {
+                            context.insert("blog_title", title_str);
+                        }
+                    }
+
                     // Extract sections if they exist
                     if let Some(sections) = frontmatter_data.get("sections") {
                         context.insert("sections", sections);

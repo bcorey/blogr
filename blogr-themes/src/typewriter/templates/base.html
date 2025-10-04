@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="{{ language | default(value='en') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ blog_title }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ blog_description }}{% endblock %}">
+    <meta name="author" content="{{ author }}">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}{{ blog_title }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ blog_description }}{% endblock %}">
+    <meta property="og:url" content="{{ base_url }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/style.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="paper-texture"></div>
+    <div class="page">
+        <div class="page-inner">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
