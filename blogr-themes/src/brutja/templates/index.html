@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.blog.title }} - Home{% endblock %}
+
+{% block content %}
+<div class="home-page">
+    <section class="hero-section">
+        <div class="hero-content">
+            <h2 class="hero-title">{{ site.blog.title }}</h2>
+            <p class="hero-description">{{ site.blog.description }}</p>
+        </div>
+    </section>
+
+    {% if posts %}
+    <section class="recent-posts">
+        <h4 class="section-title">Recent Posts</h4>
+        <div class="posts-grid">
+            {% for post in posts %}
+            <article class="post-card">
+                <div class="post-header">
+                    <h3 class="post-title">
+                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title
+                            }}</a>
+                    </h3>
+                    <div class="post-meta">
+                        <time class="post-date" datetime="{{ post.metadata.date }}">
+                            {{ post.metadata.date | date(format="%B %d, %Y") }}
+                        </time>
+                        {% if post.metadata.author %}
+                        <span class="post-author">by {{ post.metadata.author }}</span>
+                        {% endif %}
+                        {% if post.metadata.status == "draft" %}
+                        <span class="draft-badge">Draft</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if post.metadata.description %}
+                <div class="post-excerpt">
+                    <p>{{ post.metadata.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if post.metadata.tags %}
+                <div class="post-tags">
+                    {% for tag in post.metadata.tags %}
+                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">{{ tag }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if has_more %}
+        <div class="view-more">
+            <a href="{{ url(path='archive.html') | safe }}" class="btn-view-more">View All Posts ({{ total_posts }}
+                total) →</a>
+        </div>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="no-posts">
+        <div class="empty-state">
+            <h3>No posts yet</h3>
+            <p>This blog is just getting started. Check back soon for new content!</p>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
