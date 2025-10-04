@@ -55,7 +55,7 @@ impl Project {
         github_username: Option<String>,
         github_repo: Option<String>,
     ) -> Result<Self> {
-        let project_path = path.as_ref().to_path_buf();
+        let project_path = path.as_ref().to_path_buf().join(&name);
 
         // Create project directory if it doesn't exist
         if !project_path.exists() {
