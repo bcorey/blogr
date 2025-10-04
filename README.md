@@ -23,7 +23,9 @@ A fast, lightweight static site generator built in Rust for creating and managin
 
 **Site Generation**
 - Fast static site builds
-- Multiple themes: Minimal Retro, Obsidian, Terminal Candy, and Dark Minimal
+- Multiple themes: 7 built-in themes for blogs and personal sites
+  - Blog: Minimal Retro, Obsidian, Terminal Candy
+  - Personal: Dark Minimal, Musashi, Slate Portfolio, Typewriter (NEW)
 - Full-text search with MiniSearch integration
 - Syntax highlighting for code blocks
 - RSS/Atom feeds (blog mode)
@@ -337,6 +339,40 @@ fn main() {
 ```
 ```
 
+## Personal Website Content
+
+For personal mode (`--personal`), use `content.md` with frontmatter to define your site:
+
+```markdown
+---
+title: "Your Name"
+description: "Your tagline or role"
+author: "Your Name"
+theme: "typewriter"
+theme_config:
+  show_paper_texture: true
+  typing_animation: true
+sections:
+  about:
+    title: "About Me"
+    content: |
+      <p>Your introduction here...</p>
+    tagline: "One keystroke at a time"
+
+  contact:
+    title: "Get In Touch"
+    text: "Let's connect!"
+    email: "you@example.com"
+    social:
+      github: "https://github.com/yourusername"
+      twitter: "https://twitter.com/yourusername"
+      linkedin: "https://linkedin.com/in/yourusername"
+      blog: "https://yourblog.com"  # NEW in v0.4.0
+---
+```
+
+**Note**: In personal mode, the `title` and `description` from `content.md` will override the values in `blogr.toml`.
+
 ## Search
 
 Blogr includes a powerful client-side full-text search feature powered by MiniSearch. Search is enabled by default and works entirely in the browser without requiring a server.
@@ -462,6 +498,30 @@ Blogr comes with multiple built-in themes, each designed for different purposes:
 - Customizable status bar
 - Perfect for portfolios and personal brands
 
+**Musashi** (dynamic personal sites)
+- Modern dynamic content loading
+- Smooth animations and transitions
+- Clean typography
+- Responsive design
+- Perfect for personal websites and project showcases
+
+**Slate Portfolio** (professional portfolios)
+- Modern glassmorphic design
+- Frosted glass effects
+- Elegant transitions
+- Professional layout
+- Perfect for freelancers and professionals
+
+**Typewriter** (NEW in v0.4.0 - vintage personal sites)
+- Vintage typewriter-inspired aesthetics
+- Cream paper background with subtle texture
+- Monospace Courier font family
+- Typewriter typing animation for title
+- Blinking cursor effect
+- Vintage date stamp
+- Typewriter-style line separators
+- Perfect for writers, bloggers, and literary portfolios
+
 ### Theme Commands
 ```bash
 blogr theme list              # Show available themes
@@ -469,7 +529,10 @@ blogr theme set minimal-retro # Switch to Minimal Retro theme
 blogr theme set obsidian      # Switch to Obsidian theme
 blogr theme set terminal-candy # Switch to Terminal Candy theme
 blogr theme set dark-minimal  # Switch to Dark Minimal theme
-blogr theme info dark-minimal # Show theme configuration options
+blogr theme set musashi       # Switch to Musashi theme
+blogr theme set slate-portfolio # Switch to Slate Portfolio theme
+blogr theme set typewriter    # Switch to Typewriter theme
+blogr theme info typewriter   # Show theme configuration options
 ```
 
 ### Dark Minimal Theme Configuration
@@ -523,12 +586,39 @@ status_color = "#ff00ff"  # Magenta
 show_status_bar = false
 ```
 
+### Typewriter Theme Configuration
+
+The Typewriter theme offers vintage customization options:
+
+```toml
+[theme]
+name = "typewriter"
+
+[theme.config]
+# Colors
+paper_color = "#f4f1e8"           # Vintage cream paper
+ink_color = "#2b2b2b"              # Dark charcoal ink
+accent_color = "#8b4513"           # Vintage brown accent
+
+# Typography
+font_family = "'Courier Prime', 'Courier New', monospace"
+
+# Visual Effects
+show_paper_texture = true          # Subtle paper texture overlay
+typing_animation = true            # Typewriter typing animation
+show_date_stamp = true             # Vintage date stamp
+cursor_blink = true                # Blinking cursor effect
+```
+
 ### Available Themes:
 
 - **Minimal Retro** - Clean, artistic design with retro aesthetics (for blogs)
 - **Obsidian** - Adopts Obsidian community themes for familiar note-taking styling (for blogs)
-- **Terminal Candy** - Quirky terminal-inspired theme with pastel colors (for personal sites)
+- **Terminal Candy** - Quirky terminal-inspired theme with pastel colors (for blogs/personal)
 - **Dark Minimal** - Dark minimalist-maximalist with cyberpunk aesthetics (for personal sites)
+- **Musashi** - Dynamic modern theme with smooth animations (for personal sites)
+- **Slate Portfolio** - Glassmorphic professional portfolio theme (for personal sites)
+- **Typewriter** - Vintage typewriter aesthetics with nostalgic charm (for personal sites)
 
 **Obsidian Theme Setup**
 
@@ -972,6 +1062,29 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 - Features and bug fixes
 - Documentation
 - Testing
+
+## Changelog
+
+### v0.4.0 (Latest)
+
+**New Features:**
+- 🎨 **Typewriter Theme**: Vintage typewriter-inspired theme for personal websites with nostalgic aesthetics
+- 🔗 **Blog Link Support**: All personal website themes now support a `blog` link in social links
+- 📝 **Content.md Override**: Personal mode now uses `title` and `description` from `content.md` instead of `blogr.toml`
+- ✨ **Conditional Separators**: Typewriter theme displays separator lines only when sections are present
+
+**Improvements:**
+- Better theme organization with clear separation between blog and personal themes
+- Enhanced personal website customization options
+- Improved documentation for all themes
+
+**Themes:**
+- Blog themes: Minimal Retro, Obsidian, Terminal Candy
+- Personal themes: Dark Minimal, Musashi, Slate Portfolio, Typewriter
+
+### Previous Versions
+
+See [blogr-themes/README.md](blogr-themes/README.md) for detailed theme changelog.
 
 ## License
 

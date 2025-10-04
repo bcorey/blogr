@@ -8,7 +8,7 @@ Blogr Themes is a library that provides the theme system for the Blogr static si
 
 ## Version
 
-**Current Version**: `0.2.0`
+**Current Version**: `0.4.0`
 
 This crate uses independent versioning from the main Blogr CLI to allow for theme-specific updates and improvements.
 
@@ -24,17 +24,58 @@ This crate uses independent versioning from the main Blogr CLI to allow for them
 
 ## Built-in Themes
 
-### Minimal Retro
+### Blog Themes
+
+#### Minimal Retro
 - **Version**: 1.0.0
 - **Style**: Clean, artistic design with retro typography
 - **Features**: Warm color palette, serif fonts, minimalist layout
 - **Best for**: Personal blogs, creative writing, photography
 
-### Obsidian
-- **Version**: 1.0.0  
+#### Obsidian
+- **Version**: 1.0.0
 - **Style**: Modern dark theme inspired by Obsidian
 - **Features**: Dark/light mode, purple accents, clean typography
 - **Best for**: Technical blogs, documentation, note-taking style content
+
+#### Terminal Candy
+- **Version**: 1.0.0
+- **Style**: Quirky terminal-inspired design with pastel colors
+- **Features**: Glitch effects, ASCII art, typewriter animations
+- **Best for**: Creative personal blogs, tech enthusiasts
+
+### Personal Website Themes
+
+#### Dark Minimal
+- **Version**: 1.0.0
+- **Style**: Dark minimalist theme with neon accents
+- **Features**: Cyberpunk aesthetic, animated backgrounds, customizable status bar
+- **Best for**: Personal portfolios, designer/developer showcases
+
+#### Musashi
+- **Version**: 1.0.0
+- **Style**: Dynamic content-loading theme with modern aesthetics
+- **Features**: Smooth animations, clean typography, responsive design
+- **Best for**: Personal websites, project showcases
+
+#### Slate Portfolio
+- **Version**: 1.0.0
+- **Style**: Modern glassmorphic portfolio theme
+- **Features**: Frosted glass effects, elegant transitions, professional layout
+- **Best for**: Professional portfolios, freelancers
+
+#### Typewriter (NEW in v0.4.0)
+- **Version**: 1.0.0
+- **Style**: Vintage typewriter-inspired theme with nostalgic aesthetics
+- **Features**:
+  - Vintage cream paper background with subtle texture
+  - Monospace Courier font family
+  - Typewriter typing animation for title
+  - Blinking cursor effect
+  - Vintage date stamp
+  - Typewriter-style line separators
+  - Configurable paper texture, animations, and cursor
+- **Best for**: Writers, bloggers, literary portfolios, creative professionals
 
 ## Usage
 
@@ -44,7 +85,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-blogr-themes = "0.2.0"
+blogr-themes = "0.4.0"
 ```
 
 ### Basic Usage
@@ -310,6 +351,19 @@ We welcome theme contributions! Please:
 See the main [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines.
 
 ## Changelog
+
+### v0.4.0
+- **NEW**: Typewriter theme for personal websites with vintage aesthetics
+- **NEW**: Blog link support in all personal website themes (Dark Minimal, Musashi, Slate Portfolio, Typewriter)
+- **IMPROVED**: Personal mode now uses title and description from content.md instead of blogr.toml
+- **IMPROVED**: Conditional separator lines in Typewriter theme based on section presence
+- **ADDED**: Vintage typewriter effects including typing animation, blinking cursor, and paper texture
+
+### v0.3.0
+- **NEW**: Personal website themes (Dark Minimal, Musashi, Slate Portfolio)
+- **NEW**: Terminal Candy theme for blogs
+- **IMPROVED**: Better theme organization for blog vs personal modes
+- **ADDED**: Personal mode support with section-based layouts
 
 ### v0.2.0
 - **NEW**: Obsidian theme improvements
