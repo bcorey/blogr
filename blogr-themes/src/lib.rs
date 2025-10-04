@@ -5,12 +5,14 @@ pub mod dark_minimal;
 pub mod minimal_retro;
 pub mod musashi;
 pub mod obsidian;
+pub mod slate_portfolio;
 pub mod terminal_candy;
 
 pub use dark_minimal::DarkMinimalTheme;
 pub use minimal_retro::MinimalRetroTheme;
 pub use musashi::MusashiTheme;
 pub use obsidian::ObsidianTheme;
+pub use slate_portfolio::SlatePortfolioTheme;
 pub use terminal_candy::TerminalCandyTheme;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +57,9 @@ pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
     let musashi = MusashiTheme::new();
     themes.insert("musashi".to_string(), Box::new(musashi));
 
+    let slate_portfolio = SlatePortfolioTheme::new();
+    themes.insert("slate-portfolio".to_string(), Box::new(slate_portfolio));
+
     themes
 }
 
@@ -66,6 +71,7 @@ pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
         "terminal-candy" => Some(Box::new(TerminalCandyTheme::new()) as Box<dyn Theme>),
         "dark-minimal" => Some(Box::new(DarkMinimalTheme::new()) as Box<dyn Theme>),
         "musashi" => Some(Box::new(MusashiTheme::new()) as Box<dyn Theme>),
+        "slate-portfolio" => Some(Box::new(SlatePortfolioTheme::new()) as Box<dyn Theme>),
         _ => None,
     }
 }
