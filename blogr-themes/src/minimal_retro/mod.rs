@@ -97,7 +97,7 @@ impl Theme for MinimalRetroTheme {
     }
 
     fn templates(&self) -> ThemeTemplates {
-        ThemeTemplates::new("base_html", include_str!("templates/base.html"))
+        ThemeTemplates::new("base.html", include_str!("templates/base.html"))
             .with_template("index.html", include_str!("templates/index.html"))
             .with_template("post.html", include_str!("templates/post.html"))
             .with_template("archive.html", include_str!("templates/archive.html"))
