@@ -16,14 +16,14 @@ pub type AppResult<T> = anyhow::Result<T>;
 #[derive(PartialEq, Eq)]
 enum HighLevelListItem {
     Field(ConfigField),
-    Section(ConfigFieldSection),
+    Section(ConfigSection),
     BlankLine,
 }
 
 struct HighLevelConfigList(Vec<HighLevelListItem>);
 impl HighLevelConfigList {
     fn new() -> Self {
-        let inner = ConfigFieldSection::iter()
+        let inner = ConfigSection::iter()
             .map(|section| (section, section.get_fields()))
             .map(|(section, fields)| {
                 let mut list_section = vec![
@@ -96,20 +96,20 @@ impl std::fmt::Display for ConfigField {
 }
 
 impl ConfigField {
-    pub fn category(&self) -> ConfigFieldSection {
+    pub fn category(&self) -> ConfigSection {
         match self {
             Self::BlogTitle
             | Self::BlogAuthor
             | Self::BlogDescription
             | Self::BlogBaseUrl
             | Self::BlogLanguage
-            | Self::BlogTimezone => ConfigFieldSection::Blog,
-            Self::ThemeName => ConfigFieldSection::Theme,
-            Self::DomainPrimary | ConfigField::DomainEnforceHttps => ConfigFieldSection::Domain,
+            | Self::BlogTimezone => ConfigSection::Blog,
+            Self::ThemeName => ConfigSection::Theme,
+            Self::DomainPrimary | ConfigField::DomainEnforceHttps => ConfigSection::Domain,
             Self::BuildOutputDir | Self::BuildDrafts | Self::BuildFuturePosts => {
-                ConfigFieldSection::Build
+                ConfigSection::Build
             }
-            Self::DevPort | ConfigField::DevAutoReload => ConfigFieldSection::Development,
+            Self::DevPort | ConfigField::DevAutoReload => ConfigSection::Development,
         }
     }
 
@@ -165,7 +165,7 @@ impl ConfigField {
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, PartialEq, Eq, Hash)]
-pub enum ConfigFieldSection {
+pub enum ConfigSection {
     Blog,
     Theme,
     Domain,
@@ -173,7 +173,7 @@ pub enum ConfigFieldSection {
     Development,
 }
 
-impl std::fmt::Display for ConfigFieldSection {
+impl std::fmt::Display for ConfigSection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
             Self::Blog => "Blog Settings",
@@ -186,7 +186,7 @@ impl std::fmt::Display for ConfigFieldSection {
     }
 }
 
-impl ConfigFieldSection {
+impl ConfigSection {
     fn get_fields(&self) -> Vec<ConfigField> {
         ConfigField::iter()
             .filter(|field| field.category() == *self)
