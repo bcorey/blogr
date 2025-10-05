@@ -14,7 +14,7 @@
         <div class="post-tags">
             {% for tag_info in tags %}
             <a href="{{ url(path='tags/' ~ tag_info.0 ~ '.html') }}" class="tag" data-tag-name="{{ tag_info.0 }}">
-                <span class="tag-name">{{ tag_info.0 }} ({{tag_info.1}})</span>
+                <span class="tag-name">#{{ tag_info.0 }} ({{tag_info.1}})</span>
             </a>
             {% endfor %}
         </div>

@@ -3,10 +3,10 @@
 {% block title %}{{ site.blog.title }} - Home{% endblock %}
 
 {% block content %}
-<div class="home-page">
+<div>
     <section class="hero-section">
         <div class="hero-content">
-            <h2 class="hero-title">{{ site.blog.title }}</h2>
+            <h1 class="hero-title">{{ site.blog.title }}</h1>
             <p class="hero-description">{{ site.blog.description }}</p>
         </div>
     </section>
@@ -44,7 +44,7 @@
                 {% if post.metadata.tags %}
                 <div class="post-tags">
                     {% for tag in post.metadata.tags %}
-                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">{{ tag }}</a>
+                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">#{{ tag }}</a>
                     {% endfor %}
                 </div>
                 {% endif %}

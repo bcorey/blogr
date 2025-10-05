@@ -1,16 +1,18 @@
 /* Default Obsidian-compatible CSS for Blogr */
 
 :root {
-    --bg: #ffffff;
+    --bg: white;
     --fg: black;
+    /* should be an opacity of the fg */
     --hint: #f3f3f3;
     --accent-primary: #0336FF;
     --accent-secondary: #E20018;
     --accent-tertiary: #FFDE03;
-    --text_color_1: white;
-    --text_color_2: black;
-    --img_blend_mode: normal;
-    --borders: black;
+}
+
+::selection {
+    color: white;
+    background: var(--accent-primary);
 }
 
 html {
@@ -59,7 +61,7 @@ body {
 .markdown-rendered {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px 20px;
+    padding: 20px 0;
     line-height: 1.6;
     color: var(--fg);
     width: 100%;
@@ -223,7 +225,7 @@ button.search-tag:hover {
     display: flex;
     flex-wrap: wrap;
     justify-content: left;
-    margin: .5rem 0;
+    margin: .2rem 0 .5rem 0;
     border-left: .1rem solid var(--fg);
 }
 
@@ -340,21 +342,65 @@ th {
     font-weight: 600;
 }
 
+.center-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    display: flex;
+    flex-direction: row;
+    border: .1rem solid var(--fg);
+    border-left: none;
+    border-right: none;
+    margin: 1rem 0;
+    box-shadow: .4rem .3rem var(--hint);
+    vertical-align: middle;
+    box-sizing: border-box;
+    background-color: var(--bg);
+}
+
+.navbar-link {
+    display: flex;
+    border-left: .1rem solid var(--fg);
+    height: 100%;
+    padding: 0 2rem;
+    text-transform: uppercase;
+    align-items: center;
+    background-color: var(--bg);
+}
+
+.navbar-link>a {
+    display: flex;
+    color: inherit;
+    background-color: inherit;
+}
+
+.navbar-link:hover,
+.navbar-link>a:hover {
+    color: var(--bg);
+    background-color: var(--accent-primary);
+}
+
 /* Search Styles */
 .search-form {
     position: relative;
+    display: flex;
     margin: 0;
+    flex-basis: 2;
+    width: 100%;
 }
 
 .search-container {
     display: flex;
     align-items: center;
     background: var(--bg);
-    box-shadow: .4rem .3rem var(--hint);
-    border: .1rem solid var(--fg);
     padding: 6px 12px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    max-width: 400px;
+    width: inherit;
+    border: .1rem solid var(--fg);
+    border-top: none;
+    border-bottom: none;
 }
 
 .search-container:focus-within {
@@ -402,16 +448,19 @@ th {
     left: 0;
     right: 0;
     background: var(--bg);
-    border-top: none;
     border: .1rem solid var(--fg);
     box-shadow: .4rem .3rem var(--hint);
     overflow-y: auto;
     z-index: 1000;
-    margin-top: -1px;
+    margin-top: 0px;
 }
 
 .search-results-visible {
     display: block !important;
+}
+
+.search-result-item:first-child {
+    border-top: none;
 }
 
 .search-result-item {
@@ -527,7 +576,7 @@ th {
 @media (max-width: 768px) {
     .markdown-rendered {
         max-width: 100%;
-        padding: 20px 16px;
+        padding: 20px 0;
     }
 
     .inline-title {
@@ -905,6 +954,7 @@ th {
 .post-meta {
     font-size: 0.9rem;
     font-style: italic;
+    margin-bottom: .1rem;
 }
 
 .post-author {
@@ -992,14 +1042,14 @@ kbd {
 @media (max-width: 1200px) {
     .markdown-rendered {
         max-width: 800px !important;
-        padding: 20px 24px !important;
+        padding: 20px 0 !important;
     }
 }
 
 @media (max-width: 768px) {
     .markdown-rendered {
         max-width: 100% !important;
-        padding: 20px 16px !important;
+        padding: 20px 0 !important;
     }
 
     .frontmatter-section-simple,
@@ -1034,7 +1084,7 @@ kbd {
 
 @media (max-width: 480px) {
     .markdown-rendered {
-        padding: 20px 12px;
+        padding: 20px 0;
     }
 
     .callout {
