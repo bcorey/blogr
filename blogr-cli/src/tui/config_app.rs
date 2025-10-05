@@ -9,11 +9,12 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
+use strum::{EnumIter, IntoEnumIterator};
 
 pub type AppResult<T> = anyhow::Result<T>;
 
 /// Configuration field types
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumIter)]
 pub enum ConfigField {
     BlogTitle,
     BlogAuthor,
@@ -31,9 +32,9 @@ pub enum ConfigField {
     DevAutoReload,
 }
 
-impl ConfigField {
-    pub fn display_name(&self) -> &'static str {
-        match self {
+impl std::fmt::Display for ConfigField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
             ConfigField::BlogTitle => "Blog Title",
             ConfigField::BlogAuthor => "Blog Author",
             ConfigField::BlogDescription => "Blog Description",
@@ -48,23 +49,28 @@ impl ConfigField {
             ConfigField::BuildFuturePosts => "Include Future Posts",
             ConfigField::DevPort => "Development Port",
             ConfigField::DevAutoReload => "Auto Reload",
-        }
+        };
+        write!(f, "{name}")
     }
+}
 
-    pub fn category(&self) -> &'static str {
+impl ConfigField {
+    pub fn category(&self) -> ConfigFieldSection {
         match self {
-            ConfigField::BlogTitle
-            | ConfigField::BlogAuthor
-            | ConfigField::BlogDescription
-            | ConfigField::BlogBaseUrl
-            | ConfigField::BlogLanguage
-            | ConfigField::BlogTimezone => "Blog Settings",
-            ConfigField::ThemeName => "Theme Settings",
-            ConfigField::DomainPrimary | ConfigField::DomainEnforceHttps => "Domain Settings",
-            ConfigField::BuildOutputDir
-            | ConfigField::BuildDrafts
-            | ConfigField::BuildFuturePosts => "Build Settings",
-            ConfigField::DevPort | ConfigField::DevAutoReload => "Development Settings",
+            Self::BlogTitle
+            | Self::BlogAuthor
+            | Self::BlogDescription
+            | Self::BlogBaseUrl
+            | Self::BlogLanguage
+            | Self::BlogTimezone => ConfigFieldSection::BlogSettings,
+            Self::ThemeName => ConfigFieldSection::ThemeSettings,
+            Self::DomainPrimary | ConfigField::DomainEnforceHttps => {
+                ConfigFieldSection::DomainSettings
+            }
+            Self::BuildOutputDir | Self::BuildDrafts | Self::BuildFuturePosts => {
+                ConfigFieldSection::BuildSettings
+            }
+            Self::DevPort | ConfigField::DevAutoReload => ConfigFieldSection::DevelopmentSettings,
         }
     }
 
@@ -119,6 +125,36 @@ impl ConfigField {
     }
 }
 
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq, Eq, Hash)]
+pub enum ConfigFieldSection {
+    BlogSettings,
+    ThemeSettings,
+    DomainSettings,
+    BuildSettings,
+    DevelopmentSettings,
+}
+
+impl std::fmt::Display for ConfigFieldSection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Self::BlogSettings => "Blog Settings",
+            Self::ThemeSettings => "Theme Settings",
+            Self::DomainSettings => "Domain Settings",
+            Self::BuildSettings => "Build Settings",
+            Self::DevelopmentSettings => "Development Settings",
+        };
+        write!(f, "{name}")
+    }
+}
+
+impl ConfigFieldSection {
+    fn get_fields(&self) -> Vec<ConfigField> {
+        ConfigField::iter()
+            .filter(|field| field.category() == *self)
+            .collect()
+    }
+}
+
 /// Configuration editor mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigMode {
@@ -158,22 +194,7 @@ pub struct ConfigApp {
 impl ConfigApp {
     /// Create a new configuration app
     pub fn new(config: Config, project: Project, theme: TuiTheme) -> Self {
-        let fields = vec![
-            ConfigField::BlogTitle,
-            ConfigField::BlogAuthor,
-            ConfigField::BlogDescription,
-            ConfigField::BlogBaseUrl,
-            ConfigField::BlogLanguage,
-            ConfigField::BlogTimezone,
-            ConfigField::ThemeName,
-            ConfigField::DomainPrimary,
-            ConfigField::DomainEnforceHttps,
-            ConfigField::BuildOutputDir,
-            ConfigField::BuildDrafts,
-            ConfigField::BuildFuturePosts,
-            ConfigField::DevPort,
-            ConfigField::DevAutoReload,
-        ];
+        let fields = ConfigField::iter().collect();
 
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -289,10 +310,7 @@ impl ConfigApp {
         if let Some(field) = self.fields.get(self.selected_field) {
             self.edit_buffer = field.get_value(&self.config);
             self.mode = ConfigMode::Edit;
-            self.status_message = format!(
-                "Editing {}: Press Enter to save, Esc to cancel",
-                field.display_name()
-            );
+            self.status_message = format!("Editing {}: Press Enter to save, Esc to cancel", field);
         }
     }
 
@@ -406,7 +424,7 @@ impl ConfigApp {
 
             self.mode = ConfigMode::Browse;
             self.edit_buffer.clear();
-            self.status_message = format!("{} updated", field.display_name());
+            self.status_message = format!("{} updated", field);
         }
         Ok(())
     }
@@ -481,41 +499,39 @@ impl ConfigApp {
     }
 
     fn render_field_list(&mut self, frame: &mut Frame, area: Rect) {
-        let mut current_category = "";
+        let sections_with_fields = ConfigFieldSection::iter()
+            .map(|section| (section, section.get_fields()))
+            .collect::<Vec<(ConfigFieldSection, Vec<ConfigField>)>>();
+
         let mut items = Vec::new();
 
-        for field in &self.fields {
-            let category = field.category();
-            if category != current_category {
-                if !current_category.is_empty() {
-                    items.push(ListItem::new(""));
-                }
-                items.push(ListItem::new(Line::from(Span::styled(
-                    category,
-                    Style::default()
-                        .add_modifier(Modifier::BOLD)
-                        .fg(self.theme.primary_color),
-                ))));
-                current_category = category;
-            }
-
-            let value = field.get_value(&self.config);
-            let display_value = if value.len() > 20 {
-                format!("{}...", &value[..17])
-            } else {
-                value
-            };
-
-            let line = Line::from(vec![
-                Span::styled(
-                    format!("  {}: ", field.display_name()),
-                    Style::default().fg(self.theme.text_color),
-                ),
-                Span::styled(display_value, Style::default().fg(Color::Gray)),
-            ]);
-
-            let item = ListItem::new(line);
-            items.push(item);
+        for (section, fields) in sections_with_fields {
+            items.push(ListItem::new(""));
+            items.push(ListItem::new(Line::from(Span::styled(
+                section.to_string(),
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    .fg(self.theme.primary_color),
+            ))));
+            let mut field_lines = fields
+                .iter()
+                .map(|field| {
+                    let value = field.get_value(&self.config);
+                    let display_value = if value.len() > 20 {
+                        format!("{}...", &value[..17])
+                    } else {
+                        value
+                    };
+                    ListItem::new(Line::from(vec![
+                        Span::styled(
+                            format!("  {}: ", field),
+                            Style::default().fg(self.theme.text_color),
+                        ),
+                        Span::styled(display_value, Style::default().fg(Color::Gray)),
+                    ]))
+                })
+                .collect::<Vec<ListItem>>();
+            items.append(&mut field_lines);
         }
 
         let list = List::new(items)
@@ -545,7 +561,7 @@ impl ConfigApp {
 
             let content = format!(
                 "Field: {}\nCategory: {}\nCurrent Value: {}{}\n\nPress Enter to edit this field",
-                field.display_name(),
+                field,
                 field.category(),
                 value,
                 effective_url
@@ -584,7 +600,7 @@ impl ConfigApp {
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(format!("Editing: {}", field.display_name()))
+                        .title(format!("Editing: {}", field))
                         .border_style(self.theme.focused_border_style()),
                 )
                 .style(self.theme.text_style());
