@@ -6,16 +6,16 @@
 {% block content %}
 <div>
     <section class="hero-section">
-        <div class="hero-content">
+        <div>
             <h1 class="hero-title">{{ site.blog.title }}</h1>
-            <p class="hero-description">{{ site.blog.description }}</p>
+            <p>{{ site.blog.description }}</p>
         </div>
     </section>
 
     {% if posts %}
-    <section class="recent-posts">
-        <h4 class="section-title">Recent Posts</h4>
-        <div class="posts-grid">
+    <section>
+        <h4>Recent Posts</h4>
+        <div>
             {% for post in posts %}
             {{ post_card::input(post=post) }}
             {% endfor %}
@@ -30,7 +30,7 @@
     </section>
     {% else %}
     <section class="no-posts">
-        <div class="empty-state">
+        <div>
             <h3>No posts yet</h3>
             <p>This blog is just getting started. Check back soon for new content!</p>
         </div>

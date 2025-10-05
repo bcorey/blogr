@@ -6,12 +6,15 @@
     /* should be an opacity of the fg */
     --hint: #f3f3f3;
     --accent-primary: #0336FF;
+    --on-accent-primary: white;
     --accent-secondary: #E20018;
+    --on-accent-secondary: white;
     --accent-tertiary: #FFDE03;
+    --on-accent-tertiary: black;
 }
 
 ::selection {
-    color: white;
+    color: var(--on-accent-primary);
     background: var(--accent-primary);
 }
 
@@ -195,7 +198,7 @@ button.search-tag {
 .tag:hover,
 button.search-tag:hover {
     background-color: var(--accent-primary);
-    color: var(--bg);
+    color: var(--on-accent-primary);
 }
 
 /* make the search tags consistent with other tags */
@@ -362,7 +365,7 @@ th {
 
 .navbar-link:hover,
 .navbar-link>a:hover {
-    color: var(--bg);
+    color: var(--on-accent-primary);
     background-color: var(--accent-primary);
 }
 
@@ -497,7 +500,7 @@ th {
 
 .search-highlight {
     background: var(--accent-tertiary);
-    color: var(--fg);
+    color: var(--on-accent-tertiary);
 }
 
 .search-result-actions {
@@ -518,7 +521,7 @@ th {
 }
 
 .search-action:hover {
-    color: var(--bg);
+    color: var(--on-accent-primary);
     background-color: var(--accent-primary);
 }
 
@@ -644,7 +647,7 @@ th {
 
 .nav-action-button:hover {
     background-color: var(--accent-primary);
-    color: var(--fg);
+    color: var(--on-accent-primary);
     text-decoration: none;
 }
 
@@ -888,12 +891,6 @@ th {
     border-bottom: none;
 }
 
-.post-date {
-    min-width: 80px;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
 .post-content {
     flex: 1;
 }
@@ -933,13 +930,9 @@ th {
     margin-bottom: .1rem;
 }
 
-.post-author {
-    color: var(--text-muted);
-}
-
 .draft-badge {
-    background-color: var(--callout-warning);
-    color: white;
+    background-color: var(--accent-secondary);
+    color: var(--on-accent-secondary);
     padding: 2px 6px;
     font-size: 0.8rem;
     font-weight: 500;
@@ -969,14 +962,13 @@ th {
 .view-archive:hover,
 .view-tags:hover {
     background-color: var(--accent-primary);
-    color: var(--bg);
+    color: var(--on-accent-primary);
 }
 
 /* No posts state */
 .no-posts {
     text-align: center;
     padding: 48px 24px;
-    color: var(--text-muted);
 }
 
 .no-posts-hint {
