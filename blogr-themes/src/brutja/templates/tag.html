@@ -24,61 +24,43 @@
         </div>
     </div>
 
-    <!-- Backlinks section in Obsidian style -->
     <div class="backlink-pane">
-        <div class="tree-item-self nav-folder-title">
-            <div class="tree-item-inner nav-folder-title-content">
-                Linked Mentions
-                <span class="tree-item-flair">{{ posts | length }}</span>
-            </div>
-        </div>
 
         <div class="search-result-container">
             {% for post in posts %}
-            <div class="search-result-file-matches">
-                <div class="search-result-file-title">
-                    <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') }}" class="internal-link">
-                        {{ post.metadata.title }}
-                    </a>
-                </div>
-
-                <div class="search-result-file-match">
-                    <!-- Post metadata -->
-                    <div class="search-result-file-match-content">
-                        <div class="frontmatter-section-simple">
-                            <span class="frontmatter-alias">
-                                <span class="frontmatter-alias-icon">📅</span>
-                                <time datetime="{{ post.metadata.date }}">{{ post.metadata.date }}</time>
-                            </span>
-                            {% if post.metadata.author %}
-                            <span class="frontmatter-alias">
-                                <span class="frontmatter-alias-icon">👤</span>
-                                <span>{{ post.metadata.author }}</span>
-                            </span>
-                            {% endif %}
-                        </div>
-
-                        <!-- Post description if available -->
-                        {% if post.metadata.description %}
-                        <blockquote class="search-excerpt">
-                            {{ post.metadata.description }}
-                        </blockquote>
+            <article class="post-card">
+                <div class="post-header">
+                    <h3 class="post-title">
+                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title
+                            }}</a>
+                    </h3>
+                    <div class="post-meta">
+                        <time class="post-date" datetime="{{ post.metadata.date }}">
+                            {{ post.metadata.date | date(format="%B %d, %Y") }}
+                        </time>
+                        {% if post.metadata.author %}
+                        <span class="post-author">by {{ post.metadata.author }}</span>
                         {% endif %}
-
-                        <!-- Other tags from this post -->
-                        {% if post.metadata.tags %}
-                        <div class="post-tags">
-                            {% for post_tag in post.metadata.tags %} {% if
-                            post_tag != tag %}
-                            <a href="{{ url(path='tags/' ~ post_tag ~ '.html') }}" class="tag">
-                                <span class="tag-name">#{{ post_tag }}</span>
-                            </a>
-                            {% endif %} {% endfor %}
-                        </div>
+                        {% if post.metadata.status == "draft" %}
+                        <span class="draft-badge">Draft</span>
                         {% endif %}
                     </div>
                 </div>
-            </div>
+
+                {% if post.metadata.description %}
+                <div class="post-excerpt">
+                    <p>{{ post.metadata.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if post.metadata.tags %}
+                <div class="post-tags">
+                    {% for tag in post.metadata.tags %}
+                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">#{{ tag }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </article>
             {% endfor %}
         </div>
     </div>

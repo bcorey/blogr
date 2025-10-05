@@ -15,7 +15,7 @@
     <meta name="author" content="{{ site.blog.author }}" />
     {% endblock %}
 
-    <!-- Load bundled default Obsidian CSS -->
+    <!-- Load bundled default brutja CSS -->
     <link rel="stylesheet" href="{{ url(path='css/brutja-default.css') | safe }}" />
 
     <meta name="blogr-base" content="{{ url(path='') | safe }}" />
@@ -61,34 +61,39 @@
 <body class="workspace-leaf-content">
     <div class="app-container">
         <div class="workspace">
-            <div class="workspace-split mod-vertical mod-root">
-                <div class="workspace-leaf mod-active">
-                    <div class="workspace-leaf-content">
-                        <!-- Search bar -->
-                        <div class="search-bar-container">
-                            <form id="search-form" class="search-form" role="search">
-                                <div class="search-container">
-                                    <input id="search-input" name="q" type="search" placeholder="Search posts..."
-                                        autocomplete="off" aria-label="Search posts" />
-                                    <button type="submit" class="search-button" aria-label="Search">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"></circle>
-                                            <path d="m21 21-4.35-4.35"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div id="search-results" class="search-results" hidden></div>
-                            </form>
+            <div class="workspace-leaf-content">
+                <div class="center-column">
+                    <div class="navbar">
+                        <div class="navbar-link">
+                            <a href="{{ url(path='') | safe }}">Home</a>
                         </div>
-
-                        <div class="view-content" style="width: 100%; display: flex; justify-content: center;">
-                            <div class="markdown-reading-view"
-                                style="width: 100%; display: flex; justify-content: center;">
-                                <div class="markdown-preview-view markdown-rendered">
-                                    <div class="markdown-preview-section">
-                                        {% block content %}{% endblock %}
-                                    </div>
+                        {% if site.github_username %}
+                        <div class="navbar-link">
+                            <a href="{{ url(path='https://github.com/' ~ site.github_username) | safe }}">github</a>
+                        </div>
+                        {% endif %}
+                        <!-- Search bar -->
+                        <form id="search-form" class="search-form" role="search">
+                            <div class="search-container">
+                                <input id="search-input" name="q" type="search" placeholder="Search posts..."
+                                    autocomplete="off" aria-label="Search posts" />
+                                <button type="submit" class="search-button" aria-label="Search">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <path d="m21 21-4.35-4.35"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="search-results" class="search-results" hidden></div>
+                        </form>
+                    </div>
+                    <!-- Page content -->
+                    <div class="view-content" style="width: 100%; display: flex; justify-content: center;">
+                        <div class="markdown-reading-view" style="width: 100%; display: flex; justify-content: center;">
+                            <div class="markdown-preview-view markdown-rendered">
+                                <div class="markdown-preview-section">
+                                    {% block content %}{% endblock %}
                                 </div>
                             </div>
                         </div>
