@@ -5,9 +5,9 @@
 <div>
     <section class="hero-section">
         <div>
-            <h1 class="hero-title">Benjamin Corey</h1>
+            <h1 class="hero-title">{{ site.theme.config.hero_title | default(value='Welcome') }}</h1>
             <i>
-                <h3>Software developer in Philadelphia</h3>
+                <h3>{{ site.theme.config.hero_subtitle | default(value='Configure this theme in blogr.toml') }}</h3>
             </i>
             <p>{{ site.blog.description }}</p>
         </div>

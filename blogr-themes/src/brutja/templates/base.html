@@ -18,6 +18,11 @@
     <!-- Load bundled default brutja CSS -->
     <link rel="stylesheet" href="{{ url(path='css/brutja-default.css') | safe }}" />
 
+    <!-- Load user-supplied custom CSS with error handling -->
+    <link rel="stylesheet" href="{{ url(path=site.theme.config.css | default(value='static/styles.css')) | safe }}"
+        onerror="this.onerror=null;console.warn('CSS not found - using default styles.');"
+        onload="console.log('CSS loaded successfully');" />
+
     <meta name="blogr-base" content="{{ url(path='') | safe }}" />
     {% block extra_head %}{% endblock %}
 
@@ -67,9 +72,16 @@
                         <div class="navbar-link">
                             <a href="{{ url(path='') | safe }}">Home</a>
                         </div>
-                        {% if site.github_username %}
+                        {% if site.theme.config.github_username %}
                         <div class="navbar-link">
-                            <a href="{{ url(path='https://github.com/' ~ site.github_username) | safe }}">github</a>
+                            <a
+                                href="{{ url(path='https://github.com/' ~ site.theme.config.github_username) | safe }}">github</a>
+                        </div>
+                        {% endif %}
+                        {% if site.theme.config.linkedin_username %}
+                        <div class="navbar-link">
+                            <a
+                                href="{{ url(path='https://linkedin.com/in/' ~ site.theme.config.linkedin_username) | safe }}">linkedin</a>
                         </div>
                         {% endif %}
                         <!-- Search bar -->

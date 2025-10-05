@@ -1,4 +1,4 @@
-use crate::{Theme, ThemeInfo, ThemeTemplates};
+use crate::{ConfigOption, Theme, ThemeInfo, ThemeTemplates};
 use ratatui::style::Style;
 use std::collections::HashMap;
 
@@ -13,7 +13,53 @@ impl BrutjaTheme {
 
 impl Theme for BrutjaTheme {
     fn info(&self) -> ThemeInfo {
-        let schema = HashMap::new();
+        let mut schema = HashMap::new();
+        schema.insert(
+            "css".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "static/styles.css".to_string(),
+                description: "Path to user CSS (served from /static/)".to_string(),
+            },
+        );
+
+        schema.insert(
+            "hero_title".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "Welcome".to_string(),
+                description: "Homepage hero title".to_string(),
+            },
+        );
+
+        schema.insert(
+            "hero_subtitle".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: "Customize your theme".to_string(),
+                description: "Homepage hero subtitle".to_string(),
+            },
+        );
+
+        schema.insert(
+            "github_username".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: String::new(),
+                description: "Your github username".to_string(),
+            },
+        );
+
+        schema.insert(
+            "linkedin_username".to_string(),
+            ConfigOption {
+                option_type: "string".to_string(),
+                default: String::new(),
+                description:
+                    "The last segment of your linkedin profile URL. Do not include slashes."
+                        .to_string(),
+            },
+        );
 
         ThemeInfo {
             name: "Brutja".to_string(),
@@ -37,7 +83,7 @@ impl Theme for BrutjaTheme {
     fn assets(&self) -> HashMap<String, Vec<u8>> {
         let mut assets = HashMap::new();
 
-        // Bundle a default Obsidian-compatible CSS
+        // Bundle the brutja theme defaults
         assets.insert(
             "css/brutja-default.css".to_string(),
             include_bytes!("assets/brutja-default.css").to_vec(),
