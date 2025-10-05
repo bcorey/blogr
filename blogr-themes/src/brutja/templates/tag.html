@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "post_card.html" as post_card %}
 {% block title %}{{ tag }} - {{ site.blog.title }}{% endblock %}
 {% block meta %}
 <meta name="description" content="Posts exploring {{ tag }} on {{ site.blog.title }}" />
@@ -28,39 +29,7 @@
 
         <div class="search-result-container">
             {% for post in posts %}
-            <article class="post-card">
-                <div class="post-header">
-                    <h3 class="post-title">
-                        <a href="{{ url(path='posts/' ~ post.metadata.slug ~ '.html') | safe }}">{{ post.metadata.title
-                            }}</a>
-                    </h3>
-                    <div class="post-meta">
-                        <time class="post-date" datetime="{{ post.metadata.date }}">
-                            {{ post.metadata.date | date(format="%B %d, %Y") }}
-                        </time>
-                        {% if post.metadata.author %}
-                        <span class="post-author">by {{ post.metadata.author }}</span>
-                        {% endif %}
-                        {% if post.metadata.status == "draft" %}
-                        <span class="draft-badge">Draft</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {% if post.metadata.description %}
-                <div class="post-excerpt">
-                    <p>{{ post.metadata.description }}</p>
-                </div>
-                {% endif %}
-
-                {% if post.metadata.tags %}
-                <div class="post-tags">
-                    {% for tag in post.metadata.tags %}
-                    <a href="{{ url(path='tags/' ~ tag ~ '.html') | safe }}" class="tag">#{{ tag }}</a>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </article>
+            {{ post_card::input(post=post) }}
             {% endfor %}
         </div>
     </div>
