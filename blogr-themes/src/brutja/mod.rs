@@ -25,7 +25,7 @@ impl Theme for BrutjaTheme {
     }
 
     fn templates(&self) -> ThemeTemplates {
-        ThemeTemplates::new("base_html", include_str!("templates/base.html"))
+        ThemeTemplates::new("base.html", include_str!("templates/base.html"))
             .with_template("post_card.html", include_str!("templates/post_card.html"))
             .with_template("index.html", include_str!("templates/index.html"))
             .with_template("post.html", include_str!("templates/post.html"))
