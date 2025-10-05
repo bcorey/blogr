@@ -193,6 +193,7 @@ button.search-tag:hover {
     color: var(--bg);
 }
 
+/* make the search tags consistent with other tags */
 button.search-tag::before {
     content: "#"
 }
@@ -1070,28 +1071,9 @@ kbd {
     }
 }
 
-/* Print styles */
-@media print {
-
-    .nav-header,
-    .backlink-pane,
-    .archive-navigation {
-        display: none;
-    }
-
-    .callout {
-        border: 1px solid #ccc;
-        background-color: #f9f9f9;
-    }
-
-    .tag {
-        border: 1px solid #ccc;
-        background-color: #f0f0f0;
-    }
-}
-
 /* Enhanced focus styles for accessibility */
 a:focus,
+button:focus,
 .nav-action-button:focus,
 .tag:focus {
     outline: .1rem solid var(--fg);
