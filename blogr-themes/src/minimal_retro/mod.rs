@@ -1,4 +1,4 @@
-use crate::{ConfigOption, Theme, ThemeInfo};
+use crate::{ConfigOption, Theme, ThemeInfo, ThemeTemplates};
 use ratatui::style::{Color, Style};
 use std::collections::HashMap;
 
@@ -96,46 +96,13 @@ impl Theme for MinimalRetroTheme {
         }
     }
 
-    fn templates(&self) -> HashMap<String, String> {
-        let mut templates = HashMap::new();
-
-        // Base layout template
-        templates.insert(
-            "base.html".to_string(),
-            include_str!("templates/base.html").to_string(),
-        );
-
-        // Index/home page template
-        templates.insert(
-            "index.html".to_string(),
-            include_str!("templates/index.html").to_string(),
-        );
-
-        // Individual post template
-        templates.insert(
-            "post.html".to_string(),
-            include_str!("templates/post.html").to_string(),
-        );
-
-        // Archive/list template
-        templates.insert(
-            "archive.html".to_string(),
-            include_str!("templates/archive.html").to_string(),
-        );
-
-        // Tag page template
-        templates.insert(
-            "tag.html".to_string(),
-            include_str!("templates/tag.html").to_string(),
-        );
-
-        // Tags index template
-        templates.insert(
-            "tags.html".to_string(),
-            include_str!("templates/tags.html").to_string(),
-        );
-
-        templates
+    fn templates(&self) -> ThemeTemplates {
+        ThemeTemplates::new("base_html", include_str!("templates/base.html"))
+            .with_template("index.html", include_str!("templates/index.html"))
+            .with_template("post.html", include_str!("templates/post.html"))
+            .with_template("archive.html", include_str!("templates/archive.html"))
+            .with_template("tag.html", include_str!("templates/tag.html"))
+            .with_template("tags.html", include_str!("templates/tags.html"))
     }
 
     fn assets(&self) -> HashMap<String, Vec<u8>> {
