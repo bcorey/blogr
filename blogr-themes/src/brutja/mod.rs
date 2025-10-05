@@ -19,7 +19,7 @@ impl Theme for BrutjaTheme {
             name: "Brutja".to_string(),
             version: "1.0.0".to_string(),
             author: "Benjamin Corey".to_string(),
-            description: "Somewhat brutalist theme".to_string(),
+            description: "Brutalist, minimal theme with pops of color.".to_string(),
             config_schema: schema,
         }
     }
