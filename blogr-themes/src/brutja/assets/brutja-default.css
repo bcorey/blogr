@@ -118,6 +118,11 @@ h6 {
     font-size: 0.3rem;
 }
 
+hr {
+    border: .05rem solid var(--fg);
+    height: 0;
+}
+
 /* Links */
 a {
     color: var(--accent-primary);
