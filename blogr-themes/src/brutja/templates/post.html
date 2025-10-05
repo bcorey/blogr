@@ -1,28 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}{{ post.metadata.title }} - {{ site.blog.title }}{% endblock %}
-
-{% block meta %}
-<meta name="description" content="{{ post.metadata.description }}">
-<meta name="author" content="{{ post.metadata.author }}">
-{% endblock %}
-
 {% block content %}
 <article class="post-article">
-    <header class="post-header">
+    <header>
         <h2 class="post-title">{{ post.metadata.title }}</h2>
 
         <div class="post-meta">
-            <time class="post-date" datetime="{{ post.metadata.date }}">
+            <time datetime="{{ post.metadata.date }}">
                 {{ post.metadata.date | date(format="%B %d, %Y") }}
             </time>
 
             {% if post.metadata.author %}
-            <span class="post-author">by {{ post.metadata.author }}</span>
-            {% endif %}
-
-            {% if reading_time %}
-            <span class="reading-time">{{ reading_time }} min read</span>
+            <span>by {{ post.metadata.author }}</span>
             {% endif %}
 
             {% if post.metadata.status == "draft" %}
