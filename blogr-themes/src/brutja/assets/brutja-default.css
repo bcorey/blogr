@@ -155,30 +155,6 @@ a:hover {
     position: relative;
 }
 
-.callout[data-callout="info"] {
-    border-left-color: var(--callout-info);
-}
-
-.callout[data-callout="tip"] {
-    border-left-color: var(--callout-tip);
-}
-
-.callout[data-callout="warning"] {
-    border-left-color: var(--callout-warning);
-}
-
-.callout[data-callout="error"] {
-    border-left-color: var(--callout-error);
-}
-
-.callout[data-callout="abstract"] {
-    border-left-color: var(--callout-abstract);
-}
-
-.callout[data-callout="note"] {
-    border-left-color: var(--callout-note);
-}
-
 .callout-title {
     font-weight: 600;
     margin-bottom: 8px;
@@ -207,16 +183,18 @@ button.search-tag {
     height: fit-content;
     font-size: .9rem;
     border: .1rem solid var(--fg);
-    border-left: none;
     box-shadow: .4rem .3rem var(--hint);
+    margin-left: -.1rem;
 }
-
-
 
 .tag:hover,
 button.search-tag:hover {
     background-color: var(--accent-primary);
     color: var(--bg);
+}
+
+button.search-tag::before {
+    content: "#"
 }
 
 .post-tags,
@@ -225,8 +203,8 @@ button.search-tag:hover {
     display: flex;
     flex-wrap: wrap;
     justify-content: left;
-    margin: .2rem 0 .5rem 0;
-    border-left: .1rem solid var(--fg);
+    margin: .2rem 0 .5rem .1rem;
+    row-gap: .3rem;
 }
 
 /* Embedded content */
@@ -512,7 +490,7 @@ th {
 }
 
 .search-highlight {
-    background: var(--callout-note);
+    background: var(--accent-tertiary);
     color: var(--fg);
 }
 
@@ -928,6 +906,10 @@ th {
 
 .post-card {
     margin: 1.5rem 0;
+}
+
+.post-title {
+    margin-bottom: .2rem;
 }
 
 .post-title a {

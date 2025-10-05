@@ -32,6 +32,10 @@ impl Theme for BrutjaTheme {
             include_str!("templates/base.html").to_string(),
         );
         templates.insert(
+            "post_card.html".to_string(),
+            include_str!("templates/post_card.html").to_string(),
+        );
+        templates.insert(
             "index.html".to_string(),
             include_str!("templates/index.html").to_string(),
         );
