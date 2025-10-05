@@ -832,20 +832,8 @@ th {
 
 /* Backlink pane styling */
 .backlink-pane {
-    margin: 32px 0;
-    padding-top: 24px;
+    margin: 1rem 0;
     border-top: .1rem solid var(--fg);
-}
-
-/* Metadata container */
-.metadata-container {
-    margin: 24px 0;
-}
-
-/* Archive page specific styles */
-.archive-page {
-    /* This will be overridden by the Obsidian structure, but keeping for compatibility */
-    display: block;
 }
 
 .archive-header {
