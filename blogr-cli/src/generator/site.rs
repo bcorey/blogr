@@ -429,6 +429,11 @@ Thank you!`);
                     if let Some(sections) = frontmatter_data.get("sections") {
                         context.insert("sections", sections);
                     }
+
+                    // Override theme_config with content.md theme_config if it exists
+                    if let Some(content_theme_config) = frontmatter_data.get("theme_config") {
+                        context.insert("theme_config", content_theme_config);
+                    }
                 }
             }
         }
