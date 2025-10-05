@@ -20,26 +20,38 @@ enum HighLevelListItem {
     BlankLine,
 }
 
-fn create_high_level_list_items() -> Vec<HighLevelListItem> {
-    ConfigFieldSection::iter()
-        .map(|section| (section, section.get_fields()))
-        .map(|(section, fields)| {
-            let mut list_section = vec![
-                HighLevelListItem::BlankLine,
-                HighLevelListItem::Section(section),
-            ];
-            list_section.append(
-                &mut fields
-                    .iter()
-                    .map(|field| HighLevelListItem::Field(*field))
-                    .collect(),
-            );
-            list_section
+struct HighLevelConfigList(Vec<HighLevelListItem>);
+impl HighLevelConfigList {
+    fn new() -> Self {
+        let inner = ConfigFieldSection::iter()
+            .map(|section| (section, section.get_fields()))
+            .map(|(section, fields)| {
+                let mut list_section = vec![
+                    HighLevelListItem::BlankLine,
+                    HighLevelListItem::Section(section),
+                ];
+                list_section.append(
+                    &mut fields
+                        .iter()
+                        .map(|field| HighLevelListItem::Field(*field))
+                        .collect(),
+                );
+                list_section
+            })
+            .fold(Vec::new(), |mut acc, mut list_section| {
+                acc.append(&mut list_section);
+                acc
+            });
+
+        Self(inner)
+    }
+
+    fn index_of(&self, field: &ConfigField) -> Option<usize> {
+        self.0.iter().position(|item| match item {
+            HighLevelListItem::Field(i) => i == field,
+            _ => false,
         })
-        .fold(Vec::new(), |mut acc, mut list_section| {
-            acc.append(&mut list_section);
-            acc
-        })
+    }
 }
 
 /// Configuration field types
@@ -64,20 +76,20 @@ pub enum ConfigField {
 impl std::fmt::Display for ConfigField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ConfigField::BlogTitle => "Blog Title",
-            ConfigField::BlogAuthor => "Blog Author",
-            ConfigField::BlogDescription => "Blog Description",
-            ConfigField::BlogBaseUrl => "Base URL",
-            ConfigField::BlogLanguage => "Language",
-            ConfigField::BlogTimezone => "Timezone",
-            ConfigField::ThemeName => "Theme Name",
-            ConfigField::DomainPrimary => "Primary Domain",
-            ConfigField::DomainEnforceHttps => "Enforce HTTPS",
-            ConfigField::BuildOutputDir => "Output Directory",
-            ConfigField::BuildDrafts => "Include Drafts",
-            ConfigField::BuildFuturePosts => "Include Future Posts",
-            ConfigField::DevPort => "Development Port",
-            ConfigField::DevAutoReload => "Auto Reload",
+            Self::BlogTitle => "Blog Title",
+            Self::BlogAuthor => "Blog Author",
+            Self::BlogDescription => "Blog Description",
+            Self::BlogBaseUrl => "Base URL",
+            Self::BlogLanguage => "Language",
+            Self::BlogTimezone => "Timezone",
+            Self::ThemeName => "Theme Name",
+            Self::DomainPrimary => "Primary Domain",
+            Self::DomainEnforceHttps => "Enforce HTTPS",
+            Self::BuildOutputDir => "Output Directory",
+            Self::BuildDrafts => "Include Drafts",
+            Self::BuildFuturePosts => "Include Future Posts",
+            Self::DevPort => "Development Port",
+            Self::DevAutoReload => "Auto Reload",
         };
         write!(f, "{name}")
     }
@@ -91,86 +103,84 @@ impl ConfigField {
             | Self::BlogDescription
             | Self::BlogBaseUrl
             | Self::BlogLanguage
-            | Self::BlogTimezone => ConfigFieldSection::BlogSettings,
-            Self::ThemeName => ConfigFieldSection::ThemeSettings,
-            Self::DomainPrimary | ConfigField::DomainEnforceHttps => {
-                ConfigFieldSection::DomainSettings
-            }
+            | Self::BlogTimezone => ConfigFieldSection::Blog,
+            Self::ThemeName => ConfigFieldSection::Theme,
+            Self::DomainPrimary | ConfigField::DomainEnforceHttps => ConfigFieldSection::Domain,
             Self::BuildOutputDir | Self::BuildDrafts | Self::BuildFuturePosts => {
-                ConfigFieldSection::BuildSettings
+                ConfigFieldSection::Build
             }
-            Self::DevPort | ConfigField::DevAutoReload => ConfigFieldSection::DevelopmentSettings,
+            Self::DevPort | ConfigField::DevAutoReload => ConfigFieldSection::Development,
         }
     }
 
     pub fn get_value(&self, config: &Config) -> String {
         match self {
-            ConfigField::BlogTitle => config.blog.title.clone(),
-            ConfigField::BlogAuthor => config.blog.author.clone(),
-            ConfigField::BlogDescription => config.blog.description.clone(),
-            ConfigField::BlogBaseUrl => config.blog.base_url.clone(),
-            ConfigField::BlogLanguage => config.blog.language.as_deref().unwrap_or("").to_string(),
-            ConfigField::BlogTimezone => config.blog.timezone.as_deref().unwrap_or("").to_string(),
-            ConfigField::ThemeName => config.theme.name.clone(),
-            ConfigField::DomainPrimary => {
+            Self::BlogTitle => config.blog.title.clone(),
+            Self::BlogAuthor => config.blog.author.clone(),
+            Self::BlogDescription => config.blog.description.clone(),
+            Self::BlogBaseUrl => config.blog.base_url.clone(),
+            Self::BlogLanguage => config.blog.language.as_deref().unwrap_or("").to_string(),
+            Self::BlogTimezone => config.blog.timezone.as_deref().unwrap_or("").to_string(),
+            Self::ThemeName => config.theme.name.clone(),
+            Self::DomainPrimary => {
                 if let Some(domains) = &config.blog.domains {
                     domains.primary.as_deref().unwrap_or("").to_string()
                 } else {
                     "".to_string()
                 }
             }
-            ConfigField::DomainEnforceHttps => {
+            Self::DomainEnforceHttps => {
                 if let Some(domains) = &config.blog.domains {
                     domains.enforce_https.to_string()
                 } else {
                     "true".to_string()
                 }
             }
-            ConfigField::BuildOutputDir => config
+            Self::BuildOutputDir => config
                 .build
                 .output_dir
                 .as_deref()
                 .unwrap_or("dist")
                 .to_string(),
-            ConfigField::BuildDrafts => config.build.drafts.to_string(),
-            ConfigField::BuildFuturePosts => config.build.future_posts.to_string(),
-            ConfigField::DevPort => config.dev.port.to_string(),
-            ConfigField::DevAutoReload => config.dev.auto_reload.to_string(),
+            Self::BuildDrafts => config.build.drafts.to_string(),
+            Self::BuildFuturePosts => config.build.future_posts.to_string(),
+            Self::DevPort => config.dev.port.to_string(),
+            Self::DevAutoReload => config.dev.auto_reload.to_string(),
         }
     }
 
     pub fn is_boolean(&self) -> bool {
         matches!(
             self,
-            ConfigField::DomainEnforceHttps
-                | ConfigField::BuildDrafts
-                | ConfigField::BuildFuturePosts
-                | ConfigField::DevAutoReload
+            Self::DomainEnforceHttps
+                | Self::BuildDrafts
+                | Self::BuildFuturePosts
+                | Self::DevAutoReload
         )
     }
 
     pub fn is_numeric(&self) -> bool {
-        matches!(self, ConfigField::DevPort)
+        matches!(self, Self::DevPort)
     }
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, PartialEq, Eq, Hash)]
 pub enum ConfigFieldSection {
-    BlogSettings,
-    ThemeSettings,
-    DomainSettings,
-    BuildSettings,
-    DevelopmentSettings,
+    Blog,
+    Theme,
+    Domain,
+    Build,
+    Development,
 }
 
 impl std::fmt::Display for ConfigFieldSection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::BlogSettings => "Blog Settings",
-            Self::ThemeSettings => "Theme Settings",
-            Self::DomainSettings => "Domain Settings",
-            Self::BuildSettings => "Build Settings",
-            Self::DevelopmentSettings => "Development Settings",
+            Self::Blog => "Blog Settings",
+            Self::Theme => "Theme Settings",
+            Self::Domain => "Domain Settings",
+            Self::Build => "Build Settings",
+            Self::Development => "Development Settings",
         };
         write!(f, "{name}")
     }
@@ -197,44 +207,48 @@ pub struct ConfigApp {
     /// Current running state
     pub running: bool,
     /// Current mode
-    pub mode: ConfigMode,
+    mode: ConfigMode,
     /// Current configuration
-    pub config: Config,
+    config: Config,
     /// Project reference
-    pub project: Project,
+    project: Project,
     /// Current theme
-    pub theme: TuiTheme,
+    theme: TuiTheme,
     /// Current field selection
-    pub selected_field: ConfigField,
-    pub config_index: usize,
-    list_items: Vec<HighLevelListItem>,
+    selected_field: ConfigField,
+    /// The index of the field in the ConfigField enum variant array
+    config_index: usize,
+    /// Lays out the ConfigField into sections with headers and blank lines.
+    /// Maps the ConfigField index into the actual list layout so ListState can render the selection.
+    list_layout: HighLevelConfigList,
     /// List state for field selection
-    pub list_state: ListState,
+    list_state: ListState,
     /// Current edit buffer
-    pub edit_buffer: String,
+    edit_buffer: String,
     /// Status message
-    pub status_message: String,
+    status_message: String,
     /// Whether config has been modified
-    pub modified: bool,
+    modified: bool,
     /// Show help overlay
-    pub show_help: bool,
+    show_help: bool,
 }
 
 impl ConfigApp {
     /// Create a new configuration app
     pub fn new(config: Config, project: Project, theme: TuiTheme) -> Self {
         let mut list_state = ListState::default();
-        list_state.select(Some(2));
-        let list_items = create_high_level_list_items();
+        let list_layout = HighLevelConfigList::new();
+        let selected_field = ConfigField::BlogTitle;
+        list_state.select(list_layout.index_of(&selected_field));
         Self {
             running: true,
             mode: ConfigMode::Browse,
             config,
             project,
             theme,
-            selected_field: ConfigField::BlogTitle,
-            config_index: 0,
-            list_items,
+            selected_field,
+            config_index: 0, // must match the index of selected_field in ConfigField::VARIANTS
+            list_layout,
             list_state,
             edit_buffer: String::new(),
             status_message: "Navigate with ↑/↓, Enter to edit, 'q' to quit, 's' to save"
@@ -282,11 +296,7 @@ impl ConfigApp {
                 if let Some(prev) = prev {
                     self.selected_field = *prev;
                     self.config_index -= 1;
-                    let index = self.list_items.iter().position(|item| match item {
-                        HighLevelListItem::Field(field) => field == prev,
-                        _ => false,
-                    });
-                    self.list_state.select(index);
+                    self.list_state.select(self.list_layout.index_of(prev));
                 }
             }
             KeyCode::Down => {
@@ -294,11 +304,7 @@ impl ConfigApp {
                 if let Some(next) = next {
                     self.selected_field = *next;
                     self.config_index += 1;
-                    let index = self.list_items.iter().position(|item| match item {
-                        HighLevelListItem::Field(field) => field == next,
-                        _ => false,
-                    });
-                    self.list_state.select(index);
+                    self.list_state.select(self.list_layout.index_of(next));
                 }
             }
             KeyCode::Enter => {
@@ -540,7 +546,8 @@ impl ConfigApp {
 
     fn render_field_list(&mut self, frame: &mut Frame, area: Rect) {
         let items = self
-            .list_items
+            .list_layout
+            .0
             .iter()
             .map(|item| match item {
                 HighLevelListItem::BlankLine => ListItem::new(""),
