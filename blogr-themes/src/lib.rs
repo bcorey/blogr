@@ -35,9 +35,36 @@ pub struct ConfigOption {
 
 pub trait Theme: Send + Sync {
     fn info(&self) -> ThemeInfo;
-    fn templates(&self) -> HashMap<String, String>;
+    fn templates(&self) -> ThemeTemplates;
     fn assets(&self) -> HashMap<String, Vec<u8>>;
     fn preview_tui_style(&self) -> ratatui::style::Style;
+}
+
+pub struct ThemeTemplates {
+    templates: Vec<(&'static str, &'static str)>,
+}
+
+impl ThemeTemplates {
+    // Base template must be first. This ensure it's registered first with Tera when we iterate through the templates.
+    pub fn new(base_template_name: &'static str, base_template: &'static str) -> Self {
+        Self {
+            templates: vec![(base_template_name, base_template)],
+        }
+    }
+
+    pub fn with_template(mut self, name: &'static str, template: &'static str) -> Self {
+        self.templates.push((name, template));
+        self
+    }
+}
+
+impl IntoIterator for ThemeTemplates {
+    type Item = (&'static str, &'static str);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.templates.into_iter()
+    }
 }
 
 #[must_use]
