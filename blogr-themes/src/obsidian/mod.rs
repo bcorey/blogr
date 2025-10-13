@@ -18,7 +18,7 @@ impl Theme for ObsidianTheme {
         schema.insert(
             "obsidian_css".to_string(),
             ConfigOption {
-                option: toml::Value::String("static/obsidian.css".to_string()),
+                value: toml::Value::String("static/obsidian.css".to_string()),
                 description: "Path to Obsidian CSS (served from /static/)".to_string(),
             },
         );
@@ -26,7 +26,7 @@ impl Theme for ObsidianTheme {
         schema.insert(
             "color_mode".to_string(),
             ConfigOption {
-                option: toml::Value::String("auto".to_string()),
+                value: toml::Value::String("auto".to_string()),
                 description: "Dark/light mode handling (auto | dark | light)".to_string(),
             },
         );

@@ -54,7 +54,7 @@ impl ThemeInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigOption {
-    pub option: toml::Value,
+    pub value: toml::Value,
     pub description: String,
 }
 

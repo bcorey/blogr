@@ -914,7 +914,7 @@ impl EditTheme {
         let default_theme_config = theme
             .config_schema
             .into_iter()
-            .map(|(field_name, config)| (field_name, config.option))
+            .map(|(field_name, config)| (field_name, config.value))
             .collect::<HashMap<String, toml::Value>>();
         self.browse_data
             .config

@@ -66,7 +66,7 @@ pub async fn handle_info(name: String) -> Result<()> {
             for (option_name, config_option) in info.config_schema {
                 println!(
                     "  - {}: {} ({})",
-                    option_name, config_option.option, config_option.description
+                    option_name, config_option.value, config_option.description
                 );
             }
         } else {
@@ -169,7 +169,7 @@ pub async fn handle_set(name: String) -> Result<()> {
     for (option_name, config_option) in theme_info.config_schema.clone() {
         // Only set default if the option doesn't exist in current config
         if let Entry::Vacant(e) = config.theme.config.entry(option_name) {
-            e.insert(config_option.option);
+            e.insert(config_option.value);
         }
     }
 
@@ -221,10 +221,10 @@ pub async fn handle_preview(name: String) -> Result<()> {
             println!(
                 "  • {} ({}): {}",
                 option_name,
-                config_option.option.type_str(),
+                config_option.value.type_str(),
                 config_option.description
             );
-            println!("    Default: {}", config_option.option);
+            println!("    Default: {}", config_option.value);
         }
     } else {
         println!("⚙️ No configuration options available");
@@ -248,7 +248,7 @@ pub async fn handle_preview(name: String) -> Result<()> {
             println!(
                 "  • {}: {}",
                 option_name.replace('_', " "),
-                config_option.option
+                config_option.value
             );
         }
     }
