@@ -101,7 +101,7 @@ pub async fn handle_info(name: String) -> Result<()> {
             for (option_name, config_option) in info.config_schema {
                 println!(
                     "  - {}: {} ({})",
-                    option_name, config_option.default, config_option.description
+                    option_name, config_option.option, config_option.description
                 );
             }
         } else {
@@ -204,20 +204,7 @@ pub async fn handle_set(name: String) -> Result<()> {
     for (option_name, config_option) in theme_info.config_schema.clone() {
         // Only set default if the option doesn't exist in current config
         if let Entry::Vacant(e) = config.theme.config.entry(option_name) {
-            let default_value = match config_option.option_type.as_str() {
-                "boolean" => toml::Value::Boolean(config_option.default.parse().unwrap_or(false)),
-                "number" => {
-                    if let Ok(int_val) = config_option.default.parse::<i64>() {
-                        toml::Value::Integer(int_val)
-                    } else if let Ok(float_val) = config_option.default.parse::<f64>() {
-                        toml::Value::Float(float_val)
-                    } else {
-                        toml::Value::String(config_option.default)
-                    }
-                }
-                _ => toml::Value::String(config_option.default),
-            };
-            e.insert(default_value);
+            e.insert(config_option.option);
         }
     }
 
@@ -268,9 +255,11 @@ pub async fn handle_preview(name: String) -> Result<()> {
         for (option_name, config_option) in &theme_info.config_schema {
             println!(
                 "  • {} ({}): {}",
-                option_name, config_option.option_type, config_option.description
+                option_name,
+                config_option.option.type_str(),
+                config_option.description
             );
-            println!("    Default: {}", config_option.default);
+            println!("    Default: {}", config_option.option);
         }
     } else {
         println!("⚙️ No configuration options available");
@@ -294,7 +283,7 @@ pub async fn handle_preview(name: String) -> Result<()> {
             println!(
                 "  • {}: {}",
                 option_name.replace('_', " "),
-                config_option.default
+                config_option.option
             );
         }
     }

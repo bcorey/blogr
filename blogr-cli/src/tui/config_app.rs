@@ -1,12 +1,18 @@
+use std::collections::HashMap;
+
 use crate::config::Config;
 use crate::project::Project;
 use crate::tui::theme::TuiTheme;
+use blogr_themes::{get_all_themes, ThemeInfo};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    text::{Line, Span, Text},
+    widgets::{
+        Block, Borders, Cell, Clear, HighlightSpacing, List, ListItem, ListState, Paragraph, Row,
+        Table, TableState, Wrap,
+    },
     Frame,
 };
 use strum::{EnumIter, IntoEnumIterator, VariantArray};
@@ -214,7 +220,7 @@ impl ConfigApp {
                 Constraint::Min(0),    // Main content
                 Constraint::Length(3), // Status bar
             ])
-            .split(frame.size());
+            .split(frame.area());
 
         self.state.render_header(frame, chunks[0], &self.theme);
         self.state
@@ -240,6 +246,7 @@ impl ConfigApp {
 enum ConfigAppState {
     Browse(Box<Browse>),
     Edit(Box<Edit>),
+    EditTheme(Box<EditTheme>),
     Help(Box<Help>),
     Shutdown(Shutdown),
 }
@@ -253,6 +260,7 @@ impl ConfigAppState {
         match self {
             Self::Browse(app) => app.render_browse_mode(frame, area, theme),
             Self::Edit(app) => app.render_edit_mode(frame, area, theme),
+            Self::EditTheme(app) => app.render_table(frame, area, theme),
             Self::Help(app) => app.render_help_overlay(frame, theme), // Help is rendered as overlay
             Self::Shutdown(_) => {}
         }
@@ -290,6 +298,7 @@ impl ConfigAppState {
         match self {
             Self::Browse(app) => Ok(app.handle_key_event(key)),
             Self::Edit(app) => app.handle_key_event(key),
+            Self::EditTheme(app) => app.handle_key_event(key),
             Self::Help(app) => Ok(app.handle_key_event(key)),
             Self::Shutdown(app) => Ok(app.into()),
         }
@@ -299,6 +308,7 @@ impl ConfigAppState {
         match self {
             Self::Browse(app) => app.status_message.clone(),
             Self::Edit(app) => app.browse_data.status_message.clone(),
+            Self::EditTheme(app) => app.browse_data.status_message.clone(),
             Self::Help(app) => app.browse_data.status_message.clone(),
             Self::Shutdown(_) => "Shutting down".to_string(),
         }
@@ -314,6 +324,12 @@ impl From<Browse> for ConfigAppState {
 impl From<Edit> for ConfigAppState {
     fn from(value: Edit) -> Self {
         ConfigAppState::Edit(Box::new(value))
+    }
+}
+
+impl From<EditTheme> for ConfigAppState {
+    fn from(value: EditTheme) -> Self {
+        ConfigAppState::EditTheme(Box::new(value))
     }
 }
 
@@ -367,7 +383,10 @@ impl Browse {
             KeyCode::Char('h') | KeyCode::F(1) => self.enter_help_mode().into(),
             KeyCode::Up => self.key_up().into(),
             KeyCode::Down => self.key_down().into(),
-            KeyCode::Enter => self.enter_edit_mode().into(),
+            KeyCode::Enter => match self.selected_field {
+                ConfigField::ThemeName => self.enter_edit_theme_mode().into(),
+                _ => self.enter_edit_mode().into(),
+            },
             _ => self.into(),
         }
     }
@@ -495,6 +514,10 @@ impl Browse {
             browse_data: self,
             edit_buffer,
         }
+    }
+
+    fn enter_edit_theme_mode(self) -> EditTheme {
+        self.into()
     }
 
     fn enter_help_mode(self) -> Help {
@@ -704,7 +727,7 @@ impl Help {
     }
 
     fn render_help_overlay(&self, frame: &mut Frame, theme: &TuiTheme) {
-        let area = frame.size();
+        let area = frame.area();
         let popup_area = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -757,6 +780,146 @@ impl Help {
             .style(theme.text_style());
 
         frame.render_widget(help, popup_area);
+    }
+
+    fn enter_browse_mode(self) -> Browse {
+        self.browse_data
+    }
+}
+
+struct EditTheme {
+    browse_data: Browse,
+    options: Vec<ThemeInfo>,
+    table_state: TableState,
+    row_index: usize,
+}
+
+impl From<Browse> for EditTheme {
+    fn from(value: Browse) -> Self {
+        let options = get_all_themes()
+            .iter()
+            .map(|(_name, theme)| theme.info())
+            .collect::<Vec<ThemeInfo>>();
+
+        let row_index = 0;
+        let mut table_state = TableState::default();
+        table_state.select(Some(row_index));
+        Self {
+            browse_data: value,
+            options,
+            row_index,
+            table_state,
+        }
+    }
+}
+
+impl EditTheme {
+    fn render_table(&mut self, frame: &mut Frame, area: Rect, theme: &TuiTheme) {
+        let header_style = Style::default()
+            .fg(theme.primary_color)
+            .add_modifier(Modifier::BOLD);
+        let selected_row_style = Style::default()
+            .add_modifier(Modifier::REVERSED)
+            .fg(theme.focused_border_color);
+        let selected_col_style = Style::default().fg(theme.cursor_color);
+        let selected_cell_style = Style::default()
+            .add_modifier(Modifier::REVERSED)
+            .fg(theme.background_color);
+
+        let header = ["Name", "Version", "Author", "Description"]
+            .into_iter()
+            .map(Cell::from)
+            .collect::<Row>()
+            .style(header_style)
+            .height(1);
+        let rows = self.options.iter().enumerate().map(|(_i, data)| {
+            let item = data.as_data_row();
+            item.into_iter()
+                .map(|content| Cell::from(Text::from(format!("\n{content}\n"))))
+                .collect::<Row>()
+                .style(Style::new().fg(theme.text_color))
+                .height(4)
+        });
+
+        let bar = " █ ";
+        let t = Table::new(
+            rows,
+            [
+                // + 1 is for padding.
+                Constraint::Length(20 + 1),
+                Constraint::Length(10),
+                Constraint::Length(20),
+                Constraint::Min(40),
+            ],
+        )
+        .block(
+            Block::new()
+                .borders(Borders::ALL)
+                .title("Themes")
+                .border_style(theme.focused_border_style()),
+        )
+        .header(header)
+        .row_highlight_style(selected_row_style)
+        .column_highlight_style(selected_col_style)
+        .cell_highlight_style(selected_cell_style)
+        .highlight_symbol(Text::from(vec![
+            "".into(),
+            bar.into(),
+            bar.into(),
+            "".into(),
+        ]))
+        .highlight_spacing(HighlightSpacing::Always);
+        frame.render_stateful_widget(t, area, &mut self.table_state);
+    }
+
+    fn handle_key_event(self, key: KeyEvent) -> AppResult<ConfigAppState> {
+        match key.code {
+            KeyCode::Esc => Ok(self.enter_browse_mode().into()),
+            KeyCode::Up => Ok(self.key_up().into()),
+            KeyCode::Down => Ok(self.key_down().into()),
+            KeyCode::Enter => Ok(self.set_theme()?.into()),
+            _ => Ok(self.into()),
+        }
+    }
+
+    fn key_up(mut self) -> Self {
+        if self.row_index == 0 {
+            return self;
+        }
+        self.row_index -= 1;
+        self.table_state.select(Some(self.row_index));
+        self
+    }
+
+    fn key_down(mut self) -> Self {
+        if self.row_index >= self.options.len() {
+            return self;
+        }
+        self.row_index += 1;
+        self.table_state.select(Some(self.row_index));
+        self
+    }
+
+    fn set_theme(mut self) -> AppResult<Browse> {
+        let theme = self
+            .options
+            .get(self.row_index)
+            .expect("Index out of bounds")
+            .clone();
+        let default_theme_config = theme
+            .config_schema
+            .into_iter()
+            .map(|(field_name, config)| (field_name, config.option))
+            .collect::<HashMap<String, toml::Value>>();
+        self.browse_data
+            .config
+            .set_theme(theme.name, default_theme_config);
+        //save
+        let config_path = self.browse_data.project.root.join("blogr.toml");
+        self.browse_data.config.save_to_file(&config_path)?;
+        self.browse_data.config = self.browse_data.config.clone();
+        self.browse_data.status_message = "Configuration saved successfully!".to_string();
+        Ok(self.enter_browse_mode())
     }
 
     fn enter_browse_mode(self) -> Browse {
