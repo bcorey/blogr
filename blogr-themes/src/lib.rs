@@ -26,10 +26,15 @@ pub struct ThemeInfo {
     pub config_schema: HashMap<String, ConfigOption>,
 }
 
+impl ThemeInfo {
+    pub fn as_data_row(&self) -> [&String; 4] {
+        [&self.name, &self.version, &self.author, &self.description]
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigOption {
-    pub option_type: String,
-    pub default: String,
+    pub option: toml::Value,
     pub description: String,
 }
 

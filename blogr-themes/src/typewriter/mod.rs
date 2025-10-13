@@ -18,8 +18,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "paper_color".to_string(),
             ConfigOption {
-                option_type: "string".to_string(),
-                default: "#f4f1e8".to_string(),
+                option: toml::Value::String("#f4f1e8".to_string()),
                 description: "Paper background color (vintage cream)".to_string(),
             },
         );
@@ -27,8 +26,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "ink_color".to_string(),
             ConfigOption {
-                option_type: "string".to_string(),
-                default: "#2b2b2b".to_string(),
+                option: toml::Value::String("#2b2b2b".to_string()),
                 description: "Text/ink color (dark charcoal)".to_string(),
             },
         );
@@ -36,8 +34,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "accent_color".to_string(),
             ConfigOption {
-                option_type: "string".to_string(),
-                default: "#8b4513".to_string(),
+                option: toml::Value::String("#8b4513".to_string()),
                 description: "Accent color (vintage brown)".to_string(),
             },
         );
@@ -45,8 +42,9 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "font_family".to_string(),
             ConfigOption {
-                option_type: "string".to_string(),
-                default: "'Courier Prime', 'Courier New', monospace".to_string(),
+                option: toml::Value::String(
+                    "'Courier Prime', 'Courier New', monospace".to_string(),
+                ),
                 description: "Typewriter-style font family".to_string(),
             },
         );
@@ -54,8 +52,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "show_paper_texture".to_string(),
             ConfigOption {
-                option_type: "boolean".to_string(),
-                default: "true".to_string(),
+                option: toml::Value::Boolean(true),
                 description: "Show subtle paper texture overlay".to_string(),
             },
         );
@@ -63,8 +60,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "typing_animation".to_string(),
             ConfigOption {
-                option_type: "boolean".to_string(),
-                default: "true".to_string(),
+                option: toml::Value::Boolean(true),
                 description: "Enable typewriter typing animation for title".to_string(),
             },
         );
@@ -72,8 +68,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "show_date_stamp".to_string(),
             ConfigOption {
-                option_type: "boolean".to_string(),
-                default: "true".to_string(),
+                option: toml::Value::Boolean(true),
                 description: "Show vintage date stamp in header".to_string(),
             },
         );
@@ -81,8 +76,7 @@ impl Theme for TypewriterTheme {
         config_schema.insert(
             "cursor_blink".to_string(),
             ConfigOption {
-                option_type: "boolean".to_string(),
-                default: "true".to_string(),
+                option: toml::Value::Boolean(true),
                 description: "Show blinking cursor effect".to_string(),
             },
         );
