@@ -18,7 +18,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "primary_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#1a1a1a".to_string()),
+                value: toml::Value::String("#1a1a1a".to_string()),
                 description: "Primary color (ink black)".to_string(),
             },
         );
@@ -26,7 +26,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "background_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#faf9f7".to_string()),
+                value: toml::Value::String("#faf9f7".to_string()),
                 description: "Background color (warm paper)".to_string(),
             },
         );
@@ -34,7 +34,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "text_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#2d2d2d".to_string()),
+                value: toml::Value::String("#2d2d2d".to_string()),
                 description: "Main text color (charcoal)".to_string(),
             },
         );
@@ -42,7 +42,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "secondary_text_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#6b6b6b".to_string()),
+                value: toml::Value::String("#6b6b6b".to_string()),
                 description: "Secondary text color (warm gray)".to_string(),
             },
         );
@@ -50,7 +50,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "accent_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#4a4a4a".to_string()),
+                value: toml::Value::String("#4a4a4a".to_string()),
                 description: "Accent color (slate)".to_string(),
             },
         );
@@ -58,7 +58,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "font_family".to_string(),
             ConfigOption {
-                option: toml::Value::String("'Noto Serif JP', 'Georgia', serif".to_string()),
+                value: toml::Value::String("'Noto Serif JP', 'Georgia', serif".to_string()),
                 description: "Font family with Japanese serif style".to_string(),
             },
         );
@@ -66,7 +66,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "enable_animations".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(true),
+                value: toml::Value::Boolean(true),
                 description: "Enable subtle zen-like animations".to_string(),
             },
         );
@@ -74,7 +74,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "show_brush_strokes".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(true),
+                value: toml::Value::Boolean(true),
                 description: "Show ink brush stroke decorative elements".to_string(),
             },
         );
@@ -82,7 +82,7 @@ impl Theme for MusashiTheme {
         config_schema.insert(
             "zen_mode".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(false),
+                value: toml::Value::Boolean(false),
                 description: "Ultra-minimalist mode with maximum whitespace".to_string(),
             },
         );

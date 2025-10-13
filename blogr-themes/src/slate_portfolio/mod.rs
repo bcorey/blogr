@@ -18,7 +18,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "accent_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#10b981".to_string()),
+                value: toml::Value::String("#10b981".to_string()),
                 description: "Accent color (emerald)".to_string(),
             },
         );
@@ -26,7 +26,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "background_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#0f172a".to_string()),
+                value: toml::Value::String("#0f172a".to_string()),
                 description: "Background color (slate 900)".to_string(),
             },
         );
@@ -34,7 +34,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "card_background".to_string(),
             ConfigOption {
-                option: toml::Value::String("#1e293b".to_string()),
+                value: toml::Value::String("#1e293b".to_string()),
                 description: "Card background color (slate 800)".to_string(),
             },
         );
@@ -42,7 +42,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "text_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#f1f5f9".to_string()),
+                value: toml::Value::String("#f1f5f9".to_string()),
                 description: "Main text color (slate 100)".to_string(),
             },
         );
@@ -50,7 +50,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "secondary_text_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#94a3b8".to_string()),
+                value: toml::Value::String("#94a3b8".to_string()),
                 description: "Secondary text color (slate 400)".to_string(),
             },
         );
@@ -58,7 +58,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "font_family".to_string(),
             ConfigOption {
-                option: toml::Value::String(
+                value: toml::Value::String(
                     "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
                         .to_string(),
                 ),
@@ -69,7 +69,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "show_avatar".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(false),
+                value: toml::Value::Boolean(false),
                 description: "Show avatar image in About section".to_string(),
             },
         );
@@ -77,7 +77,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "avatar_url".to_string(),
             ConfigOption {
-                option: toml::Value::String(String::new()),
+                value: toml::Value::String(String::new()),
                 description: "URL to avatar image".to_string(),
             },
         );
@@ -85,7 +85,7 @@ impl Theme for SlatePortfolioTheme {
         config_schema.insert(
             "cta_text".to_string(),
             ConfigOption {
-                option: toml::Value::String("View My Work".to_string()),
+                value: toml::Value::String("View My Work".to_string()),
                 description: "Call-to-action button text".to_string(),
             },
         );

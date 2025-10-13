@@ -18,7 +18,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "primary_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#FFB3D9".to_string()),
+                value: toml::Value::String("#FFB3D9".to_string()),
                 description: "Primary accent color (pastel pink)".to_string(),
             },
         );
@@ -26,7 +26,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "secondary_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#B4F8C8".to_string()),
+                value: toml::Value::String("#B4F8C8".to_string()),
                 description: "Secondary accent color (mint green)".to_string(),
             },
         );
@@ -34,7 +34,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "tertiary_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#C7CEEA".to_string()),
+                value: toml::Value::String("#C7CEEA".to_string()),
                 description: "Tertiary accent color (lavender)".to_string(),
             },
         );
@@ -42,7 +42,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "background_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#0D1117".to_string()),
+                value: toml::Value::String("#0D1117".to_string()),
                 description: "Background color (dark terminal)".to_string(),
             },
         );
@@ -50,7 +50,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "text_color".to_string(),
             ConfigOption {
-                option: toml::Value::String("#E6EDF3".to_string()),
+                value: toml::Value::String("#E6EDF3".to_string()),
                 description: "Main text color (light)".to_string(),
             },
         );
@@ -58,7 +58,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "font_family".to_string(),
             ConfigOption {
-                option: toml::Value::String(
+                value: toml::Value::String(
                     "'JetBrains Mono', 'Fira Code', 'Consolas', monospace".to_string(),
                 ),
                 description: "Monospace font family".to_string(),
@@ -68,7 +68,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "enable_glitch".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(true),
+                value: toml::Value::Boolean(true),
                 description: "Enable glitch effects on hover".to_string(),
             },
         );
@@ -76,7 +76,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "enable_typewriter".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(true),
+                value: toml::Value::Boolean(true),
                 description: "Enable typewriter animation for bio/description".to_string(),
             },
         );
@@ -84,7 +84,7 @@ impl Theme for TerminalCandyTheme {
         config_schema.insert(
             "show_ascii_art".to_string(),
             ConfigOption {
-                option: toml::Value::Boolean(true),
+                value: toml::Value::Boolean(true),
                 description: "Show ASCII art decorations".to_string(),
             },
         );
