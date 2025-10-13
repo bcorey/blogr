@@ -7,7 +7,7 @@ use blogr_themes::{get_all_themes, ThemeInfo};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
+    style::{Modifier, Style, Stylize},
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, Cell, Clear, HighlightSpacing, List, ListItem, ListState, Paragraph, Row,
@@ -793,6 +793,7 @@ struct EditTheme {
     options: Vec<ThemeInfo>,
     table_state: TableState,
     row_index: usize,
+    current_theme_index: Option<usize>,
 }
 
 impl From<Browse> for EditTheme {
@@ -802,11 +803,11 @@ impl From<Browse> for EditTheme {
             .map(|theme| theme.info())
             .collect::<Vec<ThemeInfo>>();
 
-        let selected_index = options
+        let current_theme_index = options
             .iter()
             .position(|theme| theme.name == value.config.theme.name);
 
-        let row_index = selected_index.unwrap_or(0);
+        let row_index = current_theme_index.unwrap_or(0);
         let mut table_state = TableState::default();
         table_state.select(Some(row_index));
         Self {
@@ -814,6 +815,7 @@ impl From<Browse> for EditTheme {
             options,
             row_index,
             table_state,
+            current_theme_index,
         }
     }
 }
@@ -837,12 +839,19 @@ impl EditTheme {
             .collect::<Row>()
             .style(header_style)
             .height(1);
-        let rows = self.options.iter().enumerate().map(|(_i, data)| {
+        let rows = self.options.iter().enumerate().map(|(i, data)| {
             let item = data.as_data_row();
+            let style = match self.current_theme_index {
+                Some(j) if j == i => Style::new()
+                    .fg(theme.text_color)
+                    .bg(theme.background_color)
+                    .italic(),
+                _ => Style::new().fg(theme.text_color),
+            };
             item.into_iter()
                 .map(|content| Cell::from(Text::from(format!("\n{content}\n"))))
                 .collect::<Row>()
-                .style(Style::new().fg(theme.text_color))
+                .style(style)
                 .height(4)
         });
 
