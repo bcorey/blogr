@@ -25,15 +25,15 @@ pub async fn handle_list() -> Result<()> {
     if all_themes.is_empty() {
         println!("  📦 No themes available");
     } else {
-        for (name, theme) in all_themes {
+        for theme in all_themes {
             let info = theme.info();
-            let is_active = current_theme.as_ref() == Some(&name);
+            let is_active = current_theme.as_ref() == Some(&info.name);
             let status_icon = if is_active { "✅" } else { "📦" };
             let status_text = if is_active { " (active)" } else { "" };
 
             println!(
                 "  {} {}{} - {}",
-                status_icon, name, status_text, info.description
+                status_icon, info.name, status_text, info.description
             );
             println!(
                 "      👤 Author: {} | 📦 Version: {}",
