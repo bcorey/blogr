@@ -15,11 +15,11 @@ use ratatui::{
     },
     Frame,
 };
-use strum::{EnumIter, IntoEnumIterator, VariantArray};
+use strum::{EnumIter, IntoEnumIterator};
 
 pub type AppResult<T> = anyhow::Result<T>;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq)]
 enum HighLevelListItem {
     Field(ConfigField),
     Section(ConfigSection),
@@ -28,9 +28,9 @@ enum HighLevelListItem {
 
 struct HighLevelConfigList(Vec<HighLevelListItem>);
 impl HighLevelConfigList {
-    fn new() -> Self {
+    fn new(config: &Config) -> Self {
         let inner = ConfigSection::iter()
-            .map(|section| (section, section.get_fields()))
+            .map(|section| (section, section.get_section(config)))
             .map(|(section, fields)| {
                 let mut list_section = vec![
                     HighLevelListItem::BlankLine,
@@ -39,7 +39,7 @@ impl HighLevelConfigList {
                 list_section.append(
                     &mut fields
                         .iter()
-                        .map(|field| HighLevelListItem::Field(*field))
+                        .map(|field| HighLevelListItem::Field(field.clone()))
                         .collect(),
                 );
                 list_section
@@ -58,10 +58,33 @@ impl HighLevelConfigList {
             _ => false,
         })
     }
+
+    fn next(&self, index: usize) -> Option<(usize, &ConfigField)> {
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(|(i, item)| match item {
+                HighLevelListItem::Field(field) => Some((i, field)),
+                _ => None,
+            })
+            .find(|(i, _item)| *i > index)
+    }
+
+    fn prev(&self, index: usize) -> Option<(usize, &ConfigField)> {
+        self.0
+            .iter()
+            .enumerate()
+            .rev()
+            .filter_map(|(i, item)| match item {
+                HighLevelListItem::Field(field) => Some((i, field)),
+                _ => None,
+            })
+            .find(|(i, _item)| *i < index)
+    }
 }
 
 /// Configuration field types
-#[derive(Debug, Clone, Copy, EnumIter, VariantArray, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConfigField {
     BlogTitle,
     BlogAuthor,
@@ -70,6 +93,7 @@ pub enum ConfigField {
     BlogLanguage,
     BlogTimezone,
     ThemeName,
+    ThemeOption { name: String, value: toml::Value },
     DomainPrimary,
     DomainEnforceHttps,
     BuildOutputDir,
@@ -89,6 +113,7 @@ impl std::fmt::Display for ConfigField {
             Self::BlogLanguage => "Language",
             Self::BlogTimezone => "Timezone",
             Self::ThemeName => "Theme Name",
+            Self::ThemeOption { name, .. } => name,
             Self::DomainPrimary => "Primary Domain",
             Self::DomainEnforceHttps => "Enforce HTTPS",
             Self::BuildOutputDir => "Output Directory",
@@ -111,6 +136,7 @@ impl ConfigField {
             | Self::BlogLanguage
             | Self::BlogTimezone => ConfigSection::Blog,
             Self::ThemeName => ConfigSection::Theme,
+            Self::ThemeOption { .. } => ConfigSection::Theme,
             Self::DomainPrimary | ConfigField::DomainEnforceHttps => ConfigSection::Domain,
             Self::BuildOutputDir | Self::BuildDrafts | Self::BuildFuturePosts => {
                 ConfigSection::Build
@@ -128,6 +154,7 @@ impl ConfigField {
             Self::BlogLanguage => config.blog.language.as_deref().unwrap_or("").to_string(),
             Self::BlogTimezone => config.blog.timezone.as_deref().unwrap_or("").to_string(),
             Self::ThemeName => config.theme.name.clone(),
+            Self::ThemeOption { value, .. } => value.to_string(),
             Self::DomainPrimary => {
                 if let Some(domains) = &config.blog.domains {
                     domains.primary.as_deref().unwrap_or("").to_string()
@@ -170,6 +197,22 @@ impl ConfigField {
     }
 }
 
+fn get_theme_specific_config_fields(config: &Config) -> Vec<ConfigField> {
+    config
+        .theme
+        .config
+        .clone()
+        .into_iter()
+        .map(|(name, value)| ConfigField::ThemeOption { name, value })
+        .collect::<Vec<ConfigField>>()
+}
+
+fn get_all_theme_fields(config: &Config) -> Vec<ConfigField> {
+    let mut fields = vec![ConfigField::ThemeName];
+    fields.append(&mut get_theme_specific_config_fields(config));
+    fields
+}
+
 #[derive(Debug, Clone, Copy, EnumIter, PartialEq, Eq, Hash)]
 pub enum ConfigSection {
     Blog,
@@ -193,10 +236,25 @@ impl std::fmt::Display for ConfigSection {
 }
 
 impl ConfigSection {
-    fn get_fields(&self) -> Vec<ConfigField> {
-        ConfigField::iter()
-            .filter(|field| field.category() == *self)
-            .collect()
+    fn get_section(&self, config: &Config) -> Vec<ConfigField> {
+        match self {
+            Self::Blog => vec![
+                ConfigField::BlogTitle,
+                ConfigField::BlogAuthor,
+                ConfigField::BlogDescription,
+                ConfigField::BlogBaseUrl,
+                ConfigField::BlogLanguage,
+                ConfigField::BlogTimezone,
+            ],
+            Self::Theme => get_all_theme_fields(config),
+            Self::Domain => vec![ConfigField::DomainPrimary, ConfigField::DomainEnforceHttps],
+            Self::Build => vec![
+                ConfigField::BuildOutputDir,
+                ConfigField::BuildDrafts,
+                ConfigField::BuildFuturePosts,
+            ],
+            Self::Development => vec![ConfigField::DevPort, ConfigField::DevAutoReload],
+        }
     }
 }
 
@@ -363,14 +421,15 @@ struct Browse {
 impl Browse {
     fn new(config: Config, project: Project) -> Self {
         let mut list_state = ListState::default();
-        let list_layout = HighLevelConfigList::new();
+        let list_layout = HighLevelConfigList::new(&config);
         let selected_field = ConfigField::BlogTitle;
-        list_state.select(list_layout.index_of(&selected_field));
+        let config_index = list_layout.index_of(&selected_field).unwrap_or(2);
+        list_state.select(Some(config_index));
         Self {
             config,
             project,
             selected_field,
-            config_index: 0, // must match the index of selected_field in ConfigField::VARIANTS
+            config_index,
             list_layout,
             list_state,
             status_message: "Navigate with ↑/↓, Enter to edit, 'q' to quit".to_string(),
@@ -395,22 +454,23 @@ impl Browse {
         if self.config_index == 0 {
             return self;
         }
-        let prev = ConfigField::VARIANTS.get(self.config_index - 1);
-        if let Some(prev) = prev {
-            self.selected_field = *prev;
-            self.config_index -= 1;
-            self.list_state.select(self.list_layout.index_of(prev));
+        let prev: Option<(usize, &ConfigField)> = self.list_layout.prev(self.config_index);
+        if let Some((index, prev)) = prev {
+            self.selected_field = prev.clone();
+            self.config_index = index;
+            self.list_state.select(Some(index));
         }
         self
     }
 
     fn key_down(mut self) -> Self {
-        let next = ConfigField::VARIANTS.get(self.config_index + 1);
-        if let Some(next) = next {
-            self.selected_field = *next;
-            self.config_index += 1;
-            self.list_state.select(self.list_layout.index_of(next));
+        let next = self.list_layout.next(self.config_index);
+        if let Some((index, next)) = next {
+            self.selected_field = next.clone();
+            self.config_index = index;
+            self.list_state.select(Some(index));
         }
+
         self
     }
 
@@ -616,39 +676,56 @@ impl Edit {
     }
 
     fn apply_edit(mut self) -> AppResult<Browse> {
-        let value = self.edit_buffer.trim().to_string();
+        let new_value = self.edit_buffer.trim().to_string();
 
         // Apply the change to the configuration
-        match self.browse_data.selected_field {
+        match &self.browse_data.selected_field {
             ConfigField::BlogTitle => {
-                if !value.is_empty() {
-                    self.new_config.blog.title = value;
+                if !new_value.is_empty() {
+                    self.new_config.blog.title = new_value;
                 }
             }
             ConfigField::BlogAuthor => {
-                if !value.is_empty() {
-                    self.new_config.blog.author = value;
+                if !new_value.is_empty() {
+                    self.new_config.blog.author = new_value;
                 }
             }
             ConfigField::BlogDescription => {
-                if !value.is_empty() {
-                    self.new_config.blog.description = value;
+                if !new_value.is_empty() {
+                    self.new_config.blog.description = new_value;
                 }
             }
             ConfigField::BlogBaseUrl => {
-                if !value.is_empty() {
-                    self.new_config.blog.base_url = value;
+                if !new_value.is_empty() {
+                    self.new_config.blog.base_url = new_value;
                 }
             }
             ConfigField::BlogLanguage => {
-                self.new_config.blog.language = if value.is_empty() { None } else { Some(value) };
+                self.new_config.blog.language = if new_value.is_empty() {
+                    None
+                } else {
+                    Some(new_value)
+                };
             }
             ConfigField::BlogTimezone => {
-                self.new_config.blog.timezone = if value.is_empty() { None } else { Some(value) };
+                self.new_config.blog.timezone = if new_value.is_empty() {
+                    None
+                } else {
+                    Some(new_value)
+                };
             }
             ConfigField::ThemeName => {
-                if !value.is_empty() {
-                    self.new_config.theme.name = value;
+                if !new_value.is_empty() {
+                    self.new_config.theme.name = new_value;
+                }
+            }
+            ConfigField::ThemeOption { name, .. } => {
+                if !new_value.is_empty() {
+                    self.new_config
+                        .theme
+                        .config
+                        .entry(name.clone())
+                        .insert_entry(toml::Value::String(new_value));
                 }
             }
             ConfigField::DomainPrimary => {
@@ -662,16 +739,20 @@ impl Edit {
                     });
                 }
                 if let Some(domains) = &mut self.new_config.blog.domains {
-                    domains.primary = if value.is_empty() {
+                    domains.primary = if new_value.is_empty() {
                         None
                     } else {
-                        Some(value.clone())
+                        Some(new_value.clone())
                     };
-                    domains.github_pages_domain = if value.is_empty() { None } else { Some(value) };
+                    domains.github_pages_domain = if new_value.is_empty() {
+                        None
+                    } else {
+                        Some(new_value)
+                    };
                 }
             }
             ConfigField::DomainEnforceHttps => {
-                let enforce_https = value.to_lowercase() == "true";
+                let enforce_https = new_value.to_lowercase() == "true";
                 if self.new_config.blog.domains.is_none() {
                     self.new_config.blog.domains = Some(crate::config::DomainConfig {
                         primary: None,
@@ -686,24 +767,27 @@ impl Edit {
                 }
             }
             ConfigField::BuildOutputDir => {
-                self.new_config.build.output_dir =
-                    if value.is_empty() { None } else { Some(value) };
+                self.new_config.build.output_dir = if new_value.is_empty() {
+                    None
+                } else {
+                    Some(new_value)
+                };
             }
             ConfigField::BuildDrafts => {
-                self.new_config.build.drafts = value.to_lowercase() == "true";
+                self.new_config.build.drafts = new_value.to_lowercase() == "true";
             }
             ConfigField::BuildFuturePosts => {
-                self.new_config.build.future_posts = value.to_lowercase() == "true";
+                self.new_config.build.future_posts = new_value.to_lowercase() == "true";
             }
             ConfigField::DevPort => {
-                if let Ok(port) = value.parse::<u16>() {
+                if let Ok(port) = new_value.parse::<u16>() {
                     if port > 0 {
                         self.new_config.dev.port = port;
                     }
                 }
             }
             ConfigField::DevAutoReload => {
-                self.new_config.dev.auto_reload = value.to_lowercase() == "true";
+                self.new_config.dev.auto_reload = new_value.to_lowercase() == "true";
             }
         }
 
