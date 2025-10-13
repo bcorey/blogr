@@ -93,34 +93,17 @@ impl IntoIterator for ThemeTemplates {
 }
 
 #[must_use]
-pub fn get_all_themes() -> HashMap<String, Box<dyn Theme>> {
-    let mut themes: HashMap<String, Box<dyn Theme>> = HashMap::new();
-
-    let minimal_retro = MinimalRetroTheme::new();
-    themes.insert("minimal-retro".to_string(), Box::new(minimal_retro));
-
-    let obsidian = ObsidianTheme::new();
-    themes.insert("obsidian".to_string(), Box::new(obsidian));
-
-    let terminal_candy = TerminalCandyTheme::new();
-    themes.insert("terminal-candy".to_string(), Box::new(terminal_candy));
-
-    let dark_minimal = DarkMinimalTheme::new();
-    themes.insert("dark-minimal".to_string(), Box::new(dark_minimal));
-
-    let musashi = MusashiTheme::new();
-    themes.insert("musashi".to_string(), Box::new(musashi));
-
-    let slate_portfolio = SlatePortfolioTheme::new();
-    themes.insert("slate-portfolio".to_string(), Box::new(slate_portfolio));
-
-    let typewriter = TypewriterTheme::new();
-    themes.insert("typewriter".to_string(), Box::new(typewriter));
-
-    let brutja = BrutjaTheme::new();
-    themes.insert("brutja".to_string(), Box::new(brutja));
-
-    themes
+pub fn get_all_themes() -> Vec<Box<dyn Theme>> {
+    vec![
+        Box::new(MinimalRetroTheme::new()),
+        Box::new(ObsidianTheme::new()),
+        Box::new(TerminalCandyTheme::new()),
+        Box::new(DarkMinimalTheme::new()),
+        Box::new(MusashiTheme::new()),
+        Box::new(SlatePortfolioTheme::new()),
+        Box::new(TypewriterTheme::new()),
+        Box::new(BrutjaTheme::new()),
+    ]
 }
 
 #[must_use]

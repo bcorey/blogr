@@ -25,55 +25,20 @@ pub async fn handle_list() -> Result<()> {
     if all_themes.is_empty() {
         println!("  📦 No themes available");
     } else {
-        // Separate themes by type
-        let mut blog_themes = Vec::new();
-        let mut personal_themes = Vec::new();
-
-        for (name, theme) in all_themes {
+        for theme in all_themes {
             let info = theme.info();
-            if info.site_type == SiteType::Blog {
-                blog_themes.push((name, info));
-            } else {
-                personal_themes.push((name, info));
-            }
-        }
+            let is_active = current_theme.as_ref() == Some(&info.name);
+            let status_icon = if is_active { "✅" } else { "📦" };
+            let status_text = if is_active { " (active)" } else { "" };
 
-        // Display blog themes
-        if !blog_themes.is_empty() {
-            println!("\n📝 Blog Themes (for traditional blogs with posts):");
-            for (name, info) in blog_themes {
-                let is_active = current_theme.as_ref() == Some(&name);
-                let status_icon = if is_active { "✅" } else { "📦" };
-                let status_text = if is_active { " (active)" } else { "" };
-
-                println!(
-                    "  {} {}{} - {}",
-                    status_icon, name, status_text, info.description
-                );
-                println!(
-                    "      👤 Author: {} | 📦 Version: {}",
-                    info.author, info.version
-                );
-            }
-        }
-
-        // Display personal themes
-        if !personal_themes.is_empty() {
-            println!("\n👤 Personal Website Themes (for portfolios and personal sites):");
-            for (name, info) in personal_themes {
-                let is_active = current_theme.as_ref() == Some(&name);
-                let status_icon = if is_active { "✅" } else { "📦" };
-                let status_text = if is_active { " (active)" } else { "" };
-
-                println!(
-                    "  {} {}{} - {}",
-                    status_icon, name, status_text, info.description
-                );
-                println!(
-                    "      👤 Author: {} | 📦 Version: {}",
-                    info.author, info.version
-                );
-            }
+            println!(
+                "  {} {}{} - {}",
+                status_icon, info.name, status_text, info.description
+            );
+            println!(
+                "      👤 Author: {} | 📦 Version: {}",
+                info.author, info.version
+            );
         }
     }
 
