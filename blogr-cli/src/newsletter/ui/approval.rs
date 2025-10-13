@@ -757,7 +757,7 @@ impl ModernApprovalApp {
 
     /// Render the modern approval interface
     pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.size();
+        let area = frame.area();
         match self.mode {
             AppMode::Loading => self.render_loading(frame),
             AppMode::List => self.render_list(frame),
@@ -770,7 +770,7 @@ impl ModernApprovalApp {
     }
 
     fn render_loading(&mut self, frame: &mut Frame) {
-        let area = frame.size();
+        let area = frame.area();
 
         // Center the loading indicator
         let loading_area = centered_rect(40, 20, area);
@@ -799,7 +799,7 @@ impl ModernApprovalApp {
                 Constraint::Min(1),    // Table
                 Constraint::Length(4), // Status bar with performance info
             ])
-            .split(frame.size());
+            .split(frame.area());
 
         self.render_header(frame, chunks[0]);
         self.render_table(frame, chunks[1]);
@@ -995,7 +995,7 @@ impl ModernApprovalApp {
             total_pages.max(1)
         );
 
-        let table = Table::new(rows)
+        let table = Table::new(rows, [6; 18])
             .header(header)
             .block(
                 Block::default()
@@ -1015,7 +1015,7 @@ impl ModernApprovalApp {
                 Constraint::Length(16), // Subscribed date
                 Constraint::Min(10),    // Notes
             ])
-            .highlight_style(
+            .row_highlight_style(
                 Style::default()
                     .bg(self.theme.surface)
                     .fg(self.theme.text)
