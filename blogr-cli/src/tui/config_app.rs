@@ -468,6 +468,7 @@ impl Browse {
             .highlight_style(
                 Style::default()
                     .bg(theme.primary_color)
+                    .fg(theme.background_color)
                     .add_modifier(Modifier::BOLD),
             );
 
@@ -798,10 +799,14 @@ impl From<Browse> for EditTheme {
     fn from(value: Browse) -> Self {
         let options = get_all_themes()
             .iter()
-            .map(|(_name, theme)| theme.info())
+            .map(|theme| theme.info())
             .collect::<Vec<ThemeInfo>>();
 
-        let row_index = 0;
+        let selected_index = options
+            .iter()
+            .position(|theme| theme.name == value.config.theme.name);
+
+        let row_index = selected_index.unwrap_or(0);
         let mut table_state = TableState::default();
         table_state.select(Some(row_index));
         Self {
