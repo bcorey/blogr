@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::config::Config;
 use crate::project::Project;
 use crate::tui::theme::TuiTheme;
+use anyhow::Ok;
 use blogr_themes::{get_all_themes, ThemeInfo};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
@@ -15,6 +16,7 @@ use ratatui::{
     },
     Frame,
 };
+use serde::Deserialize;
 use strum::{EnumIter, IntoEnumIterator};
 
 pub type AppResult<T> = anyhow::Result<T>;
@@ -83,6 +85,64 @@ impl HighLevelConfigList {
     }
 }
 
+fn set_theme_option(
+    config: &mut Config,
+    option_name: String,
+    old_value: &toml::Value,
+    new_value: String,
+) -> AppResult<()> {
+    // if the field type was last String, don't try parsing the new value into anything but that.
+    let new_value = match matches!(old_value, toml::Value::String(_)) {
+        true => toml::Value::String(new_value),
+        false => toml::Value::deserialize(toml::de::ValueDeserializer::new(&new_value))?,
+    };
+    config
+        .theme
+        .config
+        .entry(option_name)
+        .insert_entry(new_value);
+    Ok(())
+}
+
+fn set_primary_domain(config: &mut Config, new_value: String) {
+    if config.blog.domains.is_none() {
+        config.blog.domains = Some(crate::config::DomainConfig {
+            primary: None,
+            aliases: Vec::new(),
+            subdomain: None,
+            enforce_https: true,
+            github_pages_domain: None,
+        });
+    }
+    if let Some(domains) = &mut config.blog.domains {
+        domains.primary = match new_value.is_empty() {
+            true => None,
+            false => Some(new_value.clone()),
+        };
+        domains.github_pages_domain = match new_value.is_empty() {
+            true => None,
+            false => Some(new_value),
+        };
+    }
+}
+
+fn set_domain_enforce_https(config: &mut Config, new_value: String) -> AppResult<()> {
+    let enforce_https = new_value.parse()?;
+    if config.blog.domains.is_none() {
+        config.blog.domains = Some(crate::config::DomainConfig {
+            primary: None,
+            aliases: Vec::new(),
+            subdomain: None,
+            enforce_https,
+            github_pages_domain: None,
+        });
+    }
+    if let Some(domains) = &mut config.blog.domains {
+        domains.enforce_https = enforce_https;
+    }
+    Ok(())
+}
+
 /// Configuration field types
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConfigField {
@@ -127,24 +187,6 @@ impl std::fmt::Display for ConfigField {
 }
 
 impl ConfigField {
-    pub fn category(&self) -> ConfigSection {
-        match self {
-            Self::BlogTitle
-            | Self::BlogAuthor
-            | Self::BlogDescription
-            | Self::BlogBaseUrl
-            | Self::BlogLanguage
-            | Self::BlogTimezone => ConfigSection::Blog,
-            Self::ThemeName => ConfigSection::Theme,
-            Self::ThemeOption { .. } => ConfigSection::Theme,
-            Self::DomainPrimary | ConfigField::DomainEnforceHttps => ConfigSection::Domain,
-            Self::BuildOutputDir | Self::BuildDrafts | Self::BuildFuturePosts => {
-                ConfigSection::Build
-            }
-            Self::DevPort | ConfigField::DevAutoReload => ConfigSection::Development,
-        }
-    }
-
     pub fn get_value(&self, config: &Config) -> String {
         match self {
             Self::BlogTitle => config.blog.title.clone(),
@@ -154,7 +196,11 @@ impl ConfigField {
             Self::BlogLanguage => config.blog.language.as_deref().unwrap_or("").to_string(),
             Self::BlogTimezone => config.blog.timezone.as_deref().unwrap_or("").to_string(),
             Self::ThemeName => config.theme.name.clone(),
-            Self::ThemeOption { value, .. } => value.to_string(),
+            // don't render toml strings with added quotes
+            Self::ThemeOption { value, .. } => match value {
+                toml::Value::String(val) => val.clone(),
+                _ => value.to_string(),
+            },
             Self::DomainPrimary => {
                 if let Some(domains) = &config.blog.domains {
                     domains.primary.as_deref().unwrap_or("").to_string()
@@ -182,6 +228,31 @@ impl ConfigField {
         }
     }
 
+    fn set(&self, config: &mut Config, new_value: String) -> AppResult<()> {
+        match self {
+            Self::BlogTitle => config.blog.author = new_value,
+            Self::BlogAuthor => config.blog.author = new_value,
+            Self::BlogDescription => config.blog.description = new_value,
+            Self::BlogBaseUrl => config.blog.base_url = new_value,
+            Self::BlogLanguage => config.blog.language = (!new_value.is_empty()).then(|| new_value),
+            Self::BlogTimezone => config.blog.timezone = (!new_value.is_empty()).then(|| new_value),
+            Self::ThemeName => config.theme.name = new_value,
+            Self::ThemeOption { name, value } => {
+                set_theme_option(config, name.clone(), value, new_value)?
+            }
+            Self::DomainPrimary => set_primary_domain(config, new_value),
+            Self::DomainEnforceHttps => set_domain_enforce_https(config, new_value)?,
+            Self::BuildOutputDir => {
+                config.build.output_dir = (!new_value.is_empty()).then(|| new_value)
+            }
+            Self::BuildDrafts => config.build.drafts = new_value.parse()?,
+            Self::BuildFuturePosts => config.build.future_posts = new_value.parse()?,
+            Self::DevPort => config.dev.port = new_value.parse()?,
+            Self::DevAutoReload => config.dev.auto_reload = new_value.parse()?,
+        }
+        Ok(())
+    }
+
     pub fn is_boolean(&self) -> bool {
         matches!(
             self,
@@ -189,11 +260,22 @@ impl ConfigField {
                 | Self::BuildDrafts
                 | Self::BuildFuturePosts
                 | Self::DevAutoReload
+                | Self::ThemeOption {
+                    value: toml::Value::Boolean(_),
+                    ..
+                }
         )
     }
 
     pub fn is_numeric(&self) -> bool {
-        matches!(self, Self::DevPort)
+        matches!(
+            self,
+            Self::DevPort
+                | Self::ThemeOption {
+                    value: toml::Value::Integer(_),
+                    ..
+                }
+        )
     }
 }
 
@@ -544,11 +626,8 @@ impl Browse {
         };
 
         let content = format!(
-            "Field: {}\nCategory: {}\nCurrent Value: {}{}\n\nPress Enter to edit this field",
-            self.selected_field,
-            self.selected_field.category(),
-            value,
-            effective_url
+            "Field: {}\nCurrent Value: {}{}\n\nPress Enter to edit this field",
+            self.selected_field, value, effective_url
         );
 
         let details = Paragraph::new(content)
@@ -572,6 +651,7 @@ impl Browse {
         );
         Edit {
             new_config: self.config.clone(),
+            target_field: self.selected_field.clone(),
             browse_data: self,
             edit_buffer,
         }
@@ -592,6 +672,7 @@ impl Browse {
 
 struct Edit {
     browse_data: Browse,
+    target_field: ConfigField,
     edit_buffer: String,
     new_config: Config,
 }
@@ -610,10 +691,7 @@ impl Edit {
                 browse_data.status_message = "Edit cancelled".to_string();
                 Ok(browse_data.into())
             }
-            KeyCode::Enter => {
-                let browse_data = self.apply_edit()?;
-                Ok(browse_data.into())
-            }
+            KeyCode::Enter => self.apply(),
             KeyCode::Backspace => {
                 self.edit_buffer.pop();
                 Ok(self.into())
@@ -675,127 +753,23 @@ impl Edit {
         frame.render_widget(help, edit_area[1]);
     }
 
-    fn apply_edit(mut self) -> AppResult<Browse> {
+    fn apply(mut self) -> AppResult<ConfigAppState> {
         let new_value = self.edit_buffer.trim().to_string();
-
-        // Apply the change to the configuration
-        match &self.browse_data.selected_field {
-            ConfigField::BlogTitle => {
-                if !new_value.is_empty() {
-                    self.new_config.blog.title = new_value;
-                }
-            }
-            ConfigField::BlogAuthor => {
-                if !new_value.is_empty() {
-                    self.new_config.blog.author = new_value;
-                }
-            }
-            ConfigField::BlogDescription => {
-                if !new_value.is_empty() {
-                    self.new_config.blog.description = new_value;
-                }
-            }
-            ConfigField::BlogBaseUrl => {
-                if !new_value.is_empty() {
-                    self.new_config.blog.base_url = new_value;
-                }
-            }
-            ConfigField::BlogLanguage => {
-                self.new_config.blog.language = if new_value.is_empty() {
-                    None
-                } else {
-                    Some(new_value)
-                };
-            }
-            ConfigField::BlogTimezone => {
-                self.new_config.blog.timezone = if new_value.is_empty() {
-                    None
-                } else {
-                    Some(new_value)
-                };
-            }
-            ConfigField::ThemeName => {
-                if !new_value.is_empty() {
-                    self.new_config.theme.name = new_value;
-                }
-            }
-            ConfigField::ThemeOption { name, .. } => {
-                if !new_value.is_empty() {
-                    self.new_config
-                        .theme
-                        .config
-                        .entry(name.clone())
-                        .insert_entry(toml::Value::String(new_value));
-                }
-            }
-            ConfigField::DomainPrimary => {
-                if self.new_config.blog.domains.is_none() {
-                    self.new_config.blog.domains = Some(crate::config::DomainConfig {
-                        primary: None,
-                        aliases: Vec::new(),
-                        subdomain: None,
-                        enforce_https: true,
-                        github_pages_domain: None,
-                    });
-                }
-                if let Some(domains) = &mut self.new_config.blog.domains {
-                    domains.primary = if new_value.is_empty() {
-                        None
-                    } else {
-                        Some(new_value.clone())
-                    };
-                    domains.github_pages_domain = if new_value.is_empty() {
-                        None
-                    } else {
-                        Some(new_value)
-                    };
-                }
-            }
-            ConfigField::DomainEnforceHttps => {
-                let enforce_https = new_value.to_lowercase() == "true";
-                if self.new_config.blog.domains.is_none() {
-                    self.new_config.blog.domains = Some(crate::config::DomainConfig {
-                        primary: None,
-                        aliases: Vec::new(),
-                        subdomain: None,
-                        enforce_https,
-                        github_pages_domain: None,
-                    });
-                }
-                if let Some(domains) = &mut self.new_config.blog.domains {
-                    domains.enforce_https = enforce_https;
-                }
-            }
-            ConfigField::BuildOutputDir => {
-                self.new_config.build.output_dir = if new_value.is_empty() {
-                    None
-                } else {
-                    Some(new_value)
-                };
-            }
-            ConfigField::BuildDrafts => {
-                self.new_config.build.drafts = new_value.to_lowercase() == "true";
-            }
-            ConfigField::BuildFuturePosts => {
-                self.new_config.build.future_posts = new_value.to_lowercase() == "true";
-            }
-            ConfigField::DevPort => {
-                if let Ok(port) = new_value.parse::<u16>() {
-                    if port > 0 {
-                        self.new_config.dev.port = port;
-                    }
-                }
-            }
-            ConfigField::DevAutoReload => {
-                self.new_config.dev.auto_reload = new_value.to_lowercase() == "true";
-            }
+        if new_value.is_empty() {
+            self.browse_data.status_message = "Edit discarded".to_string();
+            return Ok(self.browse_data.into());
         }
+
+        if let Err(e) = self.target_field.set(&mut self.new_config, new_value) {
+            self.browse_data.status_message = e.to_string();
+            return Ok(self.into());
+        };
 
         let config_path = self.browse_data.project.root.join("blogr.toml");
         self.new_config.save_to_file(&config_path)?;
         self.browse_data.config = self.new_config.clone();
         self.browse_data.status_message = "Configuration saved successfully!".to_string();
-        Ok(self.enter_browse_mode())
+        Ok(self.enter_browse_mode().into())
     }
 
     fn enter_browse_mode(self) -> Browse {
