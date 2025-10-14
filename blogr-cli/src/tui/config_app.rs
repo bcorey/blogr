@@ -765,10 +765,7 @@ impl Edit {
             return Ok(self.into());
         };
 
-        let config_path = self.browse_data.project.root.join("blogr.toml");
-        self.new_config.save_to_file(&config_path)?;
-        self.browse_data.config = self.new_config.clone();
-        self.browse_data.status_message = "Configuration saved successfully!".to_string();
+        self.browse_data = save_and_refresh(self.browse_data, self.new_config.clone())?;
         Ok(self.enter_browse_mode().into())
     }
 
@@ -851,6 +848,7 @@ struct EditTheme {
     options: Vec<ThemeInfo>,
     table_state: TableState,
     row_index: usize,
+    new_config: Config,
     current_theme_index: Option<usize>,
 }
 
@@ -868,8 +866,11 @@ impl From<Browse> for EditTheme {
         let row_index = current_theme_index.unwrap_or(0);
         let mut table_state = TableState::default();
         table_state.select(Some(row_index));
+
+        let new_config = value.config.clone();
         Self {
             browse_data: value,
+            new_config,
             options,
             row_index,
             table_state,
@@ -983,18 +984,22 @@ impl EditTheme {
             .into_iter()
             .map(|(field_name, config)| (field_name, config.value))
             .collect::<HashMap<String, toml::Value>>();
-        self.browse_data
-            .config
-            .set_theme(theme.name, default_theme_config);
+        self.new_config.set_theme(theme.name, default_theme_config);
         //save
-        let config_path = self.browse_data.project.root.join("blogr.toml");
-        self.browse_data.config.save_to_file(&config_path)?;
-        self.browse_data.config = self.browse_data.config.clone();
-        self.browse_data.status_message = "Configuration saved successfully!".to_string();
+        self.browse_data = save_and_refresh(self.browse_data, self.new_config.clone())?;
         Ok(self.enter_browse_mode())
     }
 
     fn enter_browse_mode(self) -> Browse {
         self.browse_data
     }
+}
+
+fn save_and_refresh(mut browse_data: Browse, new_config: Config) -> AppResult<Browse> {
+    let config_path = browse_data.project.root.join("blogr.toml");
+    browse_data.config = new_config;
+    browse_data.config.save_to_file(&config_path)?;
+    browse_data.list_layout = HighLevelConfigList::new(&browse_data.config);
+    browse_data.status_message = "Configuration saved successfully!".to_string();
+    Ok(browse_data)
 }
