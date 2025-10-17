@@ -243,6 +243,7 @@ Blogr comes with 7 built-in themes designed for different purposes:
 - **Minimal Retro** (default) - Clean, artistic design with retro aesthetics
 - **Obsidian** - Compatible with Obsidian community themes
 - **Terminal Candy** - Quirky terminal-inspired theme with pastel colors
+- **Brutja** - Minimal, brutalist theme with pops of color
 
 **Personal Website Themes:**
 - **Dark Minimal** (default) - Dark minimalist-maximalist with cyberpunk aesthetics
