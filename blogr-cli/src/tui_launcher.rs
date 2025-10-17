@@ -1,5 +1,6 @@
 use crate::content::{Post, PostManager};
 use crate::project::Project;
+use crate::tui::config_app::ConfigApp;
 use crate::tui::theme::TuiTheme;
 use crate::tui::{self, App, Event};
 use anyhow::Result;
@@ -101,7 +102,7 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
     tui.init()?;
 
     // Create configuration app
-    let mut config_app = crate::tui::config_app::ConfigApp::new(config, project.clone(), tui_theme);
+    let mut config_app = ConfigApp::new(config, project.clone(), tui_theme);
 
     // Main event loop
     let result = loop {
@@ -114,7 +115,7 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
                 config_app.tick();
             }
             Event::Key(key_event) => {
-                config_app.handle_key_event(key_event)?;
+                config_app = config_app.handle_key_event(key_event)?;
             }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
@@ -122,7 +123,7 @@ pub async fn launch_config_editor(project: &Project) -> Result<()> {
         }
 
         // Check if we should quit
-        if !config_app.running {
+        if config_app.is_stopped() {
             break Ok(());
         }
     };
