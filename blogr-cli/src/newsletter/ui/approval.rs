@@ -994,8 +994,12 @@ impl ModernApprovalApp {
             self.current_page + 1,
             total_pages.max(1)
         );
-
-        let table = Table::new(rows, [6; 18])
+        let widths = rows
+            .clone()
+            .into_iter()
+            .map(|_| Constraint::Fill(1))
+            .collect::<Vec<Constraint>>();
+        let table = Table::new(rows, widths)
             .header(header)
             .block(
                 Block::default()
