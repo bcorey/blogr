@@ -994,11 +994,13 @@ impl ModernApprovalApp {
             self.current_page + 1,
             total_pages.max(1)
         );
-        let widths = rows
-            .clone()
-            .into_iter()
-            .map(|_| Constraint::Fill(1))
-            .collect::<Vec<Constraint>>();
+        let widths = [
+            Constraint::Length(2),  // Selection indicator
+            Constraint::Min(25),    // Email
+            Constraint::Length(10), // Status
+            Constraint::Length(16), // Subscribed date
+            Constraint::Min(10),    // Notes
+        ];
         let table = Table::new(rows, widths)
             .header(header)
             .block(
@@ -1012,13 +1014,6 @@ impl ModernApprovalApp {
                             .add_modifier(Modifier::BOLD),
                     ),
             )
-            .widths(&[
-                Constraint::Length(2),  // Selection indicator
-                Constraint::Min(25),    // Email
-                Constraint::Length(10), // Status
-                Constraint::Length(16), // Subscribed date
-                Constraint::Min(10),    // Notes
-            ])
             .row_highlight_style(
                 Style::default()
                     .bg(self.theme.surface)
