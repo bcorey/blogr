@@ -108,17 +108,9 @@ pub fn get_all_themes() -> Vec<Box<dyn Theme>> {
 
 #[must_use]
 pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
-    match name {
-        "minimal-retro" => Some(Box::new(MinimalRetroTheme::new()) as Box<dyn Theme>),
-        "obsidian" => Some(Box::new(ObsidianTheme::new()) as Box<dyn Theme>),
-        "terminal-candy" => Some(Box::new(TerminalCandyTheme::new()) as Box<dyn Theme>),
-        "dark-minimal" => Some(Box::new(DarkMinimalTheme::new()) as Box<dyn Theme>),
-        "musashi" => Some(Box::new(MusashiTheme::new()) as Box<dyn Theme>),
-        "slate-portfolio" => Some(Box::new(SlatePortfolioTheme::new()) as Box<dyn Theme>),
-        "typewriter" => Some(Box::new(TypewriterTheme::new()) as Box<dyn Theme>),
-        "brutja" => Some(Box::new(BrutjaTheme::new()) as Box<dyn Theme>),
-        _ => None,
-    }
+    get_all_themes()
+        .into_iter()
+        .find(|theme| theme.info().name.to_lowercase() == name.to_lowercase())
 }
 
 #[must_use]
