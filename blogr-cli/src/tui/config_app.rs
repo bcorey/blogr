@@ -965,7 +965,7 @@ impl EditTheme {
     }
 
     fn key_down(mut self) -> Self {
-        if self.row_index >= self.options.len() {
+        if self.row_index >= self.options.len() - 1 {
             return self;
         }
         self.row_index += 1;
