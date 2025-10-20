@@ -234,8 +234,12 @@ impl ConfigField {
             Self::BlogAuthor => config.blog.author = new_value,
             Self::BlogDescription => config.blog.description = new_value,
             Self::BlogBaseUrl => config.blog.base_url = new_value,
-            Self::BlogLanguage => config.blog.language = (!new_value.is_empty()).then(|| new_value),
-            Self::BlogTimezone => config.blog.timezone = (!new_value.is_empty()).then(|| new_value),
+            Self::BlogLanguage => {
+                config.blog.language = (!new_value.is_empty()).then_some(new_value)
+            }
+            Self::BlogTimezone => {
+                config.blog.timezone = (!new_value.is_empty()).then_some(new_value)
+            }
             Self::ThemeName => config.theme.name = new_value,
             Self::ThemeOption { name, value } => {
                 set_theme_option(config, name.clone(), value, new_value)?
@@ -243,7 +247,7 @@ impl ConfigField {
             Self::DomainPrimary => set_primary_domain(config, new_value),
             Self::DomainEnforceHttps => set_domain_enforce_https(config, new_value)?,
             Self::BuildOutputDir => {
-                config.build.output_dir = (!new_value.is_empty()).then(|| new_value)
+                config.build.output_dir = (!new_value.is_empty()).then_some(new_value)
             }
             Self::BuildDrafts => config.build.drafts = new_value.parse()?,
             Self::BuildFuturePosts => config.build.future_posts = new_value.parse()?,
