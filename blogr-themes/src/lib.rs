@@ -117,3 +117,45 @@ pub fn get_theme(name: &str) -> Option<Box<dyn Theme>> {
 pub fn get_theme_by_name(name: &str) -> Option<Box<dyn Theme>> {
     get_theme(name)
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::{HashMap, HashSet};
+
+    use crate::get_all_themes;
+
+    #[test]
+    fn themes_have_unique_names() {
+        let all_theme_names = get_all_themes()
+            .iter()
+            .map(|theme| theme.info().name)
+            .collect::<Vec<String>>();
+
+        let unique_theme_names = all_theme_names
+            .clone()
+            .into_iter()
+            .collect::<HashSet<String>>();
+
+        // we could assert and end the test here but really we want to know which name has been duplicated.
+        if unique_theme_names.len() == all_theme_names.len() {
+            return;
+        }
+
+        let duplicate_theme_name = all_theme_names
+            .iter()
+            .fold(HashMap::new(), |mut acc: HashMap<String, u32>, name| {
+                acc.entry(name.clone())
+                    .and_modify(|entry| *entry += 1)
+                    .or_insert(1);
+                acc
+            })
+            .into_iter()
+            .find(|(_name, count)| *count > 1);
+
+        if let Some((duplicate, count)) = duplicate_theme_name {
+            panic!("Theme name {duplicate} occurs {count} times.");
+        } else {
+            panic!("Test working incorrectly. Unreachable statement reached.");
+        }
+    }
+}
