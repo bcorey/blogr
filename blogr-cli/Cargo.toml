@@ -43,7 +43,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 # Newsletter dependencies
 imap = "2.3.0"
 native-tls = "0.2"
-mailparse = "0.14"
+mailparse = "0.16"
 rusqlite = { version = "0.30", features = ["bundled"] }
 lettre = "0.11"
 html2text = "0.6"
