@@ -1,4 +1,4 @@
-use crate::{ConfigOption, Theme, ThemeInfo, ThemeTemplates};
+use crate::{ConfigOption, SiteType, Theme, ThemeInfo, ThemeTemplates};
 use ratatui::style::Style;
 use std::collections::HashMap;
 
@@ -67,6 +67,7 @@ impl Theme for BrutjaTheme {
             author: "Benjamin Corey".to_string(),
             description: "Brutalist, minimal theme with pops of color.".to_string(),
             config_schema: schema,
+            site_type: SiteType::Blog,
         }
     }
 
