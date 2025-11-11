@@ -1,7 +1,7 @@
 use crate::project::Project;
 use crate::utils::Console;
 use anyhow::{anyhow, Result};
-use blogr_themes::{get_all_themes, get_theme};
+use blogr_themes::{get_all_themes, get_theme, SiteType};
 use std::collections::hash_map::Entry;
 
 pub async fn handle_list() -> Result<()> {
@@ -31,7 +31,7 @@ pub async fn handle_list() -> Result<()> {
 
         for (name, theme) in all_themes {
             let info = theme.info();
-            if info.site_type.to_string() == "blog" {
+            if info.site_type == SiteType::Blog {
                 blog_themes.push((name, info));
             } else {
                 personal_themes.push((name, info));
@@ -148,9 +148,18 @@ pub async fn handle_set(name: String) -> Result<()> {
 
     // Validate theme compatibility with site type
     let theme_info = theme.info();
-    let site_type = &config.site.site_type;
+    let config_site_type = match config.site.site_type.as_str() {
+        "blog" => SiteType::Blog,
+        "personal" => SiteType::Personal,
+        other => {
+            return Err(anyhow!(
+                "❌ Unknown site type '{}' in configuration. Expected 'blog' or 'personal'.",
+                other
+            ))
+        }
+    };
 
-    if theme_info.site_type.to_string() != *site_type {
+    if theme_info.site_type != config_site_type {
         // Dynamically build theme lists by site type
         let all_themes = get_all_themes();
         let mut blog_theme_names = Vec::new();
@@ -158,7 +167,7 @@ pub async fn handle_set(name: String) -> Result<()> {
 
         for (theme_name, theme_obj) in all_themes {
             let info = theme_obj.info();
-            if info.site_type.to_string() == "blog" {
+            if info.site_type == SiteType::Blog {
                 blog_theme_names.push(theme_name);
             } else {
                 personal_theme_names.push(theme_name);
@@ -177,12 +186,12 @@ pub async fn handle_set(name: String) -> Result<()> {
             2. Change your site type in blogr.toml: [site] site_type = \"{}\"",
             name,
             theme_info.site_type,
-            site_type,
+            config_site_type,
             "Blog",
             blog_themes,
             "Personal",
             personal_themes,
-            site_type,
+            config_site_type,
             theme_info.site_type
         ));
     }
