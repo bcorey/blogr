@@ -20,6 +20,8 @@ use ratatui::{
 };
 use std::io;
 
+use crate::tui::config_app::ConfigApp;
+
 /// Representation of a terminal user interface.
 ///
 /// It is responsible for setting up the terminal,
@@ -67,10 +69,7 @@ impl<B: Backend> Tui<B> {
     }
 
     /// Draw the configuration app
-    pub fn draw_config(
-        &mut self,
-        config_app: &mut crate::tui::config_app::ConfigApp,
-    ) -> AppResult<()> {
+    pub fn draw_config(&mut self, config_app: &mut ConfigApp) -> AppResult<()> {
         self.terminal.draw(|frame| config_app.render(frame))?;
         Ok(())
     }

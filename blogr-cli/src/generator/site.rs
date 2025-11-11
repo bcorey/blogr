@@ -176,21 +176,10 @@ Thank you!`);
         // Set up template engine (create empty Tera instance)
         let mut tera = Tera::default();
 
-        // Register theme templates - base template first
-        let templates = theme.templates();
-
-        // Register base template first if it exists
-        if let Some(base_template) = templates.get("base.html") {
-            tera.add_raw_template("base.html", base_template)
-                .map_err(|e| anyhow!("Failed to register base template: {}", e))?;
-        }
-
-        // Register all other templates
-        for (name, template) in &templates {
-            if name != "base.html" {
-                tera.add_raw_template(name, template)
-                    .map_err(|e| anyhow!("Failed to register template '{}': {}", name, e))?;
-            }
+        // Register theme templates
+        for (name, template) in theme.templates() {
+            tera.add_raw_template(name, template)
+                .map_err(|e| anyhow!("Failed to register template '{}': {}", name, e))?;
         }
 
         // Register template functions for URL generation
@@ -428,6 +417,11 @@ Thank you!`);
                     // Extract sections if they exist
                     if let Some(sections) = frontmatter_data.get("sections") {
                         context.insert("sections", sections);
+                    }
+
+                    // Override theme_config with content.md theme_config if it exists
+                    if let Some(content_theme_config) = frontmatter_data.get("theme_config") {
+                        context.insert("theme_config", content_theme_config);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-use crate::{ConfigOption, Theme, ThemeInfo};
+use crate::{ConfigOption, Theme, ThemeInfo, ThemeTemplates};
 use ratatui::style::{Color, Style};
 use std::collections::HashMap;
 
@@ -105,20 +105,9 @@ impl Theme for MusashiTheme {
         }
     }
 
-    fn templates(&self) -> HashMap<String, String> {
-        let mut templates = HashMap::new();
-
-        templates.insert(
-            "base.html".to_string(),
-            include_str!("templates/base.html").to_string(),
-        );
-
-        templates.insert(
-            "index.html".to_string(),
-            include_str!("templates/index.html").to_string(),
-        );
-
-        templates
+    fn templates(&self) -> ThemeTemplates {
+        ThemeTemplates::new("base.html", include_str!("templates/base.html"))
+            .with_template("index.html", include_str!("templates/index.html"))
     }
 
     fn assets(&self) -> HashMap<String, Vec<u8>> {
