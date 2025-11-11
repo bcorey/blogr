@@ -1,16 +1,18 @@
 use crate::project::Project;
 use crate::utils::Console;
 use anyhow::{anyhow, Result};
-use blogr_themes::{get_all_themes, get_theme, SiteType};
+use blogr_themes::{get_all_themes, get_theme, SiteType, ThemeInfo};
 use std::collections::hash_map::Entry;
 
 pub async fn handle_list() -> Result<()> {
-    Console::info("Available themes:");
-
     // Load all available themes from blogr-themes crate
     let all_themes = get_all_themes();
 
-    // Get current theme if we're in a project
+    if all_themes.is_empty() {
+        println!("  📦 No themes available");
+        return Ok(());
+    }
+
     let current_theme = if let Ok(Some(project)) = Project::find_project() {
         match project.load_config() {
             Ok(config) => Some(config.theme.name),
@@ -21,31 +23,55 @@ pub async fn handle_list() -> Result<()> {
     };
 
     println!("📋 Available themes:");
+    // Separate themes by type
+    let mut blog_themes = Vec::new();
+    let mut personal_themes = Vec::new();
 
-    if all_themes.is_empty() {
-        println!("  📦 No themes available");
-    } else {
-        for theme in all_themes {
-            let info = theme.info();
-            let is_active = current_theme.as_ref() == Some(&info.name);
-            let status_icon = if is_active { "✅" } else { "📦" };
-            let status_text = if is_active { " (active)" } else { "" };
-
-            println!(
-                "  {} {}{} - {}",
-                status_icon, info.name, status_text, info.description
-            );
-            println!(
-                "      👤 Author: {} | 📦 Version: {}",
-                info.author, info.version
-            );
+    for theme in all_themes {
+        let info = theme.info();
+        match info.site_type {
+            SiteType::Blog => blog_themes.push(info),
+            SiteType::Personal => personal_themes.push(info),
         }
+    }
+
+    // Display blog themes
+    if !blog_themes.is_empty() {
+        println!("\n📝 Blog Themes (for traditional blogs with posts):");
+        blog_themes
+            .iter()
+            .for_each(|theme| print_theme_info(&current_theme, theme));
+    }
+
+    // Display personal themes
+    if !personal_themes.is_empty() {
+        println!("\n👤 Personal Website Themes (for portfolios and personal sites):");
+        personal_themes
+            .iter()
+            .for_each(|theme| print_theme_info(&current_theme, theme));
     }
 
     println!();
     println!("💡 Use 'blogr theme info <name>' for detailed information");
 
     Ok(())
+}
+
+fn print_theme_info(current_theme: &Option<String>, theme: &ThemeInfo) {
+    let name = &theme.name;
+    let is_active = current_theme.as_ref() == Some(name);
+    let status_icon = if is_active { "✅" } else { "📦" };
+    let status_text = if is_active { " (active)" } else { "" };
+
+    println!(
+        "  {} {}{} - {}",
+        status_icon, name, status_text, theme.description
+    );
+    println!(
+        "      👤 Author: {} | 📦 Version: {}",
+        theme.author, theme.version
+    );
+    println!();
 }
 
 pub async fn handle_info(name: String) -> Result<()> {
@@ -126,16 +152,15 @@ pub async fn handle_set(name: String) -> Result<()> {
 
     if theme_info.site_type != config_site_type {
         // Dynamically build theme lists by site type
-        let all_themes = get_all_themes();
         let mut blog_theme_names = Vec::new();
         let mut personal_theme_names = Vec::new();
 
-        for (theme_name, theme_obj) in all_themes {
-            let info = theme_obj.info();
+        for theme in get_all_themes() {
+            let info = theme.info();
             if info.site_type == SiteType::Blog {
-                blog_theme_names.push(theme_name);
+                blog_theme_names.push(info.name);
             } else {
-                personal_theme_names.push(theme_name);
+                personal_theme_names.push(info.name);
             }
         }
 

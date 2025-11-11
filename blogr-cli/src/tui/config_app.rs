@@ -94,7 +94,7 @@ fn set_theme_option(
     // if the field type was last String, don't try parsing the new value into anything but that.
     let new_value = match matches!(old_value, toml::Value::String(_)) {
         true => toml::Value::String(new_value),
-        false => toml::Value::deserialize(toml::de::ValueDeserializer::new(&new_value))?,
+        false => toml::Value::deserialize(toml::de::ValueDeserializer::parse(&new_value)?)?,
     };
     config
         .theme
