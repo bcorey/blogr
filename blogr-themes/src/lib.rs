@@ -26,6 +26,12 @@ pub enum SiteType {
     Personal,
 }
 
+impl Default for SiteType {
+    fn default() -> Self {
+        Self::Blog
+    }
+}
+
 impl fmt::Display for SiteType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

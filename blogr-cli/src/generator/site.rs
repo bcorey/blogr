@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::content::{Post, PostManager, PostStatus};
 use crate::project::Project;
 use anyhow::{anyhow, Result};
-use blogr_themes::{get_theme_by_name, Theme};
+use blogr_themes::{get_theme_by_name, SiteType, Theme};
 use chrono::{Datelike, Utc};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -71,12 +71,12 @@ impl SiteBuilder {
   </div>
   <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event, '{}')" method="get">
     <div class="newsletter-input-group">
-      <input 
-        type="email" 
+      <input
+        type="email"
         id="newsletter-email"
-        name="email" 
-        placeholder="Enter your email address" 
-        required 
+        name="email"
+        placeholder="Enter your email address"
+        required
         class="newsletter-email-input"
         aria-label="Email address for newsletter subscription">
       <button type="submit" class="newsletter-submit-btn">
@@ -101,15 +101,15 @@ impl SiteBuilder {
 <script>
 function handleNewsletterSubmit(event, subscribeEmail) {{
   event.preventDefault();
-  
+
   const emailInput = document.getElementById('newsletter-email');
   const userEmail = emailInput.value;
-  
+
   if (!userEmail) {{
     alert('Please enter your email address');
     return;
   }}
-  
+
   const subject = encodeURIComponent('{}');
   const body = encodeURIComponent(`Hello,
 
@@ -118,16 +118,16 @@ I would like to subscribe to your newsletter.
 My email address is: ${{userEmail}}
 
 Thank you!`);
-  
+
   const mailtoUrl = `mailto:${{subscribeEmail}}?subject=${{subject}}&body=${{body}}`;
-  
+
   // Try to open the email client
   window.location.href = mailtoUrl;
-  
+
   // Show confirmation message
   const form = event.target;
   const originalContent = form.innerHTML;
-  
+
   form.innerHTML = `
     <div style="text-align: center; padding: 20px;">
       <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
@@ -136,7 +136,7 @@ Thank you!`);
       <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px; background: var(--color-primary, #007acc); color: white; border: none; border-radius: 6px; cursor: pointer;">Try Again</button>
     </div>
   `;
-  
+
   // Reset form after 10 seconds
   setTimeout(() => {{
     form.innerHTML = originalContent;
@@ -229,7 +229,7 @@ Thank you!`);
         // Clean output directory
         self.clean_output_dir()?;
 
-        let is_personal = self.config.site.site_type == "personal";
+        let is_personal = self.config.site.site_type == SiteType::Personal;
 
         if is_personal {
             // Personal website - just generate the index page
