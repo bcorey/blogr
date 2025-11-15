@@ -21,6 +21,7 @@ pub use terminal_candy::TerminalCandyTheme;
 pub use typewriter::TypewriterTheme;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum SiteType {
     Blog,
     Personal,
