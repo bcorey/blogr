@@ -224,55 +224,22 @@ Thank you!`);
 
     /// Build the entire site
     pub fn build(&self) -> Result<()> {
+        let theme_info = get_theme_by_name(&self.config.theme.name)
+            .ok_or(anyhow!(
+                "Theme {} not found in this version of Blogr.",
+                self.config.theme.name
+            ))
+            .map(|theme| theme.info())?;
+
         println!("🚀 Building site with theme '{}'", self.config.theme.name);
 
         // Clean output directory
         self.clean_output_dir()?;
 
-        let is_personal = self.config.site.site_type == SiteType::Personal;
-
-        if is_personal {
-            // Personal website - just generate the index page
-            self.generate_personal_index()?;
-        } else {
-            // Blog mode - generate all blog pages
-            // Load all posts
-            let post_manager = PostManager::new(self.project.posts_dir());
-            let mut all_posts = post_manager.load_all_posts()?;
-
-            // Filter posts based on build options
-            all_posts.retain(|post| self.should_include_post(post));
-
-            // Sort posts by date (newest first)
-            all_posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
-
-            println!("📝 Processing {} posts", all_posts.len());
-
-            // Generate individual post pages
-            self.generate_post_pages(&all_posts)?;
-
-            // Generate index page
-            self.generate_index_page(&all_posts)?;
-
-            // Generate archive pages
-            self.generate_archive_pages(&all_posts)?;
-
-            // Generate tag pages
-            self.generate_tag_pages(&all_posts)?;
-
-            // Generate RSS feed
-            self.generate_rss_feed(&all_posts)?;
-
-            // Generate static JSON files for pagination
-            self.generate_posts_json(&all_posts)?;
-
-            // Generate search index
-            self.generate_search_index(&all_posts)?;
-
-            // Copy built-in search assets
-            self.copy_search_assets()?;
+        match theme_info.site_type {
+            SiteType::Blog => self.generate_blog()?,
+            SiteType::Personal => self.generate_personal_index()?,
         }
-
         // Copy theme assets (both blog and personal)
         self.copy_theme_assets()?;
 
@@ -286,6 +253,46 @@ Thank you!`);
             "✅ Site built successfully to: {}",
             self.output_dir.display()
         );
+        Ok(())
+    }
+
+    fn generate_blog(&self) -> Result<()> {
+        // Blog mode - generate all blog pages
+        // Load all posts
+        let post_manager = PostManager::new(self.project.posts_dir());
+        let mut all_posts = post_manager.load_all_posts()?;
+
+        // Filter posts based on build options
+        all_posts.retain(|post| self.should_include_post(post));
+
+        // Sort posts by date (newest first)
+        all_posts.sort_by(|a, b| b.metadata.date.cmp(&a.metadata.date));
+
+        println!("📝 Processing {} posts", all_posts.len());
+
+        // Generate individual post pages
+        self.generate_post_pages(&all_posts)?;
+
+        // Generate index page
+        self.generate_index_page(&all_posts)?;
+
+        // Generate archive pages
+        self.generate_archive_pages(&all_posts)?;
+
+        // Generate tag pages
+        self.generate_tag_pages(&all_posts)?;
+
+        // Generate RSS feed
+        self.generate_rss_feed(&all_posts)?;
+
+        // Generate static JSON files for pagination
+        self.generate_posts_json(&all_posts)?;
+
+        // Generate search index
+        self.generate_search_index(&all_posts)?;
+
+        // Copy built-in search assets
+        self.copy_search_assets()?;
         Ok(())
     }
 
