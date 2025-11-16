@@ -54,8 +54,14 @@ pub struct ThemeInfo {
 }
 
 impl ThemeInfo {
-    pub fn as_data_row(&self) -> [&String; 4] {
-        [&self.name, &self.version, &self.author, &self.description]
+    pub fn as_data_row(&self) -> [String; 5] {
+        [
+            self.name.clone(),
+            self.version.clone(),
+            self.site_type.to_string(),
+            self.author.clone(),
+            self.description.clone(),
+        ]
     }
 }
 
