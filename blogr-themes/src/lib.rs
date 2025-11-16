@@ -20,17 +20,12 @@ pub use slate_portfolio::SlatePortfolioTheme;
 pub use terminal_candy::TerminalCandyTheme;
 pub use typewriter::TypewriterTheme;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SiteType {
+    #[default]
     Blog,
     Personal,
-}
-
-impl Default for SiteType {
-    fn default() -> Self {
-        Self::Blog
-    }
 }
 
 impl fmt::Display for SiteType {
